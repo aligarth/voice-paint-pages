@@ -58,6 +58,32 @@ function Index() {
   const [bookTitle, setBookTitle] = useState("");
   const [openPage, setOpenPage] = useState<number | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+  const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    void listBooks().then(setSavedBooks);
+  }, []);
+
+  const handleSaveBook = async () => {
+    const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
+    if (!sources.length) return;
+    try {
+      setSavedBooks(await saveBook(bookTitle || "My coloring book", sources));
+      setSaveMessage("Saved to your bookshelf!");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
+    }
+  };
+
+  const openSavedBook = (book: SavedBook) => {
+    setBookTitle(book.title);
+    setPages(book.pages.map((src, i) => ({ id: i, title: book.title, src, done: true })));
+    setOpenPage(null);
+    setSaveMessage(null);
+  };
+
+
 
   const generate = useCallback(
     async (rawText: string) => {
