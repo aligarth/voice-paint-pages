@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear } from "lucide-react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
 import { streamImage } from "@/lib/streamImage";
+import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/lib/savedBooks";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -56,6 +58,32 @@ function Index() {
   const [bookTitle, setBookTitle] = useState("");
   const [openPage, setOpenPage] = useState<number | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+  const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    void listBooks().then(setSavedBooks);
+  }, []);
+
+  const handleSaveBook = async () => {
+    const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
+    if (!sources.length) return;
+    try {
+      setSavedBooks(await saveBook(bookTitle || "My coloring book", sources));
+      setSaveMessage("Saved to your bookshelf!");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
+    }
+  };
+
+  const openSavedBook = (book: SavedBook) => {
+    setBookTitle(book.title);
+    setPages(book.pages.map((src, i) => ({ id: i, title: book.title, src, done: true })));
+    setOpenPage(null);
+    setSaveMessage(null);
+  };
+
+
 
   const generate = useCallback(
     async (rawText: string) => {
@@ -65,6 +93,7 @@ function Index() {
         return;
       }
       setGenError(null);
+      setSaveMessage(null);
       setBookTitle(subject);
       setBusy(true);
       const variations = [
@@ -255,9 +284,25 @@ function Index() {
 
       {pages.length > 0 && (
         <section className="mt-12">
-          <h2 className="text-2xl font-extrabold capitalize">
-            {bookTitle} <span className="text-muted-foreground">· {pages.length} {pages.length === 1 ? "page" : "pages"}</span>
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-extrabold capitalize">
+              {bookTitle} <span className="text-muted-foreground">· {pages.length} {pages.length === 1 ? "page" : "pages"}</span>
+            </h2>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={() => void handleSaveBook()}
+                disabled={busy || !pages.some((page) => page.src)}
+                className="btn-crayon disabled:opacity-50"
+              >
+                <BookmarkPlus className="h-4 w-4" /> Save book ({savedBooks.length}/{MAX_BOOKS})
+              </button>
+              {saveMessage && (
+                <span className="text-xs font-semibold text-primary">{saveMessage}</span>
+              )}
+            </div>
+          </div>
+
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {pages.map((page) => (
               <button
@@ -298,6 +343,47 @@ function Index() {
           </div>
         </section>
       )}
+
+      {savedBooks.length > 0 && (
+        <section className="mt-14">
+          <h2 className="flex items-center gap-2 text-2xl font-extrabold">
+            <BookOpen className="h-6 w-6" /> My bookshelf
+            <span className="text-base text-muted-foreground">· {savedBooks.length}/{MAX_BOOKS} saved</span>
+          </h2>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {savedBooks.map((book) => (
+              <div key={book.id} className="paper-card p-3">
+                <button
+                  type="button"
+                  onClick={() => openSavedBook(book)}
+                  className="block w-full text-left"
+                >
+                  <img
+                    src={book.pages[0]}
+                    alt={`Saved book: ${book.title}`}
+                    className="aspect-square w-full rounded-xl object-contain"
+                  />
+                  <p className="mt-2 truncate text-base font-extrabold capitalize">{book.title}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setSavedBooks(await deleteBook(book.id));
+                    setSaveMessage(null);
+                  }}
+                  className="btn-crayon mt-3 w-full"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
     </main>
   );
 }
