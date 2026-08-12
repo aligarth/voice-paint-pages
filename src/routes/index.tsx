@@ -342,6 +342,47 @@ function Index() {
           </div>
         </section>
       )}
+
+      {savedBooks.length > 0 && (
+        <section className="mt-14">
+          <h2 className="flex items-center gap-2 text-2xl font-extrabold">
+            <BookOpen className="h-6 w-6" /> My bookshelf
+            <span className="text-base text-muted-foreground">· {savedBooks.length}/{MAX_BOOKS} saved</span>
+          </h2>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {savedBooks.map((book) => (
+              <div key={book.id} className="paper-card p-3">
+                <button
+                  type="button"
+                  onClick={() => openSavedBook(book)}
+                  className="block w-full text-left"
+                >
+                  <img
+                    src={book.pages[0]}
+                    alt={`Saved book: ${book.title}`}
+                    className="aspect-square w-full rounded-xl object-contain"
+                  />
+                  <p className="mt-2 truncate text-base font-extrabold capitalize">{book.title}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setSavedBooks(await deleteBook(book.id));
+                    setSaveMessage(null);
+                  }}
+                  className="btn-crayon mt-3 w-full"
+                >
+                  <Trash2 className="h-4 w-4" /> Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
     </main>
   );
 }
