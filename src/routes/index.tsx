@@ -93,6 +93,7 @@ function Index() {
         return;
       }
       setGenError(null);
+      setSaveMessage(null);
       setBookTitle(subject);
       setBusy(true);
       const variations = [
