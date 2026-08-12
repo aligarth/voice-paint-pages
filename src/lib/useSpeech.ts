@@ -126,6 +126,7 @@ export function parseRequest(input: string): { subject: string; pages: number } 
       "",
     )
     .replace(/\s{2,}/g, " ")
+    .replace(/^(of|for|with)\s+/i, "")
     .replace(/^(a|an|the)\s+/i, "")
     .replace(/[.,!]+$/, "")
     .trim();

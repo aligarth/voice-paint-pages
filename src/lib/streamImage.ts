@@ -13,7 +13,15 @@ function collectImages(payload: unknown): string[] {
       return;
     }
     if (typeof node === "object") {
-      for (const value of Object.values(node as Record<string, unknown>)) walk(value);
+      const record = node as Record<string, unknown>;
+      const b64 = record["b64_json"];
+      if (typeof b64 === "string" && b64.length > 100) {
+        out.push(`data:image/png;base64,${b64}`);
+      }
+      for (const [key, value] of Object.entries(record)) {
+        if (key === "b64_json") continue;
+        walk(value);
+      }
     }
   };
   walk(payload);
