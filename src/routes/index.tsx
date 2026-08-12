@@ -234,6 +234,7 @@ function Index() {
           <button
             type="button"
             onClick={() => {
+              clearPendingCommand();
               stop();
               void generate(transcript);
             }}
