@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Eraser, Paintbrush, Pencil, RotateCcw, Trash2, Download, Droplet } from "lucide-react";
+import {
+  Eraser,
+  Paintbrush,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  Download,
+  Droplet,
+  PanelRightOpen,
+  PanelRightClose,
+} from "lucide-react";
 import { BRUSH_SIZES, CRAYON_COLORS, SPECTRUM } from "@/lib/palette";
 import { cn } from "@/lib/utils";
+
 
 type Tool = "brush" | "crayon" | "marker" | "eraser";
 
