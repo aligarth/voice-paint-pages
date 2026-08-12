@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
 import { streamImage } from "@/lib/streamImage";
