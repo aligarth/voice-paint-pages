@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
 import { streamImage } from "@/lib/streamImage";
@@ -37,8 +37,20 @@ type Page = {
 };
 
 function Index() {
-  const { supported, listening, transcript, error: micError, start, stop, setTranscript } =
-    useSpeech();
+  const {
+    supported,
+    listening,
+    transcript,
+    error: micError,
+    start,
+    stop,
+    setTranscript,
+    wakeEnabled,
+    wakeActive,
+    pendingCommand,
+    toggleWake,
+    clearPendingCommand,
+  } = useSpeech();
   const [pages, setPages] = useState<Page[]>([]);
   const [busy, setBusy] = useState(false);
   const [bookTitle, setBookTitle] = useState("");
@@ -113,6 +125,13 @@ function Index() {
     [],
   );
 
+  useEffect(() => {
+    if (pendingCommand && !busy) {
+      generate(pendingCommand);
+      clearPendingCommand();
+    }
+  }, [pendingCommand, busy, generate, clearPendingCommand]);
+
   const activePage = pages.find((page) => page.id === openPage);
 
   if (activePage?.src) {
@@ -150,21 +169,61 @@ function Index() {
         <div className="flex flex-col items-center gap-4">
           <button
             type="button"
-            onClick={listening ? stop : start}
+            onClick={() => {
+              const micActive = wakeActive || (!wakeEnabled && listening);
+              micActive ? stop() : start();
+            }}
             disabled={!supported || busy}
             className={cn(
               "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border text-primary-foreground transition-transform disabled:opacity-50",
-              listening
+              listening || wakeActive
                 ? "animate-pulse bg-primary"
                 : "bg-secondary text-secondary-foreground hover:-translate-y-1",
             )}
-            aria-label={listening ? "Stop listening" : "Start speaking"}
+            aria-label={wakeActive ? "Stop listening" : wakeEnabled ? "Start speaking" : listening ? "Stop listening" : "Start speaking"}
           >
-            {listening ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
+            {wakeActive || (!wakeEnabled && listening) ? (
+              <MicOff className="h-10 w-10" />
+            ) : (
+              <Mic className="h-10 w-10" />
+            )}
           </button>
           <p className="text-sm font-bold">
-            {listening ? "Listening… tap to stop" : supported ? "Tap and talk" : "Or type below"}
+            {wakeActive
+              ? "Say your request…"
+              : wakeEnabled
+                ? "Listening for 'Color my day'"
+                : listening
+                  ? "Listening… tap to stop"
+                  : supported
+                    ? "Tap and talk"
+                    : "Or type below"}
           </p>
+
+          {supported && (
+            <button
+              type="button"
+              onClick={toggleWake}
+              className={cn(
+                "flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-bold transition-colors",
+                wakeEnabled
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:bg-accent/10",
+              )}
+              aria-pressed={wakeEnabled}
+            >
+              <Ear className="h-4 w-4" />
+              {wakeEnabled ? "'Color my day' is on" : "Listen for 'Color my day'"}
+            </button>
+          )}
+
+          {supported && (
+            <p className="max-w-md text-center text-xs text-muted-foreground">
+              {wakeEnabled
+                ? "Keep this tab open. Your mic stays active so the wake phrase works."
+                : "Tap the mic or type your request below."}
+            </p>
+          )}
 
           <textarea
             value={transcript}
@@ -177,6 +236,7 @@ function Index() {
           <button
             type="button"
             onClick={() => {
+              clearPendingCommand();
               stop();
               void generate(transcript);
             }}
