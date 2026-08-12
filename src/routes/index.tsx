@@ -92,6 +92,7 @@ function Index() {
           );
         } catch (err) {
           const message = err instanceof Error ? err.message : "Something went wrong";
+          console.error("page generation failed", message);
           setPages((prev) =>
             prev.map((page) =>
               page.id === i

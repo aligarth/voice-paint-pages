@@ -117,15 +117,18 @@ export function parseRequest(input: string): { subject: string; pages: number } 
     if (key) pages = NUMBER_WORDS[key] ?? 0;
   }
   const subject = text
+    .trim()
     .replace(
       /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b\s*(pages?|pictures?|drawings?|sheets?)\b/gi,
       "",
     )
+    .trim()
     .replace(
       /^(i want|i'd like|i would like|please|can you|could you|make|draw|create|give me|a coloring book of|of)\s+/gi,
       "",
     )
     .replace(/\s{2,}/g, " ")
+    .trim()
     .replace(/^(of|for|with)\s+/i, "")
     .replace(/^(a|an|the)\s+/i, "")
     .replace(/[.,!]+$/, "")
