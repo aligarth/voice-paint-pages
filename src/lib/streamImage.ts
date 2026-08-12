@@ -45,10 +45,11 @@ async function readSse(res: Response, onImage: OnImage): Promise<boolean> {
           continue;
         }
         const images = collectImages(parsed);
-        if (images.length) {
-          last = images[images.length - 1];
+        const latest = images[images.length - 1];
+        if (latest) {
+          last = latest;
           got = true;
-          onImage(last, false);
+          onImage(latest, false);
         }
       }
     }
@@ -81,6 +82,7 @@ export async function streamImage(
   if (!retry.ok) throw new Error(await retry.text().catch(() => "Image generation failed"));
   const json = await retry.json();
   const images = collectImages(json);
-  if (!images.length) throw new Error("No image was returned");
-  onImage(images[images.length - 1], true);
+  const final = images[images.length - 1];
+  if (!final) throw new Error("No image was returned");
+  onImage(final, true);
 }
