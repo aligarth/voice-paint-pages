@@ -196,7 +196,7 @@ function Index() {
       {pages.length > 0 && (
         <section className="mt-12">
           <h2 className="text-2xl font-extrabold capitalize">
-            {bookTitle} <span className="text-muted-foreground">· {pages.length} pages</span>
+            {bookTitle} <span className="text-muted-foreground">· {pages.length} {pages.length === 1 ? "page" : "pages"}</span>
           </h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {pages.map((page) => (
