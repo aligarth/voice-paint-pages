@@ -37,8 +37,20 @@ type Page = {
 };
 
 function Index() {
-  const { supported, listening, transcript, error: micError, start, stop, setTranscript } =
-    useSpeech();
+  const {
+    supported,
+    listening,
+    transcript,
+    error: micError,
+    start,
+    stop,
+    setTranscript,
+    wakeEnabled,
+    wakeActive,
+    pendingCommand,
+    toggleWake,
+    clearPendingCommand,
+  } = useSpeech();
   const [pages, setPages] = useState<Page[]>([]);
   const [busy, setBusy] = useState(false);
   const [bookTitle, setBookTitle] = useState("");
@@ -112,6 +124,13 @@ function Index() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (pendingCommand && !busy) {
+      generate(pendingCommand);
+      clearPendingCommand();
+    }
+  }, [pendingCommand, busy, generate, clearPendingCommand]);
 
   const activePage = pages.find((page) => page.id === openPage);
 
