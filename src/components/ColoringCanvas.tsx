@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Eraser, Paintbrush, Pencil, RotateCcw, Trash2, Download, Droplet } from "lucide-react";
+import {
+  Eraser,
+  Paintbrush,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  Download,
+  Droplet,
+  PanelRightOpen,
+  PanelRightClose,
+} from "lucide-react";
 import { BRUSH_SIZES, CRAYON_COLORS, SPECTRUM } from "@/lib/palette";
 import { cn } from "@/lib/utils";
+
 
 type Tool = "brush" | "crayon" | "marker" | "eraser";
 
@@ -21,6 +32,9 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#ED0A3F");
   const [size, setSize] = useState(24);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [isDrawing, setIsDrawing] = useState(false);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -104,6 +118,7 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
     e.currentTarget.setPointerCapture(e.pointerId);
     pushHistory();
     drawing.current = true;
+    setIsDrawing(true);
     const point = pointFromEvent(e);
     lastPoint.current = point;
     strokeSegment(point, { x: point.x + 0.01, y: point.y + 0.01 });
@@ -119,7 +134,9 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
   const onPointerUp = () => {
     drawing.current = false;
     lastPoint.current = null;
+    setIsDrawing(false);
   };
+
 
   const undo = () => {
     const canvas = canvasRef.current;
@@ -163,8 +180,15 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
     link.click();
   };
 
+  const showPanel = panelOpen && !isDrawing;
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div
+      className={cn(
+        "grid gap-6 transition-all duration-300",
+        showPanel ? "lg:grid-cols-[minmax(0,1fr)_20rem]" : "grid-cols-1",
+      )}
+    >
       <div className="paper-card relative aspect-square w-full overflow-hidden">
         <canvas
           ref={canvasRef}
@@ -181,9 +205,28 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
           draggable={false}
         />
+
+        <button
+          type="button"
+          onClick={() => setPanelOpen((prev) => !prev)}
+          className={cn(
+            "absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border-2 border-border/70 bg-card/90 text-foreground shadow-sm backdrop-blur transition-all hover:scale-110",
+            isDrawing && "pointer-events-none opacity-0",
+          )}
+          aria-label={showPanel ? "Hide tools" : "Show tools"}
+          title={showPanel ? "Hide tools" : "Show tools"}
+        >
+          {showPanel ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
+        </button>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div
+        className={cn(
+          "flex flex-col gap-5 overflow-hidden transition-all duration-300",
+          showPanel ? "opacity-100 lg:w-auto" : "max-h-0 opacity-0 lg:max-h-0 lg:w-0",
+        )}
+      >
+
         <section className="paper-card p-4">
           <h3 className="label-chalk">Tools</h3>
           <div className="mt-3 grid grid-cols-4 gap-2">
