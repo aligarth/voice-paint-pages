@@ -118,6 +118,7 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
     e.currentTarget.setPointerCapture(e.pointerId);
     pushHistory();
     drawing.current = true;
+    setIsDrawing(true);
     const point = pointFromEvent(e);
     lastPoint.current = point;
     strokeSegment(point, { x: point.x + 0.01, y: point.y + 0.01 });
@@ -133,7 +134,9 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
   const onPointerUp = () => {
     drawing.current = false;
     lastPoint.current = null;
+    setIsDrawing(false);
   };
+
 
   const undo = () => {
     const canvas = canvasRef.current;
