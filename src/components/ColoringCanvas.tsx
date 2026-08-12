@@ -32,6 +32,9 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#ED0A3F");
   const [size, setSize] = useState(24);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [isDrawing, setIsDrawing] = useState(false);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
