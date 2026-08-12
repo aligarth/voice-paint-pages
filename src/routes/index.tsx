@@ -283,9 +283,25 @@ function Index() {
 
       {pages.length > 0 && (
         <section className="mt-12">
-          <h2 className="text-2xl font-extrabold capitalize">
-            {bookTitle} <span className="text-muted-foreground">· {pages.length} {pages.length === 1 ? "page" : "pages"}</span>
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-extrabold capitalize">
+              {bookTitle} <span className="text-muted-foreground">· {pages.length} {pages.length === 1 ? "page" : "pages"}</span>
+            </h2>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={() => void handleSaveBook()}
+                disabled={busy || !pages.some((page) => page.src)}
+                className="btn-crayon disabled:opacity-50"
+              >
+                <BookmarkPlus className="h-4 w-4" /> Save book ({savedBooks.length}/{MAX_BOOKS})
+              </button>
+              {saveMessage && (
+                <span className="text-xs font-semibold text-primary">{saveMessage}</span>
+              )}
+            </div>
+          </div>
+
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {pages.map((page) => (
               <button
