@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check } from "lucide-react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
@@ -37,17 +37,17 @@ export const Route = createFileRoute("/")({
 
 type PageSource =
   | { kind: "text"; prompt: string }
-  | { kind: "photo"; image: string; variant?: string };
+  | { kind: "photo"; image: string; variant?: string | undefined };
 
 type Page = {
   id: number;
   title: string;
   src: string | null;
   done: boolean;
-  error?: string;
-  source?: PageSource;
+  error?: string | undefined;
+  source?: PageSource | undefined;
   /** True while this single page is being re-drawn. */
-  regenerating?: boolean;
+  regenerating?: boolean | undefined;
 };
 
 function Index() {
