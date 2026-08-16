@@ -38,11 +38,14 @@ const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
 export function ColoringCanvas({
   src,
   title,
+  pageIndex = 0,
   initialPaint,
   onPaintChange,
 }: {
   src: string;
   title: string;
+  /** Which page of the current book this canvas represents. */
+  pageIndex?: number;
   /** Previously saved transparent paint layer to restore. */
   initialPaint?: string | null;
   /** Called with the paint layer (data URL) whenever the drawing changes. */
