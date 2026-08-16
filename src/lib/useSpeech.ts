@@ -173,6 +173,18 @@ export function useSpeech() {
       }
     };
     rec.onerror = (e) => {
+      // In auto mode, nothing heard / unsupported locale means try the next
+      // language the device advertises before bothering the user.
+      const retryable =
+        e.error === "no-speech" || e.error === "no-match" || e.error === "language-not-supported";
+      if (langRef.current === AUTO_LANG && retryable) {
+        const next = (candidateIndexRef.current + 1) % candidatesRef.current.length;
+        candidateIndexRef.current = next;
+        setDetectedLang(candidatesRef.current[next] ?? "en-US");
+        if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
+        setListening(false);
+        return;
+      }
       const msg =
         e.error === "not-allowed"
           ? "Microphone access was blocked. Allow it in your browser settings."
