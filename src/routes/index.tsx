@@ -221,7 +221,11 @@ function Index() {
         <h1 className="mb-6 text-3xl font-extrabold capitalize">
           {activePage.title} <span className="text-muted-foreground">· page {activePage.id + 1}</span>
         </h1>
+        <div className="mb-6">
+          <MusicPlayer compact />
+        </div>
         <ColoringCanvas src={activePage.src} title={activePage.title} />
+
       </main>
     );
   }
