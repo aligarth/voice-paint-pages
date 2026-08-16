@@ -302,8 +302,6 @@ export function ColoringCanvas({
       if (y < height - 1) stack.push([x, y + 1]);
     }
 
-    console.log("[floodFill] start", sx, sy, "touchesEdge", touchesEdge, "region", region.length);
-
     if (touchesEdge) {
       setFillMessage("That area isn't closed — try a closed shape");
       window.setTimeout(() => setFillMessage(null), 2000);
