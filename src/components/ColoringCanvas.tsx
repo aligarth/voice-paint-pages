@@ -104,7 +104,7 @@ export function ColoringCanvas({
     wallCache.current = null;
     clearPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, tool, size, color]);
+  }, [src, tool, size, color, fillTolerance]);
 
   useEffect(
     () => () => {
