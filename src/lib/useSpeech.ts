@@ -240,6 +240,9 @@ export function useSpeech() {
     wakeEnabled,
     wakeActive,
     pendingCommand,
+    lang,
+    setLang,
+
     toggleWake,
     clearPendingCommand,
   };
