@@ -202,7 +202,11 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
               }}
             />
           )}
+          {adjust.border !== false && (
+            <div className="pointer-events-none absolute inset-[3%] border-4 border-foreground" />
+          )}
         </div>
+
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-bold">
