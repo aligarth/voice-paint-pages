@@ -54,6 +54,7 @@ export function ColoringCanvas({
   onPaintChange?: (paint: string | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lineArtRef = useRef<HTMLImageElement | null>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const history = useRef<ImageData[]>([]);
