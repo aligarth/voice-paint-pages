@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Music, Play, Pause, SkipBack, SkipForward, Trash2, Volume2, X } from "lucide-react";
+import { ExternalLink, Music, Play, Pause, SkipBack, SkipForward, Trash2, Volume2, X } from "lucide-react";
 import {
   addTracks,
   dismissMusicPrompt,
