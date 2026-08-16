@@ -529,11 +529,35 @@ function Index() {
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
                 {snapShots.map((src, i) => (
-                  <div key={`${i}-${src.slice(-12)}`} className="group relative aspect-square">
+                  <div
+                    key={`${i}-${src.slice(-12)}`}
+                    draggable
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const from = dragIndex;
+                      if (from === null || from === i) return;
+                      setSnapShots((prev) => {
+                        const next = [...prev];
+                        const [moved] = next.splice(from, 1);
+                        next.splice(i, 0, moved);
+                        return next;
+                      });
+                      setDragIndex(null);
+                    }}
+                    onDragEnd={() => setDragIndex(null)}
+                    className={cn(
+                      "group relative aspect-square cursor-move rounded-xl transition-opacity",
+                      dragIndex === i ? "opacity-40" : "opacity-100",
+                    )}
+                  >
                     <img
                       src={src}
                       alt={`Snapped photo ${i + 1}`}
-                      className="h-full w-full rounded-xl border-2 border-border object-cover"
+                      className="pointer-events-none h-full w-full rounded-xl border-2 border-border object-cover"
                     />
                     <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
