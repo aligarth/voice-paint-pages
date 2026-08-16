@@ -244,7 +244,6 @@ export function ColoringCanvas({
   };
 
   const floodFill = async (startX: number, startY: number) => {
-    console.log("[floodFill] entered", startX, startY);
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -302,8 +301,6 @@ export function ColoringCanvas({
       if (y > 0) stack.push([x, y - 1]);
       if (y < height - 1) stack.push([x, y + 1]);
     }
-
-    console.log("[floodFill] start", sx, sy, "touchesEdge", touchesEdge, "region", region.length);
 
     if (touchesEdge) {
       setFillMessage("That area isn't closed — try a closed shape");
