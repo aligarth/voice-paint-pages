@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Music, Play, Pause, SkipBack, SkipForward, Trash2, Volume2, X } from "lucide-react";
+import { ExternalLink, Music, Play, Pause, SkipBack, SkipForward, Trash2, Volume2, X } from "lucide-react";
 import {
   addTracks,
   dismissMusicPrompt,
@@ -52,6 +52,40 @@ export function MusicPlayer({ compact = false }: { compact?: boolean }) {
     );
   }
 
+  const services = [
+    { name: "Apple Music", url: "https://music.apple.com/" },
+    { name: "Spotify", url: "https://open.spotify.com/" },
+    { name: "Pandora", url: "https://www.pandora.com/" },
+    { name: "YouTube Music", url: "https://music.youtube.com/" },
+    { name: "Amazon Music", url: "https://music.amazon.com/" },
+    { name: "SoundCloud", url: "https://soundcloud.com/discover" },
+    { name: "iHeartRadio", url: "https://www.iheart.com/" },
+    { name: "Tidal", url: "https://listen.tidal.com/" },
+  ];
+
+  const serviceButtons = (
+    <div className="mt-5">
+      <p className="text-center text-sm font-bold">Or open your favorite music app</p>
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
+        {services.map((s) => (
+          <a
+            key={s.name}
+            href={s.url}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-crayon"
+            aria-label={`Play ${s.name}`}
+          >
+            <ExternalLink className="h-4 w-4" /> {s.name}
+          </a>
+        ))}
+      </div>
+      <p className="mx-auto mt-2 max-w-md text-center text-xs text-muted-foreground">
+        Your music app opens in another tab and keeps playing while you color here.
+      </p>
+    </div>
+  );
+
   return (
     <section className="paper-card mx-auto mt-6 max-w-2xl p-6 sm:p-8">
       {picker}
@@ -62,8 +96,8 @@ export function MusicPlayer({ compact = false }: { compact?: boolean }) {
       {!music.enabled ? (
         <>
           <p className="mx-auto mt-2 max-w-md text-center text-sm text-muted-foreground">
-            Play songs already downloaded on your phone, tablet or computer in the background while
-            you color.
+            Play songs already downloaded on your phone, tablet or computer — or jump straight into
+            Apple Music, Spotify, Pandora and more.
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <button
@@ -80,8 +114,10 @@ export function MusicPlayer({ compact = false }: { compact?: boolean }) {
               <X className="h-4 w-4" /> No thanks
             </button>
           </div>
+          {serviceButtons}
         </>
       ) : (
+
         <>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <button type="button" onClick={() => input.current?.click()} className="btn-crayon">
@@ -155,7 +191,9 @@ export function MusicPlayer({ compact = false }: { compact?: boolean }) {
               </ul>
             </>
           )}
+          {serviceButtons}
         </>
+
       )}
     </section>
   );
