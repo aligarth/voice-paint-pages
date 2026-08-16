@@ -23,7 +23,19 @@ const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
   { id: "eraser", label: "Eraser", icon: Eraser },
 ];
 
-export function ColoringCanvas({ src, title }: { src: string; title: string }) {
+export function ColoringCanvas({
+  src,
+  title,
+  initialPaint,
+  onPaintChange,
+}: {
+  src: string;
+  title: string;
+  /** Previously saved transparent paint layer to restore. */
+  initialPaint?: string | null;
+  /** Called with the paint layer (data URL) whenever the drawing changes. */
+  onPaintChange?: (paint: string | null) => void;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
@@ -45,7 +57,18 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     history.current = [];
+    if (!initialPaint) return;
+    const saved = new Image();
+    saved.onload = () => ctx.drawImage(saved, 0, 0, canvas.width, canvas.height);
+    saved.src = initialPaint;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
+
+  const reportPaint = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !onPaintChange) return;
+    onPaintChange(canvas.toDataURL("image/png"));
+  };
 
   const pointFromEvent = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
@@ -135,6 +158,7 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
     drawing.current = false;
     lastPoint.current = null;
     setIsDrawing(false);
+    reportPaint();
   };
 
 
@@ -144,6 +168,7 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
     const previous = history.current.pop();
     if (!canvas || !ctx || !previous) return;
     ctx.putImageData(previous, 0, 0);
+    reportPaint();
   };
 
   const clear = () => {
@@ -152,6 +177,7 @@ export function ColoringCanvas({ src, title }: { src: string; title: string }) {
     if (!canvas || !ctx) return;
     pushHistory();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    onPaintChange?.(null);
   };
 
   const download = async () => {
