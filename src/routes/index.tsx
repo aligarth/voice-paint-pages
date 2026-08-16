@@ -10,7 +10,14 @@ import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
-import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/lib/savedBooks";
+import {
+  deleteBook,
+  listBooks,
+  makeBookId,
+  saveBook,
+  saveBookRecord,
+  type SavedBook,
+} from "@/lib/savedBooks";
 import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
 import { PhotoPrep } from "@/components/PhotoPrep";
@@ -107,6 +114,8 @@ function Index() {
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  /** Page id -> the one-page book it was auto-saved into, so redraws replace instead of duplicate. */
+  const autoSavedRef = useRef<Map<number, { bookId: string; src: string }>>(new Map());
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
@@ -224,11 +233,57 @@ function Index() {
     try {
       const paints = pages.map((page) => page.paint ?? null);
       setSavedBooks(await saveBook(bookTitle || "My coloring book", sources, paints));
-      setSaveMessage("Saved to your bookshelf!");
+      setSaveMessage("Saved to your bookshelf as one book!");
     } catch (err) {
       setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
     }
   };
+
+  /**
+   * Every freshly drawn page becomes its own little book. Pages restored from a session or
+   * an opened book carry no `source`, so they are never re-saved.
+   */
+  useEffect(() => {
+    if (!restored) return;
+    const fresh = pages.filter(
+      (page) => page.source && page.done && page.src && !page.error && !page.regenerating,
+    );
+    if (!fresh.length) return;
+
+    let changed = false;
+    const run = async () => {
+      for (const page of fresh) {
+        const src = page.src!;
+        const existing = autoSavedRef.current.get(page.id);
+        if (existing?.src === src) continue;
+        const total = pages.filter((item) => item.source).length;
+        const label =
+          page.source?.kind === "photo"
+            ? `${page.title || "Photo page"} — photo ${page.id + 1}`
+            : total > 1
+              ? `${page.title || "Coloring page"} ${page.id + 1}`
+              : page.title || "Coloring page";
+        const bookId = existing?.bookId ?? makeBookId();
+        autoSavedRef.current.set(page.id, { bookId, src });
+        try {
+          await saveBookRecord({
+            id: bookId,
+            title: label,
+            savedAt: Date.now(),
+            pages: [src],
+            paints: [page.paint ?? null],
+          });
+          changed = true;
+        } catch {
+          autoSavedRef.current.delete(page.id);
+        }
+      }
+      if (changed) setSavedBooks(await listBooks());
+    };
+    void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages, restored]);
+
 
   const startFresh = () => {
     setPages([]);
@@ -1128,7 +1183,7 @@ function Index() {
                 disabled={busy || !pages.some((page) => page.src)}
                 className="btn-crayon disabled:opacity-50"
               >
-                <BookmarkPlus className="h-4 w-4" /> Save book ({savedBooks.length}/{MAX_BOOKS})
+                <BookmarkPlus className="h-4 w-4" /> Save as one book
               </button>
               <button
                 type="button"
@@ -1371,7 +1426,9 @@ function Index() {
         <section className="mt-14">
           <h2 className="flex items-center gap-2 text-2xl font-extrabold">
             <BookOpen className="h-6 w-6" /> My bookshelf
-            <span className="text-base text-muted-foreground">· {savedBooks.length}/{MAX_BOOKS} saved</span>
+            <span className="text-base text-muted-foreground">
+              · {savedBooks.length} saved · every new page saves itself
+            </span>
             <Link to="/books" className="btn-crayon ml-auto text-sm">
               <Library className="h-4 w-4" /> My books
             </Link>

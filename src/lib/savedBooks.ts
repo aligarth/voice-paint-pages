@@ -7,7 +7,7 @@ export type SavedBook = {
   paints?: (string | null)[] | undefined;
 };
 
-export const MAX_BOOKS = 5;
+export const MAX_BOOKS = 100;
 
 const DB_NAME = "say-and-color";
 const STORE = "books";
@@ -91,5 +91,61 @@ export async function deleteBookPage(id: string, pageIndex: number): Promise<Sav
   const paints = book.paints?.filter((_, i) => i !== pageIndex);
   if (!pages.length) return deleteBook(id);
   await tx("readwrite", (store) => store.put({ ...book, pages, paints }));
+  return listBooks();
+}
+
+/** Writes a book record as-is (used by auto-save, combine and undo). */
+export async function saveBookRecord(book: SavedBook): Promise<SavedBook[]> {
+  await tx("readwrite", (store) => store.put(book));
+  return listBooks();
+}
+
+export function makeBookId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export type CombineUndo = { created: SavedBook; removed: SavedBook[] };
+
+/** Merges the given books (in the order supplied) into one book and removes the originals. */
+export async function combineBooks(
+  ids: string[],
+  title: string,
+): Promise<{ books: SavedBook[]; undo: CombineUndo }> {
+  const all = await listBooks();
+  const picked = ids
+    .map((id) => all.find((book) => book.id === id))
+    .filter((book): book is SavedBook => Boolean(book));
+  if (picked.length < 2) throw new Error("Pick at least two books to combine.");
+
+  const pages: string[] = [];
+  const paints: (string | null)[] = [];
+  for (const book of picked) {
+    book.pages.forEach((src, i) => {
+      pages.push(src);
+      paints.push(book.paints?.[i] ?? null);
+    });
+  }
+
+  const created: SavedBook = {
+    id: makeBookId(),
+    title: title.trim() || "My big coloring book",
+    savedAt: Date.now(),
+    pages,
+    paints,
+  };
+
+  await tx("readwrite", (store) => store.put(created));
+  for (const book of picked) {
+    await tx("readwrite", (store) => store.delete(book.id));
+  }
+  return { books: await listBooks(), undo: { created, removed: picked } };
+}
+
+/** Reverses a combine: drops the merged book and puts the originals back. */
+export async function undoCombine(payload: CombineUndo): Promise<SavedBook[]> {
+  await tx("readwrite", (store) => store.delete(payload.created.id));
+  for (const book of payload.removed) {
+    await tx("readwrite", (store) => store.put(book));
+  }
   return listBooks();
 }
