@@ -973,9 +973,7 @@ function Index() {
 
           {supported && (
             <p className="max-w-md text-center text-xs text-muted-foreground">
-              {wakeEnabled
-                ? "Keep this tab open. Your mic stays active so the wake phrase works."
-                : "Tap the mic or type your request below."}
+              Tap the mic or type your request below.
             </p>
           )}
 
