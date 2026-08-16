@@ -529,7 +529,7 @@ function Index() {
 
   const openCamera = useCallback(() => {
     setGenError(null);
-    if (typeof navigator !== "undefined" && navigator.mediaDevices?.getUserMedia) {
+    if (typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function") {
       setCameraOpen(true);
       return;
     }
