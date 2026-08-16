@@ -237,7 +237,7 @@ function BooksPage() {
                   {exportingId === `${book.id}-zip` ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <FileDown className="h-4 w-4" />
+                    <FileArchive className="h-4 w-4" />
                   )}
                   {exportingId === `${book.id}-zip` ? "Building ZIP…" : "Export ZIP"}
                 </button>
