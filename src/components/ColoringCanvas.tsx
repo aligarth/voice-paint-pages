@@ -26,6 +26,8 @@ import {
   type Checkpoint,
 } from "@/lib/checkpoints";
 import { cn } from "@/lib/utils";
+import { downloadFlattenedPage } from "@/lib/flattenPage";
+
 
 
 type Tool = "brush" | "crayon" | "marker" | "eraser" | "fill";
