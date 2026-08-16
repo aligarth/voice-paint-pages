@@ -55,6 +55,11 @@ export function ColoringCanvas({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lineArtRef = useRef<HTMLImageElement | null>(null);
+  const previewRef = useRef<HTMLCanvasElement | null>(null);
+  const previewMask = useRef<Uint8Array | null>(null);
+  const wallCache = useRef<{ key: string; wall: Uint8Array } | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const pendingFill = useRef<{ x: number; y: number } | null>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const history = useRef<ImageData[]>([]);
