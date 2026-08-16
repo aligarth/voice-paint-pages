@@ -222,6 +222,25 @@ export function ColoringCanvas({
     link.click();
   };
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key.toLowerCase() === "z" && e.shiftKey) {
+        e.preventDefault();
+        redo();
+      } else if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+      } else if (e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const showPanel = panelOpen && !isDrawing;
 
   return (
