@@ -336,20 +336,7 @@ export function ColoringCanvas({
     const wallMap = await getWallMap(width, height);
     if (!wallMap) return null;
 
-    const targetIdx = (sy * width + sx) * 4;
-    const tr = paintData.data[targetIdx] ?? 0;
-    const tg = paintData.data[targetIdx + 1] ?? 0;
-    const tb = paintData.data[targetIdx + 2] ?? 0;
-    const ta = paintData.data[targetIdx + 3] ?? 0;
     const tolerance = fillTolerance;
-
-    const matchesTarget = (idx: number) => {
-      const dr = (paintData.data[idx] ?? 0) - tr;
-      const dg = (paintData.data[idx + 1] ?? 0) - tg;
-      const db = (paintData.data[idx + 2] ?? 0) - tb;
-      const da = (paintData.data[idx + 3] ?? 0) - ta;
-      return Math.hypot(dr, dg, db, da) <= tolerance;
-    };
 
     const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
 
@@ -390,6 +377,19 @@ export function ColoringCanvas({
       seedX = best.x;
       seedY = best.y;
     }
+
+    const targetIdx = (seedY * width + seedX) * 4;
+    const tr = paintData.data[targetIdx] ?? 0;
+    const tg = paintData.data[targetIdx + 1] ?? 0;
+    const tb = paintData.data[targetIdx + 2] ?? 0;
+    const ta = paintData.data[targetIdx + 3] ?? 0;
+    const matchesTarget = (idx: number) => {
+      const dr = (paintData.data[idx] ?? 0) - tr;
+      const dg = (paintData.data[idx + 1] ?? 0) - tg;
+      const db = (paintData.data[idx + 2] ?? 0) - tb;
+      const da = (paintData.data[idx + 3] ?? 0) - ta;
+      return Math.hypot(dr, dg, db, da) <= tolerance;
+    };
 
     const visited = new Uint8Array(width * height);
     const stack: [number, number][] = [[seedX, seedY]];
