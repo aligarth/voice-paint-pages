@@ -857,6 +857,25 @@ function Index() {
             </div>
           </div>
 
+          {busy && pages.length > 0 && (
+            <div className="paper-card mt-5 p-4">
+              <div className="flex items-center justify-between text-sm font-bold">
+                <span>Generating your pages…</span>
+                <span className="text-primary">
+                  {pages.filter((page) => page.done).length} / {pages.length}
+                </span>
+              </div>
+              <div className="mt-2 h-4 w-full overflow-hidden rounded-full border-2 border-border bg-card">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{
+                    width: `${Math.round((pages.filter((page) => page.done).length / pages.length) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {reviewing && (
             <div className="paper-card mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
               <p className="text-sm font-bold">
