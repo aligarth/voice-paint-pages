@@ -53,6 +53,7 @@ export function ColoringCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
 
   useEffect(() => {
