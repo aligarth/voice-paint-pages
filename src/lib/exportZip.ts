@@ -1,48 +1,7 @@
 import JSZip from "jszip";
+import { flattenPageToBlob, type FlattenSource } from "./flattenPage";
 
-export type ZipPage = { src: string; paint?: string | null };
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Could not load a page image"));
-    img.src = src;
-  });
-}
-
-async function renderPagePng(page: ZipPage): Promise<Blob> {
-  const img = await loadImage(page.src);
-  const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth || 1024;
-  canvas.height = img.naturalHeight || 1024;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas not available");
-
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  if (page.paint) {
-    try {
-      const paint = await loadImage(page.paint);
-      ctx.drawImage(paint, 0, 0, canvas.width, canvas.height);
-    } catch {
-      /* skip unreadable paint layer */
-    }
-  }
-
-  ctx.globalCompositeOperation = "multiply";
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  ctx.globalCompositeOperation = "source-over";
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("Could not create PNG blob"));
-    }, "image/png");
-  });
-}
+export type ZipPage = FlattenSource;
 
 export function zipFileName(title: string) {
   const slug = title.trim().replace(/\s+/g, "-").toLowerCase().replace(/[^a-z0-9-]/g, "");
@@ -60,7 +19,7 @@ export async function exportPagesToZip(title: string, sources: ZipPage[]) {
   const safeTitle = (title.trim() || "page").replace(/\s+/g, "-").toLowerCase().replace(/[^a-z0-9-]/g, "");
 
   for (let i = 0; i < sources.length; i += 1) {
-    const blob = await renderPagePng(sources[i]!);
+    const blob = await flattenPageToBlob(sources[i]!);
     folder.file(`${safeTitle || "page"}-${String(i + 1).padStart(2, "0")}.png`, blob);
   }
 
