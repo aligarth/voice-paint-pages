@@ -226,21 +226,40 @@ function BooksPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {book.pages.map((src, index) => (
                 <div key={index} className="rounded-2xl border-2 border-border p-2">
-                  <img
-                    src={src}
-                    alt={`${book.title} page ${index + 1}`}
-                    className="aspect-square w-full rounded-xl object-contain"
-                  />
+                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-white">
+                    <img
+                      src={src}
+                      alt={`${book.title} page ${index + 1}`}
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                    {book.paints?.[index] && (
+                      <img
+                        src={book.paints[index]!}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-contain"
+                      />
+                    )}
+                  </div>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <span className="text-xs font-extrabold">Page {index + 1}</span>
-                    <button
-                      type="button"
-                      aria-label={`Delete page ${index + 1}`}
-                      className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                      onClick={async () => setBooks(await deleteBookPage(book.id, index))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label={`Export page ${index + 1} as PNG`}
+                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                        onClick={() => void exportPagePng(book, index)}
+                      >
+                        <ImageDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete page ${index + 1}`}
+                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                        onClick={async () => setBooks(await deleteBookPage(book.id, index))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
