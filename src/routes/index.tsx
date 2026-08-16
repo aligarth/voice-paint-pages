@@ -1157,6 +1157,18 @@ function Index() {
               >
                 <Pencil className="h-4 w-4" /> Edit request
               </button>
+              <button
+                type="button"
+                onClick={() => void regenerateAll()}
+                disabled={busy || !pages.some((page) => page.src)}
+                className="btn-crayon disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {busy ? "Redrawing…" : "Regenerate all"}
+              </button>
+              <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
+                <RotateCcw className="h-4 w-4" /> Start over
+              </button>
               {saveMessage && (
                 <span className="text-xs font-semibold text-primary">{saveMessage}</span>
               )}
