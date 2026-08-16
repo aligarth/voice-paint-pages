@@ -3,6 +3,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, staticFile,
 import { loadFont } from "@remotion/google-fonts/Fredoka";
 import { palette } from "../lib/colors";
 import { slideUp, scaleIn } from "../lib/animations";
+import { FootageLayer, footageTextShadow } from "../components/FootageLayer";
 
 const { fontFamily: displayFont } = loadFont("normal", { weights: ["600"], subsets: ["latin"] });
 
@@ -18,30 +19,36 @@ export const SnapItScene: React.FC = () => {
   const photoScale = scaleIn(frame, 30, 15);
   const lineArtScale = scaleIn(frame, 30, 65);
 
-  const flash = interpolate(frame, [50, 55, 60], [0, 1, 0], {
+  const flash = interpolate(frame, [50, 55, 62], [0, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const imageSize = Math.min(width, height) * (isVertical ? 0.42 : 0.45);
+  const imageSize = Math.min(width, height) * (isVertical ? 0.36 : 0.34);
   const gap = isVertical ? 24 : 40;
   const totalWidth = imageSize * 2 + gap;
   const startX = (width - totalWidth) / 2;
-  const imageY = isVertical ? height * 0.3 : height * 0.25;
+  const imageY = isVertical ? height * 0.58 : height * 0.55;
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <FootageLayer src="snap-it.mp4" dim={0.18} zoom={0.06} />
+
+      {/* camera shutter flash across the whole frame */}
+      <AbsoluteFill style={{ background: palette.white, opacity: flash * 0.75 }} />
+
       <div
         style={{
           fontFamily: displayFont,
           fontSize: titleSize,
           fontWeight: 600,
-          color: palette.charcoal,
+          color: palette.white,
+          textShadow: footageTextShadow,
           textAlign: "center",
           opacity: titleAnim.opacity,
           transform: `translateY(${titleAnim.y}px)`,
           position: "absolute",
-          top: isVertical ? height * 0.08 : height * 0.08,
+          top: isVertical ? height * 0.08 : height * 0.07,
         }}
       >
         Or snap it.
@@ -57,7 +64,7 @@ export const SnapItScene: React.FC = () => {
           borderRadius: 20,
           background: palette.white,
           border: `4px solid ${palette.charcoal}`,
-          boxShadow: `8px 8px 0 ${palette.accent}`,
+          boxShadow: `0 20px 50px rgba(45,42,38,0.45)`,
           overflow: "hidden",
           opacity: photoScale.opacity,
           transform: `scale(${photoScale.scale}) rotate(-3deg)`,
@@ -66,14 +73,6 @@ export const SnapItScene: React.FC = () => {
         <Img
           src={staticFile("images/toy-photo.jpg")}
           style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: palette.white,
-            opacity: flash,
-          }}
         />
       </div>
 
@@ -87,7 +86,7 @@ export const SnapItScene: React.FC = () => {
           borderRadius: 20,
           background: palette.white,
           border: `4px solid ${palette.charcoal}`,
-          boxShadow: `8px 8px 0 ${palette.primary}`,
+          boxShadow: `0 20px 50px rgba(45,42,38,0.45)`,
           overflow: "hidden",
           opacity: lineArtScale.opacity,
           transform: `scale(${lineArtScale.scale}) rotate(3deg)`,
@@ -108,10 +107,11 @@ export const SnapItScene: React.FC = () => {
           height: 60,
           opacity: interpolate(frame, [55, 75], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
           transform: `scale(${interpolate(frame, [55, 75], [0.5, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })})`,
+          filter: "drop-shadow(0 2px 6px rgba(45,42,38,0.6))",
         }}
         viewBox="0 0 24 24"
         fill="none"
-        stroke={palette.charcoal}
+        stroke={palette.white}
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
