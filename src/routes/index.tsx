@@ -345,6 +345,38 @@ function Index() {
         </div>
       </section>
 
+      <section className="paper-card mx-auto mt-6 max-w-2xl p-6 text-center sm:p-8">
+        <h2 className="flex items-center justify-center gap-2 text-2xl font-extrabold">
+          <Camera className="h-6 w-6" /> Or make a book from your photos
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Snap a picture with your camera (or pick a few from your gallery) and we'll turn each one
+          into a coloring page — one page per photo.
+        </p>
+        <input
+          ref={photoInput}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []).slice(0, 12);
+            e.target.value = "";
+            void generateFromPhotos(files);
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => photoInput.current?.click()}
+          disabled={busy}
+          className="mt-5 inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary px-7 py-3 text-lg font-extrabold text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+          {busy ? "Turning photos into pages…" : "Take or choose photos"}
+        </button>
+      </section>
+
       {pages.length > 0 && (
         <section className="mt-12">
           <div className="flex flex-wrap items-center justify-between gap-3">
