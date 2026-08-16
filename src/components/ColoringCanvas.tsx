@@ -241,9 +241,118 @@ export function ColoringCanvas({
     ctx.restore();
   };
 
+  /** Flatten what the user actually sees: white paper, paint layer, then line art multiplied. */
+  const flattenVisible = (canvas: HTMLCanvasElement) => {
+    const out = document.createElement("canvas");
+    out.width = canvas.width;
+    out.height = canvas.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(canvas, 0, 0);
+    const line = lineArtRef.current;
+    if (line && line.complete && line.naturalWidth) {
+      ctx.globalCompositeOperation = "multiply";
+      ctx.drawImage(line, 0, 0, out.width, out.height);
+      ctx.globalCompositeOperation = "source-over";
+    }
+    try {
+      return ctx.getImageData(0, 0, out.width, out.height);
+    } catch {
+      return null;
+    }
+  };
+
+  /** Microsoft Paint style bucket fill: spread across touching pixels of the tapped color. */
+  const fillAt = (point: { x: number; y: number }) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    const sx = Math.round(point.x);
+    const sy = Math.round(point.y);
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return;
+
+    const visible = flattenVisible(canvas);
+    if (!visible) return;
+    const px = visible.data;
+
+    const seed = (sy * w + sx) * 4;
+    const sr = px[seed];
+    const sg = px[seed + 1];
+    const sb = px[seed + 2];
+
+    const target = { r: 0, g: 0, b: 0 };
+    const hex = color.replace("#", "");
+    const full = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+    target.r = parseInt(full.slice(0, 2), 16) || 0;
+    target.g = parseInt(full.slice(2, 4), 16) || 0;
+    target.b = parseInt(full.slice(4, 6), 16) || 0;
+
+    const matches = (i: number) =>
+      Math.abs(px[i] - sr) <= FILL_TOLERANCE &&
+      Math.abs(px[i + 1] - sg) <= FILL_TOLERANCE &&
+      Math.abs(px[i + 2] - sb) <= FILL_TOLERANCE;
+
+    const mask = new Uint8Array(w * h);
+    const stack: number[] = [sx, sy];
+    let filled = 0;
+
+    while (stack.length) {
+      const y = stack.pop()!;
+      const x0 = stack.pop()!;
+      if (y < 0 || y >= h) continue;
+      let left = x0;
+      // Walk the scanline out to both boundaries, then queue the rows above and below.
+      while (left > 0 && !mask[y * w + (left - 1)] && matches(((y * w) + left - 1) * 4)) left--;
+      let right = x0;
+      while (right < w - 1 && !mask[y * w + (right + 1)] && matches(((y * w) + right + 1) * 4)) right++;
+      for (let x = left; x <= right; x++) {
+        const idx = y * w + x;
+        if (mask[idx]) continue;
+        mask[idx] = 1;
+        filled++;
+        for (const ny of [y - 1, y + 1]) {
+          if (ny < 0 || ny >= h) continue;
+          const nIdx = ny * w + x;
+          if (!mask[nIdx] && matches(nIdx * 4)) stack.push(x, ny);
+        }
+      }
+    }
+
+    if (!filled) return;
+
+    pushHistory();
+    const patch = ctx.createImageData(w, h);
+    const out = patch.data;
+    for (let i = 0; i < mask.length; i++) {
+      if (!mask[i]) continue;
+      const o = i * 4;
+      out[o] = target.r;
+      out[o + 1] = target.g;
+      out[o + 2] = target.b;
+      out[o + 3] = 255;
+    }
+    // Blit only the region onto the paint layer; line art lives in its own element.
+    const layer = document.createElement("canvas");
+    layer.width = w;
+    layer.height = h;
+    const layerCtx = layer.getContext("2d");
+    if (!layerCtx) return;
+    layerCtx.putImageData(patch, 0, 0);
+    ctx.drawImage(layer, 0, 0);
+    reportPaint();
+  };
+
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     const point = pointFromEvent(e);
+    if (tool === "fill") {
+      fillAt(point);
+      return;
+    }
     pushHistory();
     drawing.current = true;
     setIsDrawing(true);
@@ -255,6 +364,7 @@ export function ColoringCanvas({
     lastTime.current = performance.now();
     strokeSegment(point, { x: point.x + 0.01, y: point.y + 0.01 }, e.pressure);
   };
+
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!drawing.current || !lastPoint.current) return;
