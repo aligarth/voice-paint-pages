@@ -66,6 +66,7 @@ function Index() {
   const [genError, setGenError] = useState<string | null>(null);
   const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [heard, setHeard] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
