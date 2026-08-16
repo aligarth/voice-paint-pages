@@ -5,6 +5,7 @@ import {
   BookOpen,
   Check,
   FileDown,
+  ImageDown,
   Loader2,
   Pencil,
   Trash2,
@@ -57,7 +58,7 @@ function BooksPage() {
   const openBook = async (book: SavedBook) => {
     await saveSession({
       title: book.title,
-      pages: book.pages.map((src) => ({ src })),
+      pages: book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
       openPage: null,
     });
     void navigate({ to: "/" });
@@ -67,13 +68,52 @@ function BooksPage() {
     setExportingId(book.id);
     setMessage(null);
     try {
-      await exportPagesToPdf(book.title, book.pages.map((src) => ({ src })));
+      await exportPagesToPdf(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
       setMessage(`Downloaded “${book.title}” as a PDF.`);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not build the PDF.");
     } finally {
       setExportingId(null);
     }
+  };
+
+  const exportPagePng = async (book: SavedBook, index: number) => {
+    const src = book.pages[index];
+    if (!src) return;
+    const canvas = document.createElement("canvas");
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = src;
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    });
+    canvas.width = img.naturalWidth || 1024;
+    canvas.height = img.naturalHeight || 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const paint = book.paints?.[index];
+    if (paint) {
+      const paintImg = new Image();
+      paintImg.crossOrigin = "anonymous";
+      paintImg.src = paint;
+      await new Promise<void>((resolve) => {
+        paintImg.onload = () => resolve();
+        paintImg.onerror = () => resolve();
+      });
+      ctx.drawImage(paintImg, 0, 0, canvas.width, canvas.height);
+    }
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${book.title.replace(/\s+/g, "-").toLowerCase()}-page-${index + 1}.png`;
+    link.click();
   };
 
   return (
