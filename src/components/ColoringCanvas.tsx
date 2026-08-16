@@ -295,7 +295,7 @@ export function ColoringCanvas({
     const tg = paintData.data[targetIdx + 1] ?? 0;
     const tb = paintData.data[targetIdx + 2] ?? 0;
     const ta = paintData.data[targetIdx + 3] ?? 0;
-    const tolerance = 32;
+    const tolerance = fillTolerance;
 
     const matchesTarget = (idx: number) => {
       const dr = (paintData.data[idx] ?? 0) - tr;
