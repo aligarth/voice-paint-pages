@@ -20,6 +20,24 @@ type Recognition = {
 
 const WAKE_PHRASE = "color my day";
 
+/**
+ * How long we wait after speech stops before closing the mic.
+ * Long enough that natural mid-sentence pauses ("five pages of… um… dragons")
+ * don't cut people off, short enough that it doesn't feel stuck.
+ */
+const SILENCE_AFTER_FINAL_MS = 1800;
+/** Interim words are still arriving, so wait noticeably longer. */
+const SILENCE_AFTER_INTERIM_MS = 3200;
+/** A request this short is probably unfinished — give extra room to continue. */
+const SHORT_REQUEST_WORDS = 4;
+const SHORT_REQUEST_GRACE_MS = 1200;
+
+function silenceDelay(text: string, isFinal: boolean): number {
+  const base = isFinal ? SILENCE_AFTER_FINAL_MS : SILENCE_AFTER_INTERIM_MS;
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return words > 0 && words < SHORT_REQUEST_WORDS ? base + SHORT_REQUEST_GRACE_MS : base;
+}
+
 export function useSpeech() {
   const recognitionRef = useRef<Recognition | null>(null);
   const [supported, setSupported] = useState(false);
