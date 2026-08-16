@@ -18,13 +18,14 @@ Each renders to an MP4 you can download.
 
 ## The story (same beat sheet in all three cuts)
 
-1. **Hook** — big type: "Say it. We draw it." over a blank coloring page that a crayon line starts sketching across.
-2. **Say it** — a spoken phrase appears as live captions ("a dragon eating pizza"), mic pulsing.
-3. **We draw it** — line art draws itself on, stroke by stroke.
-4. **You color it** — brush and crayon strokes flood the drawing with color; the palette fans out showing every color.
-5. **Snap it too** — a photo drops in and turns into line art, proving the camera flow.
-6. **Your books** — a few finished pages stack into a library shelf.
-7. **End card** — logo/wordmark, the slogan "Say it or snap it. We draw it. You color it." and a clean call-to-action line.
+1. **Welcome** — "Welcome to Color My World" appears in friendly, hand-drawn type as colored pencils orbit and settle into a small logo mark.
+2. **Hook** — big type: "Say it. We draw it." over a blank coloring page that a crayon line starts sketching across.
+3. **Say it** — a spoken phrase appears as live captions ("a dragon eating pizza"), mic pulsing.
+4. **We draw it** — line art draws itself on, stroke by stroke.
+5. **You color it** — brush and crayon strokes flood the drawing with color; the palette fans out showing every color.
+6. **Snap it too** — a photo drops in and turns into line art, proving the camera flow.
+7. **Your books** — a few finished pages stack into a library shelf.
+8. **End card** — the Color My World wordmark, the slogan "Say it or snap it. We draw it. You color it." and a clean call-to-action line.
 
 ## Look and feel
 
