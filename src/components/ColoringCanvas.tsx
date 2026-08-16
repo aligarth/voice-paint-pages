@@ -265,6 +265,38 @@ export function ColoringCanvas({
     link.click();
   };
 
+  const snapshotCheckpoint = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const paint = canvas.toDataURL("image/png");
+    setCheckpoints(saveCheckpoint(title, pageIndex, paint));
+  };
+
+  const loadCheckpoint = (id: string) => {
+    const paint = restoreCheckpoint(title, pageIndex, id);
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx || paint === null) return;
+    pushHistory();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (paint) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        reportPaint();
+        updateHistoryState();
+      };
+      img.src = paint;
+    } else {
+      reportPaint();
+      updateHistoryState();
+    }
+  };
+
+  const removeCheckpoint = (id: string) => {
+    setCheckpoints(deleteCheckpoint(title, pageIndex, id));
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
