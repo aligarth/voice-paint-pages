@@ -423,13 +423,13 @@ function Index() {
           <Palette className="h-4 w-4" /> On-demand coloring book
         </span>
         <h1 className="mt-5 text-5xl font-extrabold leading-tight sm:text-6xl">
-          Say it or snap it.
+          Say it or choose it.
           <br />
           <span className="text-primary">We draw it.</span> You color it.
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-          Describe your picture or snap a photo, then get clean line-art pages ready to paint with
-          brushes, crayons and every color there is.
+          Describe your picture or choose photos from your gallery, then get clean line-art pages
+          ready to paint with brushes, crayons and every color there is.
         </p>
         <Link to="/books" className="btn-crayon mx-auto mt-5 text-sm">
           <Library className="h-4 w-4" /> My books
@@ -472,22 +472,6 @@ function Index() {
                         ? "Tap and talk"
                         : "Or type below"}
               </p>
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={() => photoInput.current?.click()}
-                disabled={busy}
-                className={cn(
-                  "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border transition-transform disabled:opacity-50",
-                  "bg-secondary text-secondary-foreground hover:-translate-y-1",
-                )}
-                aria-label="Snap it"
-              >
-                {busy ? <Loader2 className="h-10 w-10 animate-spin" /> : <Camera className="h-10 w-10" />}
-              </button>
-              <p className="text-sm font-bold">Snap it</p>
             </div>
           </div>
 
@@ -611,17 +595,16 @@ function Index() {
 
       <section className="paper-card mx-auto mt-6 max-w-2xl p-6 text-center sm:p-8">
         <h2 className="flex items-center justify-center gap-2 text-2xl font-extrabold">
-          <Camera className="h-6 w-6" /> Or make a book from your photos
+          <Camera className="h-6 w-6" /> Make a book from your photos
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          Snap a picture with your camera (or pick a few from your gallery) and we'll turn each one
-          into coloring pages. You'll get camera tips plus a quick crop and brightness step first.
+          Pick a few from your gallery and we'll turn each one into coloring pages. You'll get camera
+          tips plus a quick crop and brightness step first.
         </p>
         <input
           ref={photoInput}
           type="file"
           accept="image/*"
-          capture="environment"
           multiple
           className="hidden"
           onChange={(e) => {
@@ -656,7 +639,7 @@ function Index() {
           className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary px-7 py-3 text-lg font-extrabold text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
-          {busy ? "Turning photos into pages…" : "Take or choose photos"}
+          {busy ? "Turning photos into pages…" : "Choose photos"}
         </button>
       </section>
 
