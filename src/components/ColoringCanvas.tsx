@@ -55,6 +55,11 @@ export function ColoringCanvas({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lineArtRef = useRef<HTMLImageElement | null>(null);
+  const previewRef = useRef<HTMLCanvasElement | null>(null);
+  const previewMask = useRef<Uint8Array | null>(null);
+  const wallCache = useRef<{ key: string; wall: Uint8Array } | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const pendingFill = useRef<{ x: number; y: number } | null>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const history = useRef<ImageData[]>([]);
@@ -71,6 +76,7 @@ export function ColoringCanvas({
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [showCheckpoints, setShowCheckpoints] = useState(false);
   const [fillMessage, setFillMessage] = useState<string | null>(null);
+  const [fillTolerance, setFillTolerance] = useState(32);
 
 
   useEffect(() => {
@@ -88,6 +94,24 @@ export function ColoringCanvas({
     saved.src = initialPaint;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
+
+  useEffect(() => {
+    const preview = previewRef.current;
+    if (preview) {
+      preview.width = 1024;
+      preview.height = 1024;
+    }
+    wallCache.current = null;
+    clearPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, tool, size, color, fillTolerance]);
+
+  useEffect(
+    () => () => {
+      if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     setFavorites(getFavoriteColors());
@@ -215,7 +239,7 @@ export function ColoringCanvas({
         const lg = lineData.data[idx + 1] ?? 0;
         const lb = lineData.data[idx + 2] ?? 0;
         const la = lineData.data[idx + 3] ?? 0;
-        if (la >= 30 && (lr + lg + lb) / 3 < 120) {
+        if (la >= 30 && (lr + lg + lb) / 3 < 90 + fillTolerance) {
           wall[y * width + x] = 1;
         }
       }
@@ -243,28 +267,36 @@ export function ColoringCanvas({
     return dilated;
   };
 
-  const floodFill = async (startX: number, startY: number) => {
+  const getWallMap = async (width: number, height: number) => {
+    const key = `${src}|${size}|${fillTolerance}`;
+    if (wallCache.current && wallCache.current.key === key) return wallCache.current.wall;
+    const lineData = await getLineArtData();
+    if (!lineData) return null;
+    const wall = buildWallMap(lineData, width, height);
+    wallCache.current = { key, wall };
+    return wall;
+  };
+
+  /** Detect the region that a fill at this point would cover. */
+  const computeRegion = async (startX: number, startY: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
+    if (!canvas || !ctx) return null;
     const width = canvas.width;
     const height = canvas.height;
     const sx = Math.max(0, Math.min(width - 1, Math.floor(startX)));
     const sy = Math.max(0, Math.min(height - 1, Math.floor(startY)));
 
     const paintData = ctx.getImageData(0, 0, width, height);
-    const lineData = await getLineArtData();
-    if (!lineData) return;
+    const wallMap = await getWallMap(width, height);
+    if (!wallMap) return null;
 
     const targetIdx = (sy * width + sx) * 4;
     const tr = paintData.data[targetIdx] ?? 0;
     const tg = paintData.data[targetIdx + 1] ?? 0;
     const tb = paintData.data[targetIdx + 2] ?? 0;
     const ta = paintData.data[targetIdx + 3] ?? 0;
-
-    const fill = hexToRgba(color);
-    const tolerance = 32;
-    const wallMap = buildWallMap(lineData, width, height);
+    const tolerance = fillTolerance;
 
     const matchesTarget = (idx: number) => {
       const dr = (paintData.data[idx] ?? 0) - tr;
@@ -275,12 +307,11 @@ export function ColoringCanvas({
     };
 
     const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
-
-    if (isWall(sx, sy)) return;
+    if (isWall(sx, sy)) return null;
 
     const visited = new Uint8Array(width * height);
     const stack: [number, number][] = [[sx, sy]];
-    const region: [number, number][] = [];
+    const pixels: [number, number][] = [];
     let touchesEdge = false;
 
     while (stack.length) {
@@ -291,7 +322,7 @@ export function ColoringCanvas({
       if (isWall(x, y)) continue;
 
       visited[y * width + x] = 1;
-      region.push([x, y]);
+      pixels.push([x, y]);
       if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
         touchesEdge = true;
       }
@@ -302,14 +333,85 @@ export function ColoringCanvas({
       if (y < height - 1) stack.push([x, y + 1]);
     }
 
-    if (touchesEdge) {
+    return { pixels, touchesEdge, visited, width, height, paintData };
+  };
+
+  const clearPreview = () => {
+    const canvas = previewRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    previewMask.current = null;
+  };
+
+  const drawPreview = async (px: number, py: number) => {
+    const canvas = previewRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    const x = Math.floor(px);
+    const y = Math.floor(py);
+    const mask = previewMask.current;
+    if (
+      mask &&
+      x >= 0 &&
+      y >= 0 &&
+      x < canvas.width &&
+      y < canvas.height &&
+      mask[y * canvas.width + x] === 1
+    ) {
+      return; // still inside the previewed region
+    }
+
+    const region = await computeRegion(px, py);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!region || !region.pixels.length) {
+      previewMask.current = null;
+      return;
+    }
+
+    const tint = region.touchesEdge
+      ? { r: 239, g: 68, b: 68, a: 77 }
+      : { ...hexToRgba(color), a: 102 };
+
+    const overlay = ctx.createImageData(canvas.width, canvas.height);
+    for (const [rx, ry] of region.pixels) {
+      const idx = (ry * canvas.width + rx) * 4;
+      overlay.data[idx] = tint.r;
+      overlay.data[idx + 1] = tint.g;
+      overlay.data[idx + 2] = tint.b;
+      overlay.data[idx + 3] = tint.a;
+    }
+    ctx.putImageData(overlay, 0, 0);
+    previewMask.current = region.visited;
+  };
+
+  const queuePreview = (px: number, py: number) => {
+    if (rafRef.current !== null) return;
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      void drawPreview(px, py);
+    });
+  };
+
+  const floodFill = async (startX: number, startY: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const region = await computeRegion(startX, startY);
+    clearPreview();
+    if (!region) return;
+
+    if (region.touchesEdge) {
       setFillMessage("That area isn't closed — try a closed shape");
       window.setTimeout(() => setFillMessage(null), 2000);
       return;
     }
 
-    if (region.length) {
-      for (const [x, y] of region) {
+    if (region.pixels.length) {
+      const fill = hexToRgba(color);
+      const { paintData, width } = region;
+      for (const [x, y] of region.pixels) {
         const idx = (y * width + x) * 4;
         paintData.data[idx] = fill.r;
         paintData.data[idx + 1] = fill.g;
@@ -325,6 +427,12 @@ export function ColoringCanvas({
     e.currentTarget.setPointerCapture(e.pointerId);
     const point = pointFromEvent(e);
     if (tool === "bucket") {
+      if (e.pointerType !== "mouse") {
+        // Touch/pen: show the preview first, fill on release.
+        pendingFill.current = point;
+        void drawPreview(point.x, point.y);
+        return;
+      }
       pushHistory();
       void floodFill(point.x, point.y);
       return;
@@ -337,17 +445,40 @@ export function ColoringCanvas({
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (tool === "bucket") {
+      const point = pointFromEvent(e);
+      if (e.pointerType !== "mouse") pendingFill.current = point;
+      queuePreview(point.x, point.y);
+      return;
+    }
     if (!drawing.current || !lastPoint.current) return;
     const point = pointFromEvent(e);
     strokeSegment(lastPoint.current, point);
     lastPoint.current = point;
   };
 
+
   const onPointerUp = () => {
+    if (tool === "bucket") {
+      const pending = pendingFill.current;
+      pendingFill.current = null;
+      if (pending) {
+        pushHistory();
+        void floodFill(pending.x, pending.y);
+      }
+      return;
+    }
     drawing.current = false;
     lastPoint.current = null;
     setIsDrawing(false);
     reportPaint();
+  };
+
+  const onPointerLeave = () => {
+    pendingFill.current = null;
+    clearPreview();
+    if (tool === "bucket") return;
+    onPointerUp();
   };
 
 
@@ -477,7 +608,7 @@ export function ColoringCanvas({
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
+          onPointerLeave={onPointerLeave}
           className="absolute inset-0 h-full w-full touch-none"
           style={{ cursor: tool === "bucket" ? "pointer" : "crosshair" }}
         />
@@ -488,6 +619,12 @@ export function ColoringCanvas({
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
           draggable={false}
         />
+        <canvas
+          ref={previewRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-10 h-full w-full"
+        />
+
 
         {fillMessage && (
           <div className="pointer-events-none absolute left-1/2 top-6 z-20 -translate-x-1/2 rounded-full bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-md backdrop-blur animate-in fade-in slide-in-from-top-2">
@@ -562,6 +699,30 @@ export function ColoringCanvas({
               </button>
             ))}
           </div>
+
+          {tool === "bucket" && (
+            <>
+              <h3 className="label-chalk mt-5 flex items-center justify-between">
+                <span>Fill tolerance</span>
+                <span className="text-xs font-semibold text-muted-foreground">{fillTolerance}</span>
+              </h3>
+              <input
+                type="range"
+                min={8}
+                max={96}
+                step={4}
+                value={fillTolerance}
+                onChange={(e) => setFillTolerance(Number(e.target.value))}
+                aria-label="Fill tolerance"
+                className="mt-3 w-full accent-accent"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Lower is stricter about closed boundaries; higher fills across faint or broken lines.
+              </p>
+            </>
+          )}
+
+
 
           <div className="mt-5 flex flex-wrap gap-2">
             <button
