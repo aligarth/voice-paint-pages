@@ -81,6 +81,22 @@ function BooksPage() {
     }
   };
 
+  const exportBookZip = async (book: SavedBook) => {
+    setExportingId(`${book.id}-zip`);
+    setMessage(null);
+    try {
+      await exportPagesToZip(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
+      setMessage(`Downloaded “${book.title}” as a ZIP.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not build the ZIP.");
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   const exportPagePng = async (book: SavedBook, index: number) => {
     const src = book.pages[index];
     if (!src) return;
