@@ -18,8 +18,6 @@ type Recognition = {
   onend: (() => void) | null;
 };
 
-const WAKE_PHRASE = "color my day";
-
 /**
  * How long we wait after speech stops before closing the mic.
  * Long enough that natural mid-sentence pauses ("five pages of… um… dragons")
@@ -44,26 +42,19 @@ export function useSpeech() {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [wakeEnabled, setWakeEnabled] = useState(false);
-  const [wakeActive, setWakeActive] = useState(false);
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);
   // "auto" = let the app work the language out; anything else is a manual pick.
   const [lang, setLang] = useState<string>(AUTO_LANG);
   const [detectedLang, setDetectedLang] = useState("en-US");
 
-  const wakeEnabledRef = useRef(wakeEnabled);
-  const wakeActiveRef = useRef(wakeActive);
   const listeningRef = useRef(listening);
   const transcriptRef = useRef(transcript);
-  const wakeEndIndexRef = useRef(0);
   const silenceTimerRef = useRef<number | null>(null);
   const manualStopRef = useRef(false);
   const langRef = useRef(lang);
   const candidatesRef = useRef<string[]>(["en-US"]);
   const candidateIndexRef = useRef(0);
 
-  useEffect(() => { wakeEnabledRef.current = wakeEnabled; }, [wakeEnabled]);
-  useEffect(() => { wakeActiveRef.current = wakeActive; }, [wakeActive]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
@@ -164,22 +155,8 @@ export function useSpeech() {
       }
 
 
-      if (!wakeActiveRef.current && wakeEnabledRef.current) {
-        const lower = text.toLowerCase();
-        const idx = lower.indexOf(WAKE_PHRASE);
-        if (idx !== -1) {
-          wakeEndIndexRef.current = idx + WAKE_PHRASE.length;
-          setWakeActive(true);
-          const after = text.slice(wakeEndIndexRef.current).trim();
-          setTranscript(after);
-        }
-        return;
-      }
-
       const lastResult = event.results[event.results.length - 1];
-      const spoken = wakeActiveRef.current
-        ? text.slice(wakeEndIndexRef.current).trim()
-        : text.trim();
+      const spoken = text.trim();
       setTranscript(spoken);
 
       // Every new result (interim included) pushes the auto-stop back, so the
@@ -218,29 +195,12 @@ export function useSpeech() {
         window.clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = null;
       }
-      const wasCommand = wakeActiveRef.current;
-      if (wasCommand) {
-        setWakeActive(false);
-        wakeEndIndexRef.current = 0;
-      }
-      // A captured request (wake phrase or plain tap-and-talk) goes up for
-      // confirmation, unless the user tapped stop themselves.
+      // A captured request goes up for confirmation, unless the user tapped stop themselves.
       if (!manualStopRef.current) {
         const command = transcriptRef.current;
         if (command) setPendingCommand(command);
       }
       manualStopRef.current = false;
-      if (wakeEnabledRef.current) {
-        window.setTimeout(() => {
-          try {
-            if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
-            recognitionRef.current?.start();
-            setListening(true);
-          } catch {
-            setListening(false);
-          }
-        }, 300);
-      }
     };
     recognitionRef.current = rec;
     return () => {
@@ -255,41 +215,11 @@ export function useSpeech() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!wakeEnabled) return;
-    if (listeningRef.current) return;
-    setError(null);
-    setTranscript("");
-    setWakeActive(false);
-    setPendingCommand(null);
-    wakeEndIndexRef.current = 0;
-    try {
-      if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
-      recognitionRef.current?.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-    }
-    return () => {
-      try {
-        recognitionRef.current?.stop();
-      } catch {
-        /* noop */
-      }
-      setListening(false);
-      setWakeActive(false);
-    };
-  }, [wakeEnabled]);
 
   const start = useCallback(() => {
     setError(null);
     setTranscript("");
     setPendingCommand(null);
-    if (wakeEnabledRef.current) {
-      setWakeActive(true);
-      wakeEndIndexRef.current = 0;
-      if (listeningRef.current) return;
-    }
     try {
       if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
       recognitionRef.current?.start();
@@ -304,10 +234,6 @@ export function useSpeech() {
     autoStop();
   }, [autoStop]);
 
-  const toggleWake = useCallback(() => {
-    setWakeEnabled((prev) => !prev);
-  }, []);
-
   const clearPendingCommand = useCallback(() => {
     setPendingCommand(null);
   }, []);
@@ -320,14 +246,11 @@ export function useSpeech() {
     start,
     stop,
     setTranscript,
-    wakeEnabled,
-    wakeActive,
     pendingCommand,
     lang,
     setLang,
     detectedLang,
 
-    toggleWake,
     clearPendingCommand,
   };
 }
@@ -361,8 +284,6 @@ export function parseRequest(input: string): { subject: string; pages: number } 
     if (key) pages = NUMBER_WORDS[key] ?? 0;
   }
   const subject = text
-    .trim()
-    .replace(/\bcolor my day\b/gi, "")
     .trim()
     .replace(
       /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b\s*(pages?|pictures?|drawings?|sheets?)\b/gi,

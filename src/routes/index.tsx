@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, FileArchive, ImageDown, Library, Eye, X, Pencil, Share2, RotateCcw } from "lucide-react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, FileArchive, ImageDown, Library, Eye, X, Pencil, Share2, RotateCcw } from "lucide-react";
 
 function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === "AbortError";
@@ -80,10 +80,7 @@ function Index() {
     start,
     stop,
     setTranscript,
-    wakeEnabled,
-    wakeActive,
     pendingCommand,
-    toggleWake,
     clearPendingCommand,
     lang,
     setLang,
@@ -756,35 +753,24 @@ function Index() {
             <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  const micActive = wakeActive || (!wakeEnabled && listening);
-                  micActive ? stop() : start();
-                }}
+                onClick={() => (listening ? stop() : start())}
                 disabled={!supported || busy}
                 className={cn(
                   "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border text-primary-foreground transition-transform disabled:opacity-50",
-                  listening || wakeActive
+                  listening
                     ? "animate-pulse bg-primary"
                     : "bg-secondary text-secondary-foreground hover:-translate-y-1",
                 )}
-                aria-label={wakeActive ? "Stop listening" : wakeEnabled ? "Start speaking" : listening ? "Stop listening" : "Start speaking"}
+                aria-label={listening ? "Stop listening" : "Start speaking"}
               >
-                {wakeActive || (!wakeEnabled && listening) ? (
-                  <MicOff className="h-10 w-10" />
-                ) : (
-                  <Mic className="h-10 w-10" />
-                )}
+                {listening ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
               </button>
               <p className="text-sm font-bold">
-                {wakeActive
-                  ? "Say your request…"
-                  : wakeEnabled
-                    ? "Listening for 'Color my day'"
-                    : listening
-                      ? "Listening… tap to stop"
-                      : supported
-                        ? "Tap and talk"
-                        : "Or type below"}
+                {listening
+                  ? "Listening… tap to stop"
+                  : supported
+                    ? "Tap and talk"
+                    : "Or type below"}
               </p>
             </div>
 
@@ -962,23 +948,6 @@ function Index() {
           )}
 
           {supported && (
-            <button
-              type="button"
-              onClick={toggleWake}
-              className={cn(
-                "flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-bold transition-colors",
-                wakeEnabled
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:bg-accent/10",
-              )}
-              aria-pressed={wakeEnabled}
-            >
-              <Ear className="h-4 w-4" />
-              {wakeEnabled ? "'Color my day' is on" : "Listen for 'Color my day'"}
-            </button>
-          )}
-
-          {supported && (
             <label className="flex flex-col items-center gap-1 text-xs font-bold text-muted-foreground">
               Speak in any language
               <select
@@ -1004,9 +973,7 @@ function Index() {
 
           {supported && (
             <p className="max-w-md text-center text-xs text-muted-foreground">
-              {wakeEnabled
-                ? "Keep this tab open. Your mic stays active so the wake phrase works."
-                : "Tap the mic or type your request below."}
+              Tap the mic or type your request below.
             </p>
           )}
 
