@@ -1,6 +1,8 @@
-# Promo Video Pack for Say & Color
+# Promo Video Pack for Color My World
 
-Goal: a set of short promo videos for Facebook, Instagram (Reels/feed/Stories), TikTok, YouTube, and the app store / website hero — all built in code so they can be re-rendered and tweaked any time.
+Goal: a set of short promo videos for the "Color My World" app on Facebook, Instagram (Reels/feed/Stories), TikTok, YouTube, and the app store / website hero — all built in code so they can be re-rendered and tweaked any time.
+
+Opening beat: a warm "Welcome to Color My World" title card that quickly resolves into the hook.
 
 ## What gets produced
 
