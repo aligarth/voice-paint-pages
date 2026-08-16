@@ -1,31 +1,48 @@
-# Idea Library: browse things to draw
+# Promo Video Pack for Say & Color
 
-Add a browsable "Idea library" on the home screen so you don't have to think of a prompt. Tap any idea and it drops straight into the "I heard" confirm card, ready to draw (you can still edit the text and page count before generating).
+Goal: a set of short promo videos for Facebook, Instagram (Reels/feed/Stories), TikTok, YouTube, and the app store / website hero — all built in code so they can be re-rendered and tweaked any time.
 
-## Categories and examples
+## What gets produced
 
-- Animals: bunny, kitten, puppy, dinosaur, elephant, dolphin, unicorn
-- Vehicles: fire truck, rocket ship, race car, pirate ship, tractor
-- Fantasy: dragon, fairy, castle, wizard, mermaid
-- Nature: sunflower field, rainforest tree, ocean waves, mountains
-- Holidays: Christmas tree, pumpkin, Easter eggs, birthday party
-- Everyday: ice cream cone, backpack, school bus, tea party
-- Cartoon characters (originals): mischievous cartoon boy on a skateboard, clever cartoon rabbit chewing a carrot, goofy cartoon duck sailor, superhero kid with a cape
+Three cuts of one campaign, all sharing the same look, music-free (silent-safe with on-screen text so they work with sound off):
 
-Each idea is a short prompt phrase that already asks for bold, closed outlines so the fill tool works well on the result.
+| Cut | Size | Length | Where it runs |
+| --- | --- | --- | --- |
+| Vertical | 1080x1920 (9:16) | ~20s | Reels, Stories, TikTok, Shorts |
+| Square | 1080x1080 (1:1) | ~20s | Facebook + Instagram feed ads |
+| Horizontal | 1920x1080 (16:9) | ~25s | YouTube, website hero, app store preview |
 
-## Note on named characters
+Each renders to an MP4 you can download.
 
-Bart Simpson, Bugs Bunny and similar are copyrighted characters, so the app should not generate them by name. The "Cartoon characters" row gives the same vibe with original, style-inspired descriptions instead. If you'd rather it just try the exact names anyway, say so and I'll wire the ideas as free text.
+## The story (same beat sheet in all three cuts)
 
-## How it works
+1. **Hook** — big type: "Say it. We draw it." over a blank coloring page that a crayon line starts sketching across.
+2. **Say it** — a spoken phrase appears as live captions ("a dragon eating pizza"), mic pulsing.
+3. **We draw it** — line art draws itself on, stroke by stroke.
+4. **You color it** — brush and crayon strokes flood the drawing with color; the palette fans out showing every color.
+5. **Snap it too** — a photo drops in and turns into line art, proving the camera flow.
+6. **Your books** — a few finished pages stack into a library shelf.
+7. **End card** — logo/wordmark, the slogan "Say it or snap it. We draw it. You color it." and a clean call-to-action line.
 
-- New "Pick an idea" section on the home screen, above/below the Say it / Snap it buttons, with a category chip row and a scrollable grid of idea buttons.
-- Tapping an idea sets the transcript and the "heard" confirm state, so the existing flow (page count 1-8, "Yes, draw it", Edit & Redraw) works unchanged.
-- Also add a "Surprise me" button that picks a random idea.
+## Look and feel
 
-## Technical details
+- Palette pulled from the app itself: warm paper background, the app's red/pink primary and amber accent, charcoal line art. No neon, no purple gradients.
+- Playful family energy: bouncy spring entrances, crayon-textured strokes, hand-drawn arrows and doodle accents.
+- One display font for headlines plus one clean body font for captions.
+- Every drawing and coloring moment is animated line-by-line so it reads as real drawing, not a slideshow.
 
-- New `src/lib/ideaLibrary.ts` exporting typed categories: `{ id, label, ideas: string[] }[]`, plus a `randomIdea()` helper.
-- New `src/components/IdeaLibrary.tsx`: category chips + idea grid, one `onPick(prompt: string)` callback. Styling uses existing design tokens and the current card/chip look.
-- `src/routes/index.tsx`: render `<IdeaLibrary onPick={(p) => { setTranscript(p); setHeard(p); }} />`; no changes to generation, saving, or export logic.
+## Ad-safe framing
+
+All text and key visuals stay inside the center 80% so Reels/Stories UI and feed crops never cut a word. The vertical cut leaves the top and bottom clear for platform chrome.
+
+## Technical notes
+
+- Built with Remotion (React + code-driven motion graphics) in a new `remotion/` folder in the project, so the video source is version-controlled and re-renderable.
+- One shared scene library, three compositions (`promo-vertical`, `promo-square`, `promo-horizontal`) that reuse the scenes at different layouts and pacing.
+- Line-art "self drawing" done with SVG path `strokeDashoffset` animation; coloring done with animated clip-path reveals over flat color shapes.
+- Any illustration assets needed (the dragon page, the sample photo) are generated as image assets in the project.
+- Rendered headless via a render script; final MP4s land in the documents folder for download. Videos are silent by design — you can add a licensed music track in your ad platform.
+
+## Out of scope for this pass
+
+No voiceover audio, no real screen recording of the live app (the UI is recreated in motion graphics), and no ad account setup or campaign publishing. Those can each be a follow-up.
