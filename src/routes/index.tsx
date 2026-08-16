@@ -548,6 +548,7 @@ function Index() {
           key={activePage.id}
           src={activePage.src}
           title={activePage.title}
+          pageIndex={activePage.id}
           initialPaint={activePage.paint ?? null}
           onPaintChange={(paint) =>
             setPages((prev) =>
