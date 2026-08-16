@@ -597,6 +597,41 @@ function Index() {
             </div>
           )}
 
+          {confirmRemoveAll && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+              onClick={() => setConfirmRemoveAll(false)}
+            >
+              <div
+                className="w-full max-w-sm rounded-2xl border-4 border-border bg-card p-6 text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="text-lg font-extrabold">Remove all photos?</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This will clear all {snapShots.length} snapped photos from this session.
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSnapShots([]);
+                      setConfirmRemoveAll(false);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-6 py-2.5 text-base font-extrabold text-primary-foreground transition-transform hover:-translate-y-0.5"
+                  >
+                    <Trash2 className="h-4 w-4" /> Yes, remove all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemoveAll(false)}
+                    className="btn-crayon"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {supported && (
             <button
