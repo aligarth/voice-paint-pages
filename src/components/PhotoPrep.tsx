@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, Crop, Sun, X, ArrowRight, Lock, LockOpen, Smile, Box, Image as ImageIcon } from "lucide-react";
+import { Camera, Check, Crop, Sun, X, ArrowRight, Lock, LockOpen, Smile, Box, Square, Image as ImageIcon } from "lucide-react";
 import { DEFAULT_ADJUST, adjustPhoto, type PhotoAdjust } from "@/lib/photo";
 import { cn } from "@/lib/utils";
 
