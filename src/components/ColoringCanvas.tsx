@@ -350,34 +350,58 @@ export function ColoringCanvas({
     };
 
     const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
-    if (isWall(sx, sy)) return null;
+
+    // Tapping right on a line shouldn't do nothing — snap to the nearest
+    // open pixel within a small radius.
+    let ox = sx;
+    let oy = sy;
+    if (isWall(ox, oy)) {
+      let found = false;
+      for (let r = 1; r <= 8 && !found; r++) {
+        for (let dy = -r; dy <= r && !found; dy++) {
+          for (let dx = -r; dx <= r && !found; dx++) {
+            const nx = sx + dx;
+            const ny = sy + dy;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            if (!isWall(nx, ny)) {
+              ox = nx;
+              oy = ny;
+              found = true;
+            }
+          }
+        }
+      }
+      if (!found) return null;
+    }
 
     const visited = new Uint8Array(width * height);
-    const stack: [number, number][] = [[sx, sy]];
+    const stack: number[] = [oy * width + ox];
     const pixels: [number, number][] = [];
     let touchesEdge = false;
 
     while (stack.length) {
-      const [x, y] = stack.pop()!;
-      const idx = (y * width + x) * 4;
-      if (visited[y * width + x]) continue;
-      if (!matchesTarget(idx)) continue;
-      if (isWall(x, y)) continue;
+      const p = stack.pop()!;
+      if (visited[p]) continue;
+      const x = p % width;
+      const y = (p - x) / width;
+      if (wallMap[p] === 1) continue;
+      if (!matchesTarget(p * 4)) continue;
 
-      visited[y * width + x] = 1;
+      visited[p] = 1;
       pixels.push([x, y]);
       if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
         touchesEdge = true;
       }
 
-      if (x > 0) stack.push([x - 1, y]);
-      if (x < width - 1) stack.push([x + 1, y]);
-      if (y > 0) stack.push([x, y - 1]);
-      if (y < height - 1) stack.push([x, y + 1]);
+      if (x > 0) stack.push(p - 1);
+      if (x < width - 1) stack.push(p + 1);
+      if (y > 0) stack.push(p - width);
+      if (y < height - 1) stack.push(p + width);
     }
 
     return { pixels, touchesEdge, visited, width, height, paintData };
   };
+
 
   const clearPreview = () => {
     const canvas = previewRef.current;
