@@ -414,7 +414,7 @@ export function ColoringCanvas({
       return;
     }
 
-    const tint = region.touchesEdge
+    const tint = region.touchesEdge && fillMode === "closed"
       ? { r: 239, g: 68, b: 68, a: 77 }
       : { ...hexToRgba(color), a: 102 };
 
