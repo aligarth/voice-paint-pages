@@ -627,6 +627,18 @@ function Index() {
             void pickPhotos(files);
           }}
         />
+        <input
+          ref={snapInput}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []).slice(0, 12);
+            e.target.value = "";
+            void pickPhotos(files);
+          }}
+        />
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           <span className="text-sm font-bold">Pages per photo:</span>
           {[1, 2, 3, 4].map((n) => (
