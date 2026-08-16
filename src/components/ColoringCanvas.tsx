@@ -217,27 +217,27 @@ export function ColoringCanvas({
     if (!lineData) return;
 
     const targetIdx = (sy * width + sx) * 4;
-    const tr = paintData.data[targetIdx];
-    const tg = paintData.data[targetIdx + 1];
-    const tb = paintData.data[targetIdx + 2];
-    const ta = paintData.data[targetIdx + 3];
+    const tr = paintData.data[targetIdx] ?? 0;
+    const tg = paintData.data[targetIdx + 1] ?? 0;
+    const tb = paintData.data[targetIdx + 2] ?? 0;
+    const ta = paintData.data[targetIdx + 3] ?? 0;
 
     const fill = hexToRgba(color);
     const tolerance = 32;
 
     const matchesTarget = (idx: number) => {
-      const dr = paintData.data[idx] - tr;
-      const dg = paintData.data[idx + 1] - tg;
-      const db = paintData.data[idx + 2] - tb;
-      const da = paintData.data[idx + 3] - ta;
+      const dr = (paintData.data[idx] ?? 0) - tr;
+      const dg = (paintData.data[idx + 1] ?? 0) - tg;
+      const db = (paintData.data[idx + 2] ?? 0) - tb;
+      const da = (paintData.data[idx + 3] ?? 0) - ta;
       return Math.hypot(dr, dg, db, da) <= tolerance;
     };
 
     const isWall = (idx: number) => {
-      const lr = lineData.data[idx];
-      const lg = lineData.data[idx + 1];
-      const lb = lineData.data[idx + 2];
-      const la = lineData.data[idx + 3];
+      const lr = lineData.data[idx] ?? 0;
+      const lg = lineData.data[idx + 1] ?? 0;
+      const lb = lineData.data[idx + 2] ?? 0;
+      const la = lineData.data[idx + 3] ?? 0;
       if (la < 30) return false;
       const brightness = (lr + lg + lb) / 3;
       return brightness < 120;
