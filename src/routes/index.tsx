@@ -509,10 +509,10 @@ function Index() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setSnapShots([])}
-                  className="text-xs font-bold text-muted-foreground underline"
+                  onClick={() => setConfirmRemoveAll(true)}
+                  className="text-xs font-bold text-primary underline"
                 >
-                  Clear all
+                  Remove all
                 </button>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
