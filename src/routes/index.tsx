@@ -19,13 +19,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Speak what you want to draw, choose how many pages, and color your custom coloring book right in the browser with brushes, crayons and every color.",
+          "Speak or snap a photo to create a custom coloring book, then color the pages in your browser with brushes, crayons and every color.",
       },
       { property: "og:title", content: "Say & Color — Voice-Made Coloring Books" },
       {
         property: "og:description",
         content:
-          "Talk into your mic, get instant line-art coloring pages, and paint them with brushes, crayons and endless colors.",
+          "Talk or snap a photo to get instant line-art coloring pages, then paint them with brushes, crayons and endless colors.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -238,13 +238,13 @@ function Index() {
           <Palette className="h-4 w-4" /> On-demand coloring book
         </span>
         <h1 className="mt-5 text-5xl font-extrabold leading-tight sm:text-6xl">
-          Say it. <span className="text-primary">We draw it.</span>
+          Say it or snap it.
           <br />
-          You color it.
+          <span className="text-primary">We draw it.</span> You color it.
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-          Hold the mic and describe your picture — “six pages of sea turtles surfing”. Your pages
-          appear as clean line art, ready to paint with brushes, crayons and every color there is.
+          Describe your picture or snap a photo, then get clean line-art pages ready to paint with
+          brushes, crayons and every color there is.
         </p>
       </header>
 
