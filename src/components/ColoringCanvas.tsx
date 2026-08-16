@@ -432,6 +432,69 @@ export function ColoringCanvas({
               <Download className="h-4 w-4" /> Save
             </button>
           </div>
+
+          <div className="mt-5 border-t-2 border-border/40 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="label-chalk">Checkpoints</h3>
+              <button
+                type="button"
+                onClick={() => setShowCheckpoints((prev) => !prev)}
+                className="text-xs font-bold text-primary underline"
+              >
+                {showCheckpoints ? "Hide" : "Show"} ({checkpoints.length})
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Auto-saved every 45 seconds while you color.
+            </p>
+            <button
+              type="button"
+              onClick={snapshotCheckpoint}
+              className="btn-crayon mt-2 w-full justify-center text-sm"
+            >
+              <Clock className="h-4 w-4" /> Save checkpoint now
+            </button>
+
+            {showCheckpoints && (
+              <div className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-xl border-2 border-border/60 bg-card/50 p-2">
+                {checkpoints.length === 0 && (
+                  <p className="p-2 text-center text-xs text-muted-foreground">
+                    No checkpoints yet. Keep coloring — they'll appear automatically.
+                  </p>
+                )}
+                {checkpoints.map((checkpoint) => (
+                  <div
+                    key={checkpoint.id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-card p-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold">{checkpoint.label}</p>
+                      <p className="text-[0.65rem] text-muted-foreground">
+                        {new Date(checkpoint.savedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => loadCheckpoint(checkpoint.id)}
+                        className="rounded-full border-2 border-border bg-card px-2 py-1 text-[0.65rem] font-bold transition-transform hover:scale-105"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeCheckpoint(checkpoint.id)}
+                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                        aria-label="Delete checkpoint"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="paper-card p-4">
