@@ -252,8 +252,89 @@ function Index() {
     setBookTitle("");
     setOpenPage(null);
     setSaveMessage(null);
+    setShareUrl(null);
     void clearSession();
   };
+
+  const regenerateAll = useCallback(async () => {
+    if (!bookTitle) return;
+    setSaveMessage(null);
+    setShareUrl(null);
+    setReviewing(false);
+    setBusy(true);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const count = pages.length || textPageCount;
+    const variations = [
+      "",
+      " in a playful scene",
+      " with a big smile, close up",
+      " surrounded by flowers and stars",
+      " having an adventure outdoors",
+      " with a friend",
+      " under a bright sun",
+      " with patterns and swirls in the background",
+      " celebrating with balloons",
+      " resting peacefully",
+      " in a busy landscape",
+      " with decorative border details",
+    ];
+    setPages((prev) =>
+      prev.map((page, i) => ({
+        ...page,
+        src: null,
+        done: false,
+        source: {
+          kind: "text" as const,
+          prompt: `${bookTitle}${variations[i % variations.length] ?? ""}`,
+        },
+      })),
+    );
+
+    for (let i = 0; i < count; i++) {
+      if (controller.signal.aborted) break;
+      try {
+        await streamImage(
+          "/api/generate-image",
+          `${bookTitle}${variations[i % variations.length] ?? ""}`,
+          (dataUrl, isFinal) => {
+            setPages((prev) =>
+              prev.map((page) =>
+                page.id === i ? { ...page, src: dataUrl, done: isFinal } : page,
+              ),
+            );
+          },
+          controller.signal,
+        );
+      } catch (err) {
+        if (isAbortError(err)) {
+          setPages((prev) =>
+            prev.map((page) =>
+              page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
+            ),
+          );
+          break;
+        }
+        const message = err instanceof Error ? err.message : "Something went wrong";
+        console.error("page regeneration failed", message);
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === i
+              ? {
+                  ...page,
+                  done: true,
+                  error: message.includes("402")
+                    ? "Out of AI credits — top up to keep drawing."
+                    : "This page didn't redraw. Try again.",
+                }
+              : page,
+          ),
+        );
+      }
+    }
+    setBusy(false);
+  }, [bookTitle, pages.length, textPageCount]);
 
   const openSavedBook = (book: SavedBook) => {
     setBookTitle(book.title);
