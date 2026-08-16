@@ -135,6 +135,17 @@ export function useSpeech() {
         if (alt) text += alt.transcript;
       }
 
+      // Words came through, so the current locale works — lock it in. If the
+      // script says another language, remember that one for the next capture.
+      if (text.trim()) {
+        const current = resolveLangRef.current();
+        const fromScript = detectLocaleFromText(text);
+        if (langRef.current === AUTO_LANG) {
+          rememberLangRef.current(fromScript ?? current);
+        }
+      }
+
+
       if (!wakeActiveRef.current && wakeEnabledRef.current) {
         const lower = text.toLowerCase();
         const idx = lower.indexOf(WAKE_PHRASE);
