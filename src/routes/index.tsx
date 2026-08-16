@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw } from "lucide-react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, Library } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
@@ -9,6 +10,8 @@ import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/li
 import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
 import { PhotoPrep } from "@/components/PhotoPrep";
+import { exportPagesToPdf } from "@/lib/exportPdf";
+import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 
@@ -48,6 +51,8 @@ type Page = {
   source?: PageSource | undefined;
   /** True while this single page is being re-drawn. */
   regenerating?: boolean | undefined;
+  /** Transparent layer holding the user's colouring for this page. */
+  paint?: string | null;
 };
 
 function Index() {
@@ -80,11 +85,64 @@ function Index() {
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
   const [reviewing, setReviewing] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [restored, setRestored] = useState(false);
   const [keepIds, setKeepIds] = useState<number[]>([]);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
   }, []);
+
+  // Restore the last in-progress book (and page) on first load.
+  useEffect(() => {
+    void loadSession().then((session) => {
+      setRestored(true);
+      if (!session?.pages.length) return;
+      setBookTitle(session.title);
+      setPages(
+        session.pages.map((page, i) => ({
+          id: i,
+          title: session.title,
+          src: page.src,
+          done: true,
+          paint: page.paint ?? null,
+        })),
+      );
+      setOpenPage(session.openPage);
+      setSaveMessage("Picked up where you left off.");
+    });
+  }, []);
+
+  // Auto-save progress so it survives a refresh or a closed tab.
+  useEffect(() => {
+    if (!restored || busy) return;
+    const ready = pages.filter((page): page is Page & { src: string } => Boolean(page.src) && page.done);
+    if (!ready.length) return;
+    const timer = window.setTimeout(() => {
+      void saveSession({
+        title: bookTitle,
+        pages: ready.map((page) => ({ src: page.src, paint: page.paint ?? null })),
+        openPage,
+      });
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [pages, bookTitle, openPage, busy, restored]);
+
+  const exportPdf = async () => {
+    const ready = pages
+      .filter((page) => page.src)
+      .map((page) => ({ src: page.src as string, paint: page.paint ?? null }));
+    if (!ready.length) return;
+    setExporting(true);
+    try {
+      await exportPagesToPdf(bookTitle || "My coloring book", ready);
+      setSaveMessage("PDF downloaded!");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not build the PDF.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleSaveBook = async () => {
     const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
@@ -95,6 +153,14 @@ function Index() {
     } catch (err) {
       setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
     }
+  };
+
+  const startFresh = () => {
+    setPages([]);
+    setBookTitle("");
+    setOpenPage(null);
+    setSaveMessage(null);
+    void clearSession();
   };
 
   const openSavedBook = (book: SavedBook) => {
@@ -334,7 +400,17 @@ function Index() {
         <div className="mb-6">
           <MusicPlayer compact />
         </div>
-        <ColoringCanvas src={activePage.src} title={activePage.title} />
+        <ColoringCanvas
+          key={activePage.id}
+          src={activePage.src}
+          title={activePage.title}
+          initialPaint={activePage.paint ?? null}
+          onPaintChange={(paint) =>
+            setPages((prev) =>
+              prev.map((page) => (page.id === activePage.id ? { ...page, paint } : page)),
+            )
+          }
+        />
 
       </main>
     );
@@ -596,6 +672,15 @@ function Index() {
               >
                 <BookmarkPlus className="h-4 w-4" /> Save book ({savedBooks.length}/{MAX_BOOKS})
               </button>
+              <button
+                type="button"
+                onClick={() => void exportPdf()}
+                disabled={exporting || !pages.some((page) => page.src)}
+                className="btn-crayon disabled:opacity-50"
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                {exporting ? "Building PDF…" : "Export PDF"}
+              </button>
               {saveMessage && (
                 <span className="text-xs font-semibold text-primary">{saveMessage}</span>
               )}
@@ -711,6 +796,9 @@ function Index() {
           <h2 className="flex items-center gap-2 text-2xl font-extrabold">
             <BookOpen className="h-6 w-6" /> My bookshelf
             <span className="text-base text-muted-foreground">· {savedBooks.length}/{MAX_BOOKS} saved</span>
+            <Link to="/books" className="btn-crayon ml-auto text-sm">
+              <Library className="h-4 w-4" /> My books
+            </Link>
           </h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {savedBooks.map((book) => (
