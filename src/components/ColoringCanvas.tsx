@@ -518,7 +518,7 @@ export function ColoringCanvas({
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerLeave}
           className="absolute inset-0 h-full w-full touch-none"
-          style={{ cursor: "crosshair" }}
+          style={{ cursor: tool === "fill" ? "cell" : "crosshair" }}
         />
         <img
           ref={lineArtRef}
