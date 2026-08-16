@@ -20,6 +20,7 @@ import {
   type SavedBook,
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
+import { exportPagesToZip } from "@/lib/exportZip";
 import { saveSession } from "@/lib/session";
 
 export const Route = createFileRoute("/books")({
