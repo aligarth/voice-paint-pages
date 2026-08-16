@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { detectLanguage } from "./languages";
+
 
 type SpeechResultEvent = {
   resultIndex: number;
