@@ -170,7 +170,20 @@ export function ColoringCanvas({
     const ctx = canvas?.getContext("2d");
     const previous = history.current.pop();
     if (!canvas || !ctx || !previous) return;
+    future.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if (future.current.length > 20) future.current.shift();
     ctx.putImageData(previous, 0, 0);
+    reportPaint();
+  };
+
+  const redo = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const next = future.current.pop();
+    if (!canvas || !ctx || !next) return;
+    history.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if (history.current.length > 20) history.current.shift();
+    ctx.putImageData(next, 0, 0);
     reportPaint();
   };
 
