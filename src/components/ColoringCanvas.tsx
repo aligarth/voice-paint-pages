@@ -13,8 +13,8 @@ import {
   Heart,
   X,
   Clock,
-  PaintBucket,
 } from "lucide-react";
+
 import { BRUSH_SIZES, CRAYON_COLORS, SPECTRUM } from "@/lib/palette";
 import { addFavoriteColor, getFavoriteColors, removeFavoriteColor } from "@/lib/favoriteColors";
 import {
@@ -27,15 +27,15 @@ import {
 import { cn } from "@/lib/utils";
 
 
-type Tool = "brush" | "crayon" | "marker" | "eraser" | "bucket";
+type Tool = "brush" | "crayon" | "marker" | "eraser";
 
 const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
   { id: "brush", label: "Paint brush", icon: Paintbrush },
   { id: "crayon", label: "Crayon", icon: Pencil },
   { id: "marker", label: "Marker", icon: Droplet },
-  { id: "bucket", label: "Fill color", icon: PaintBucket },
   { id: "eraser", label: "Eraser", icon: Eraser },
 ];
+
 
 export function ColoringCanvas({
   src,
@@ -55,12 +55,8 @@ export function ColoringCanvas({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lineArtRef = useRef<HTMLImageElement | null>(null);
-  const previewRef = useRef<HTMLCanvasElement | null>(null);
-  const previewMask = useRef<Uint8Array | null>(null);
-  const wallCache = useRef<{ key: string; wall: Uint8Array } | null>(null);
   const rafRef = useRef<number | null>(null);
-  const previewGen = useRef(0);
-  const pendingFill = useRef<{ x: number; y: number } | null>(null);
+
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   /** canvas px per CSS px, so the size chips paint at the thickness they show. */
@@ -81,9 +77,8 @@ export function ColoringCanvas({
   const [favorites, setFavorites] = useState<string[]>([]);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [showCheckpoints, setShowCheckpoints] = useState(false);
-  const [fillMessage, setFillMessage] = useState<string | null>(null);
-  const [fillTolerance, setFillTolerance] = useState(32);
-  const [fillMode, setFillMode] = useState<"closed" | "basic">("closed");
+
+
 
 
   useEffect(() => {
@@ -102,16 +97,8 @@ export function ColoringCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  useEffect(() => {
-    const preview = previewRef.current;
-    if (preview) {
-      preview.width = 1024;
-      preview.height = 1024;
-    }
-    wallCache.current = null;
-    clearPreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, tool, size, color, fillTolerance, fillMode]);
+
+
 
   useEffect(
     () => () => {
@@ -253,282 +240,9 @@ export function ColoringCanvas({
     ctx.restore();
   };
 
-  const getLineArtData = async () => {
-    const img = lineArtRef.current;
-    if (!img || !img.complete) return null;
-    const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 1024;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return ctx.getImageData(0, 0, canvas.width, canvas.height);
-  };
-
-  const hexToRgba = (hex: string) => {
-    const clean = hex.replace("#", "");
-    const r = Number.parseInt(clean.slice(0, 2), 16);
-    const g = Number.parseInt(clean.slice(2, 4), 16);
-    const b = Number.parseInt(clean.slice(4, 6), 16);
-    return { r, g, b, a: 255 };
-  };
-
-  const buildWallMap = (lineData: ImageData, width: number, height: number) => {
-    const wall = new Uint8Array(width * height);
-    // Always bridge the tiny anti-aliased gaps common in generated line art.
-    // Without this minimum, a foreground region can leak into the background
-    // when either of the two smallest wall-width options is selected.
-    const radius = Math.max(2, Math.floor(size / 4));
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const idx = (y * width + x) * 4;
-        const lr = lineData.data[idx] ?? 0;
-        const lg = lineData.data[idx + 1] ?? 0;
-        const lb = lineData.data[idx + 2] ?? 0;
-        const la = lineData.data[idx + 3] ?? 0;
-        if (la >= 30 && (lr + lg + lb) / 3 < 90 + fillTolerance) {
-          wall[y * width + x] = 1;
-        }
-      }
-    }
-
-    const dilated = new Uint8Array(width * height);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (wall[y * width + x]) {
-          for (let dy = -radius; dy <= radius; dy++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-              if (dx * dx + dy * dy > radius * radius) continue;
-              const nx = x + dx;
-              const ny = y + dy;
-              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                dilated[ny * width + nx] = 1;
-              }
-            }
-          }
-        }
-      }
-    }
-    return dilated;
-  };
-
-  const getWallMap = async (width: number, height: number) => {
-    const key = `${src}|${size}|${fillTolerance}`;
-    if (wallCache.current && wallCache.current.key === key) return wallCache.current.wall;
-    const lineData = await getLineArtData();
-    if (!lineData) return null;
-    const wall = buildWallMap(lineData, width, height);
-    wallCache.current = { key, wall };
-    return wall;
-  };
-
-  /** Detect the region that a fill at this point would cover. */
-  const computeRegion = async (startX: number, startY: number) => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return null;
-    const width = canvas.width;
-    const height = canvas.height;
-    const sx = Math.max(0, Math.min(width - 1, Math.floor(startX)));
-    const sy = Math.max(0, Math.min(height - 1, Math.floor(startY)));
-
-    const paintData = ctx.getImageData(0, 0, width, height);
-    const wallMap = await getWallMap(width, height);
-    if (!wallMap) return null;
-
-    const tolerance = fillTolerance;
-
-    const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
-
-    // A finger or bucket cursor often lands on the outline itself. Pick the
-    // nearest open pixel instead of treating that very common tap as a miss.
-    // Prefer the candidate closest to the center of the page, which selects
-    // the foreground side of an outline rather than the outer background.
-    let seedX = sx;
-    let seedY = sy;
-    if (isWall(seedX, seedY)) {
-      const maxRadius = Math.max(12, Math.floor(size * 1.5));
-      let best: { x: number; y: number; centerDistance: number } | null = null;
-      for (let radius = 1; radius <= maxRadius && !best; radius++) {
-        const candidates: { x: number; y: number }[] = [];
-        for (let offset = -radius; offset <= radius; offset++) {
-          candidates.push(
-            { x: sx + offset, y: sy - radius },
-            { x: sx + offset, y: sy + radius },
-            { x: sx - radius, y: sy + offset },
-            { x: sx + radius, y: sy + offset },
-          );
-        }
-        for (const candidate of candidates) {
-          if (
-            candidate.x < 0 ||
-            candidate.x >= width ||
-            candidate.y < 0 ||
-            candidate.y >= height ||
-            isWall(candidate.x, candidate.y)
-          ) continue;
-          const centerDistance = Math.hypot(candidate.x - width / 2, candidate.y - height / 2);
-          if (!best || centerDistance < best.centerDistance) {
-            best = { ...candidate, centerDistance };
-          }
-        }
-      }
-      if (!best) return null;
-      seedX = best.x;
-      seedY = best.y;
-    }
-
-    const targetIdx = (seedY * width + seedX) * 4;
-    const tr = paintData.data[targetIdx] ?? 0;
-    const tg = paintData.data[targetIdx + 1] ?? 0;
-    const tb = paintData.data[targetIdx + 2] ?? 0;
-    const ta = paintData.data[targetIdx + 3] ?? 0;
-    const matchesTarget = (idx: number) => {
-      const dr = (paintData.data[idx] ?? 0) - tr;
-      const dg = (paintData.data[idx + 1] ?? 0) - tg;
-      const db = (paintData.data[idx + 2] ?? 0) - tb;
-      const da = (paintData.data[idx + 3] ?? 0) - ta;
-      return Math.hypot(dr, dg, db, da) <= tolerance;
-    };
-
-    const visited = new Uint8Array(width * height);
-    const stack: [number, number][] = [[seedX, seedY]];
-    const pixels: [number, number][] = [];
-    let touchesEdge = false;
-
-    while (stack.length) {
-      const [x, y] = stack.pop()!;
-      const idx = (y * width + x) * 4;
-      if (visited[y * width + x]) continue;
-      if (!matchesTarget(idx)) continue;
-      if (isWall(x, y)) continue;
-
-      visited[y * width + x] = 1;
-      pixels.push([x, y]);
-      if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
-        touchesEdge = true;
-      }
-
-      if (x > 0) stack.push([x - 1, y]);
-      if (x < width - 1) stack.push([x + 1, y]);
-      if (y > 0) stack.push([x, y - 1]);
-      if (y < height - 1) stack.push([x, y + 1]);
-    }
-
-    return { pixels, touchesEdge, visited, width, height, paintData };
-  };
-
-  const clearPreview = () => {
-    const canvas = previewRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    previewMask.current = null;
-    previewGen.current += 1;
-  };
-
-  const drawPreview = async (px: number, py: number) => {
-    const canvas = previewRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-
-    const x = Math.floor(px);
-    const y = Math.floor(py);
-    const mask = previewMask.current;
-    if (
-      mask &&
-      x >= 0 &&
-      y >= 0 &&
-      x < canvas.width &&
-      y < canvas.height &&
-      mask[y * canvas.width + x] === 1
-    ) {
-      return; // still inside the previewed region
-    }
-
-    // Clear the old preview immediately so it doesn't leave a shadow while
-    // the new region is being computed.
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    previewMask.current = null;
-
-    const gen = ++previewGen.current;
-    const region = await computeRegion(px, py);
-
-    // Discard stale results from earlier pointer positions.
-    if (gen !== previewGen.current) return;
-
-    if (!region || !region.pixels.length) {
-      return;
-    }
-
-    const tint = region.touchesEdge && fillMode === "closed"
-      ? { r: 239, g: 68, b: 68, a: 77 }
-      : { ...hexToRgba(color), a: 102 };
-
-    const overlay = ctx.createImageData(canvas.width, canvas.height);
-    for (const [rx, ry] of region.pixels) {
-      const idx = (ry * canvas.width + rx) * 4;
-      overlay.data[idx] = tint.r;
-      overlay.data[idx + 1] = tint.g;
-      overlay.data[idx + 2] = tint.b;
-      overlay.data[idx + 3] = tint.a;
-    }
-    ctx.putImageData(overlay, 0, 0);
-    previewMask.current = region.visited;
-  };
-
-  const queuePreview = (px: number, py: number) => {
-    if (rafRef.current !== null) return;
-    rafRef.current = window.requestAnimationFrame(() => {
-      rafRef.current = null;
-      void drawPreview(px, py);
-    });
-  };
-
-  const floodFill = async (startX: number, startY: number) => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx) return;
-    const region = await computeRegion(startX, startY);
-    clearPreview();
-    if (!region) return;
-
-    if (region.touchesEdge && fillMode === "closed") {
-      setFillMessage("That area isn't closed — try a closed shape");
-      window.setTimeout(() => setFillMessage(null), 2000);
-      return;
-    }
-
-    if (region.pixels.length) {
-      const fill = hexToRgba(color);
-      const { paintData, width } = region;
-      for (const [x, y] of region.pixels) {
-        const idx = (y * width + x) * 4;
-        paintData.data[idx] = fill.r;
-        paintData.data[idx + 1] = fill.g;
-        paintData.data[idx + 2] = fill.b;
-        paintData.data[idx + 3] = fill.a;
-      }
-      ctx.putImageData(paintData, 0, 0);
-      reportPaint();
-    }
-  };
-
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     const point = pointFromEvent(e);
-    if (tool === "bucket") {
-      if (e.pointerType !== "mouse") {
-        // Touch/pen: show the preview first, fill on release.
-        pendingFill.current = point;
-        void drawPreview(point.x, point.y);
-        return;
-      }
-      pushHistory();
-      void floodFill(point.x, point.y);
-      return;
-    }
     pushHistory();
     drawing.current = true;
     setIsDrawing(true);
@@ -542,12 +256,6 @@ export function ColoringCanvas({
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (tool === "bucket") {
-      const point = pointFromEvent(e);
-      if (e.pointerType !== "mouse") pendingFill.current = point;
-      queuePreview(point.x, point.y);
-      return;
-    }
     if (!drawing.current || !lastPoint.current) return;
     const point = pointFromEvent(e);
     strokeSegment(lastPoint.current, point, e.pressure);
@@ -556,15 +264,6 @@ export function ColoringCanvas({
 
 
   const onPointerUp = () => {
-    if (tool === "bucket") {
-      const pending = pendingFill.current;
-      pendingFill.current = null;
-      if (pending) {
-        pushHistory();
-        void floodFill(pending.x, pending.y);
-      }
-      return;
-    }
     drawing.current = false;
     lastPoint.current = null;
     lastMid.current = null;
@@ -574,11 +273,9 @@ export function ColoringCanvas({
   };
 
   const onPointerLeave = () => {
-    pendingFill.current = null;
-    clearPreview();
-    if (tool === "bucket") return;
     onPointerUp();
   };
+
 
 
   const undo = () => {
@@ -709,7 +406,7 @@ export function ColoringCanvas({
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerLeave}
           className="absolute inset-0 h-full w-full touch-none"
-          style={{ cursor: tool === "bucket" ? "pointer" : "crosshair" }}
+          style={{ cursor: "crosshair" }}
         />
         <img
           ref={lineArtRef}
@@ -718,18 +415,7 @@ export function ColoringCanvas({
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
           draggable={false}
         />
-        <canvas
-          ref={previewRef}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-10 h-full w-full"
-        />
 
-
-        {fillMessage && (
-          <div className="pointer-events-none absolute left-1/2 top-6 z-20 -translate-x-1/2 rounded-full bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-md backdrop-blur animate-in fade-in slide-in-from-top-2">
-            {fillMessage}
-          </div>
-        )}
 
         <button
           type="button"
@@ -754,7 +440,7 @@ export function ColoringCanvas({
 
         <section className="paper-card p-4">
           <h3 className="label-chalk">Tools</h3>
-          <div className="mt-3 grid grid-cols-5 gap-2">
+          <div className="mt-3 grid grid-cols-4 gap-2">
             {TOOLS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -773,9 +459,8 @@ export function ColoringCanvas({
             ))}
           </div>
 
-          <h3 className="label-chalk mt-5">
-            {tool === "bucket" ? "Wall width" : "Size"}
-          </h3>
+          <h3 className="label-chalk mt-5">Size</h3>
+
           <div className="mt-3 flex items-center gap-2">
             {BRUSH_SIZES.map((value) => (
               <button
@@ -799,56 +484,6 @@ export function ColoringCanvas({
             ))}
           </div>
 
-          {tool === "bucket" && (
-            <>
-              <h3 className="label-chalk mt-5 flex items-center justify-between">
-                <span>Fill tolerance</span>
-                <span className="text-xs font-semibold text-muted-foreground">{fillTolerance}</span>
-              </h3>
-              <input
-                type="range"
-                min={8}
-                max={96}
-                step={4}
-                value={fillTolerance}
-                onChange={(e) => setFillTolerance(Number(e.target.value))}
-                aria-label="Fill tolerance"
-                className="mt-3 w-full accent-accent"
-              />
-              <p className="mt-2 text-xs text-muted-foreground">
-                Lower is stricter about closed boundaries; higher fills across faint or broken lines.
-              </p>
-
-              <h3 className="label-chalk mt-5">Fill mode</h3>
-              <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border-2 border-border/70 bg-card p-1">
-                <button
-                  type="button"
-                  onClick={() => setFillMode("closed")}
-                  className={cn(
-                    "rounded-lg px-2 py-2 text-xs font-bold transition-colors",
-                    fillMode === "closed" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Closed shape
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFillMode("basic")}
-                  className={cn(
-                    "rounded-lg px-2 py-2 text-xs font-bold transition-colors",
-                    fillMode === "basic" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Fill area
-                </button>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {fillMode === "closed"
-                  ? "Only fills fully enclosed shapes."
-                  : "Fills whatever area you tap, even if it reaches the edge."}
-              </p>
-            </>
-          )}
 
 
 
