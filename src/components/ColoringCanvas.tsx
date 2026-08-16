@@ -290,7 +290,9 @@ export function ColoringCanvas({
 
   const buildWallMap = (lineData: ImageData, width: number, height: number) => {
     const wall = new Uint8Array(width * height);
-    const radius = Math.max(1, Math.floor(size / 4));
+    // Higher tolerance = more forgiving: faint/antialiased pixels count as walls,
+    // which seals small gaps in the drawing. Independent of the brush size.
+    const darkLimit = 150 + Math.round(fillTolerance * 0.8);
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -299,36 +301,16 @@ export function ColoringCanvas({
         const lg = lineData.data[idx + 1] ?? 0;
         const lb = lineData.data[idx + 2] ?? 0;
         const la = lineData.data[idx + 3] ?? 0;
-        if (la >= 30 && (lr + lg + lb) / 3 < 90 + fillTolerance) {
+        if (la >= 24 && (lr + lg + lb) / 3 < darkLimit) {
           wall[y * width + x] = 1;
         }
       }
     }
-
-    if (radius <= 1) return wall;
-
-    const dilated = new Uint8Array(width * height);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (wall[y * width + x]) {
-          for (let dy = -radius; dy <= radius; dy++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-              if (dx * dx + dy * dy > radius * radius) continue;
-              const nx = x + dx;
-              const ny = y + dy;
-              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                dilated[ny * width + nx] = 1;
-              }
-            }
-          }
-        }
-      }
-    }
-    return dilated;
+    return wall;
   };
 
   const getWallMap = async (width: number, height: number) => {
-    const key = `${src}|${size}|${fillTolerance}`;
+    const key = `${src}|${width}x${height}|${fillTolerance}`;
     if (wallCache.current && wallCache.current.key === key) return wallCache.current.wall;
     const lineData = await getLineArtData();
     if (!lineData) return null;
@@ -336,6 +318,7 @@ export function ColoringCanvas({
     wallCache.current = { key, wall };
     return wall;
   };
+
 
   /** Detect the region that a fill at this point would cover. */
   const computeRegion = async (startX: number, startY: number) => {
@@ -367,34 +350,58 @@ export function ColoringCanvas({
     };
 
     const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
-    if (isWall(sx, sy)) return null;
+
+    // Tapping right on a line shouldn't do nothing — snap to the nearest
+    // open pixel within a small radius.
+    let ox = sx;
+    let oy = sy;
+    if (isWall(ox, oy)) {
+      let found = false;
+      for (let r = 1; r <= 8 && !found; r++) {
+        for (let dy = -r; dy <= r && !found; dy++) {
+          for (let dx = -r; dx <= r && !found; dx++) {
+            const nx = sx + dx;
+            const ny = sy + dy;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            if (!isWall(nx, ny)) {
+              ox = nx;
+              oy = ny;
+              found = true;
+            }
+          }
+        }
+      }
+      if (!found) return null;
+    }
 
     const visited = new Uint8Array(width * height);
-    const stack: [number, number][] = [[sx, sy]];
+    const stack: number[] = [oy * width + ox];
     const pixels: [number, number][] = [];
     let touchesEdge = false;
 
     while (stack.length) {
-      const [x, y] = stack.pop()!;
-      const idx = (y * width + x) * 4;
-      if (visited[y * width + x]) continue;
-      if (!matchesTarget(idx)) continue;
-      if (isWall(x, y)) continue;
+      const p = stack.pop()!;
+      if (visited[p]) continue;
+      const x = p % width;
+      const y = (p - x) / width;
+      if (wallMap[p] === 1) continue;
+      if (!matchesTarget(p * 4)) continue;
 
-      visited[y * width + x] = 1;
+      visited[p] = 1;
       pixels.push([x, y]);
       if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
         touchesEdge = true;
       }
 
-      if (x > 0) stack.push([x - 1, y]);
-      if (x < width - 1) stack.push([x + 1, y]);
-      if (y > 0) stack.push([x, y - 1]);
-      if (y < height - 1) stack.push([x, y + 1]);
+      if (x > 0) stack.push(p - 1);
+      if (x < width - 1) stack.push(p + 1);
+      if (y > 0) stack.push(p - width);
+      if (y < height - 1) stack.push(p + width);
     }
 
     return { pixels, touchesEdge, visited, width, height, paintData };
   };
+
 
   const clearPreview = () => {
     const canvas = previewRef.current;
@@ -479,17 +486,40 @@ export function ColoringCanvas({
 
     if (region.pixels.length) {
       const fill = hexToRgba(color);
-      const { paintData, width } = region;
-      for (const [x, y] of region.pixels) {
+      const { paintData, width, height, visited } = region;
+      const paint = (x: number, y: number) => {
         const idx = (y * width + x) * 4;
         paintData.data[idx] = fill.r;
         paintData.data[idx + 1] = fill.g;
         paintData.data[idx + 2] = fill.b;
         paintData.data[idx + 3] = fill.a;
+      };
+      for (const [x, y] of region.pixels) paint(x, y);
+      // Feather 2px outward so the color tucks under the outline instead of
+      // leaving a white halo (the line art sits on top in multiply blend).
+      const grown = new Uint8Array(visited);
+      for (let pass = 0; pass < 2; pass++) {
+        const next = new Uint8Array(grown);
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (grown[y * width + x]) continue;
+            const n =
+              (x > 0 && grown[y * width + x - 1]) ||
+              (x < width - 1 && grown[y * width + x + 1]) ||
+              (y > 0 && grown[(y - 1) * width + x]) ||
+              (y < height - 1 && grown[(y + 1) * width + x]);
+            if (n) {
+              next[y * width + x] = 1;
+              paint(x, y);
+            }
+          }
+        }
+        grown.set(next);
       }
       ctx.putImageData(paintData, 0, 0);
       reportPaint();
     }
+
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
