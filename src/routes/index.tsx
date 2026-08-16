@@ -17,6 +17,8 @@ import { PhotoPrep } from "@/components/PhotoPrep";
 import { CameraCapture } from "@/components/CameraCapture";
 import { exportPagesToPdf } from "@/lib/exportPdf";
 import { exportPagesToZip } from "@/lib/exportZip";
+import { downloadFlattenedPage } from "@/lib/flattenPage";
+
 import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { createSharedGallery } from "@/lib/share";
 import { cn } from "@/lib/utils";
