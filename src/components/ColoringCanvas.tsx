@@ -8,6 +8,7 @@ import {
   Trash2,
   Download,
   Droplet,
+  PaintBucket,
   PanelRightOpen,
   PanelRightClose,
   Heart,
