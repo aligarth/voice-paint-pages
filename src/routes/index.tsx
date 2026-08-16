@@ -160,6 +160,45 @@ function Index() {
     [],
   );
 
+  const generateFromPhotos = useCallback(async (files: File[]) => {
+    if (!files.length) return;
+    setGenError(null);
+    setSaveMessage(null);
+    setBookTitle("My photo coloring book");
+    setBusy(true);
+    setPages(
+      files.map((_, i) => ({ id: i, title: "My photo coloring book", src: null, done: false })),
+    );
+
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const dataUrl = await fileToDataUrl(files[i]!);
+        await streamImageFromPhoto("/api/photo-to-lineart", dataUrl, (src, isFinal) => {
+          setPages((prev) =>
+            prev.map((page) => (page.id === i ? { ...page, src, done: isFinal } : page)),
+          );
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Something went wrong";
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === i
+              ? {
+                  ...page,
+                  done: true,
+                  error: message.includes("402")
+                    ? "Out of AI credits — top up to keep drawing."
+                    : "This photo didn't turn into a page. Try another.",
+                }
+              : page,
+          ),
+        );
+      }
+    }
+    setBusy(false);
+  }, []);
+
+
   useEffect(() => {
     if (pendingCommand && !busy) {
       generate(pendingCommand);
