@@ -3,6 +3,8 @@ export type SavedBook = {
   title: string;
   savedAt: number;
   pages: string[];
+  /** Optional painted layers for each page, aligned by index. */
+  paints?: (string | null)[];
 };
 
 export const MAX_BOOKS = 5;
@@ -47,7 +49,11 @@ export async function listBooks(): Promise<SavedBook[]> {
   }
 }
 
-export async function saveBook(title: string, pages: string[]): Promise<SavedBook[]> {
+export async function saveBook(
+  title: string,
+  pages: string[],
+  paints?: (string | null)[],
+): Promise<SavedBook[]> {
   const existing = await listBooks();
   if (existing.length >= MAX_BOOKS) {
     throw new Error(`You can keep ${MAX_BOOKS} books. Delete one to save a new book.`);
@@ -57,6 +63,7 @@ export async function saveBook(title: string, pages: string[]): Promise<SavedBoo
     title,
     savedAt: Date.now(),
     pages,
+    paints,
   };
   await tx("readwrite", (store) => store.put(book));
   return listBooks();
@@ -81,7 +88,8 @@ export async function deleteBookPage(id: string, pageIndex: number): Promise<Sav
   const book = books.find((item) => item.id === id);
   if (!book) return books;
   const pages = book.pages.filter((_, i) => i !== pageIndex);
+  const paints = book.paints?.filter((_, i) => i !== pageIndex);
   if (!pages.length) return deleteBook(id);
-  await tx("readwrite", (store) => store.put({ ...book, pages }));
+  await tx("readwrite", (store) => store.put({ ...book, pages, paints }));
   return listBooks();
 }
