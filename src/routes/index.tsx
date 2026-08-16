@@ -224,11 +224,57 @@ function Index() {
     try {
       const paints = pages.map((page) => page.paint ?? null);
       setSavedBooks(await saveBook(bookTitle || "My coloring book", sources, paints));
-      setSaveMessage("Saved to your bookshelf!");
+      setSaveMessage("Saved to your bookshelf as one book!");
     } catch (err) {
       setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
     }
   };
+
+  /**
+   * Every freshly drawn page becomes its own little book. Pages restored from a session or
+   * an opened book carry no `source`, so they are never re-saved.
+   */
+  useEffect(() => {
+    if (!restored) return;
+    const fresh = pages.filter(
+      (page) => page.source && page.done && page.src && !page.error && !page.regenerating,
+    );
+    if (!fresh.length) return;
+
+    let changed = false;
+    const run = async () => {
+      for (const page of fresh) {
+        const src = page.src!;
+        const existing = autoSavedRef.current.get(page.id);
+        if (existing?.src === src) continue;
+        const total = pages.filter((item) => item.source).length;
+        const label =
+          page.source?.kind === "photo"
+            ? `${page.title || "Photo page"} — photo ${page.id + 1}`
+            : total > 1
+              ? `${page.title || "Coloring page"} ${page.id + 1}`
+              : page.title || "Coloring page";
+        const bookId = existing?.bookId ?? makeBookId();
+        autoSavedRef.current.set(page.id, { bookId, src });
+        try {
+          await saveBookRecord({
+            id: bookId,
+            title: label,
+            savedAt: Date.now(),
+            pages: [src],
+            paints: [page.paint ?? null],
+          });
+          changed = true;
+        } catch {
+          autoSavedRef.current.delete(page.id);
+        }
+      }
+      if (changed) setSavedBooks(await listBooks());
+    };
+    void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pages, restored]);
+
 
   const startFresh = () => {
     setPages([]);
