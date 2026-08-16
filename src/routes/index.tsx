@@ -473,22 +473,6 @@ function Index() {
                         : "Or type below"}
               </p>
             </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={() => photoInput.current?.click()}
-                disabled={busy}
-                className={cn(
-                  "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border transition-transform disabled:opacity-50",
-                  "bg-secondary text-secondary-foreground hover:-translate-y-1",
-                )}
-                aria-label="Snap it"
-              >
-                {busy ? <Loader2 className="h-10 w-10 animate-spin" /> : <Camera className="h-10 w-10" />}
-              </button>
-              <p className="text-sm font-bold">Snap it</p>
-            </div>
           </div>
 
           {supported && (
