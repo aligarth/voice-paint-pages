@@ -191,7 +191,9 @@ export function MusicPlayer({ compact = false }: { compact?: boolean }) {
               </ul>
             </>
           )}
+          {serviceButtons}
         </>
+
       )}
     </section>
   );
