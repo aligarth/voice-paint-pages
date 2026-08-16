@@ -74,6 +74,11 @@ export function ColoringCanvas({
     onPaintChange(canvas.toDataURL("image/png"));
   };
 
+  const updateHistoryState = () => {
+    setCanUndo(history.current.length > 0);
+    setCanRedo(future.current.length > 0);
+  };
+
   const pointFromEvent = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
