@@ -10,8 +10,11 @@ import {
   Droplet,
   PanelRightOpen,
   PanelRightClose,
+  Heart,
+  X,
 } from "lucide-react";
 import { BRUSH_SIZES, CRAYON_COLORS, SPECTRUM } from "@/lib/palette";
+import { addFavoriteColor, getFavoriteColors, removeFavoriteColor } from "@/lib/favoriteColors";
 import { cn } from "@/lib/utils";
 
 
