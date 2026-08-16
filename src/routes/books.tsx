@@ -173,18 +173,20 @@ function BooksPage() {
           big book, rename, remove pages, export a PDF, or reopen a book to keep coloring.
         </p>
 
-        {books && books.length > 1 && (
+        {((books && books.length > 1) || undoPayload) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn-crayon"
-              onClick={() => {
-                setSelecting((prev) => !prev);
-                setSelected([]);
-              }}
-            >
-              <Layers className="h-4 w-4" /> {selecting ? "Cancel selecting" : "Combine books"}
-            </button>
+            {books && books.length > 1 && (
+              <button
+                type="button"
+                className="btn-crayon"
+                onClick={() => {
+                  setSelecting((prev) => !prev);
+                  setSelected([]);
+                }}
+              >
+                <Layers className="h-4 w-4" /> {selecting ? "Cancel selecting" : "Combine books"}
+              </button>
+            )}
             {undoPayload && (
               <button type="button" className="btn-crayon" onClick={() => void revertCombine()}>
                 <Undo2 className="h-4 w-4" /> Undo combine
