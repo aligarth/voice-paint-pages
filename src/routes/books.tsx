@@ -5,6 +5,7 @@ import {
   BookOpen,
   Check,
   FileDown,
+  FileArchive,
   ImageDown,
   Loader2,
   Pencil,
