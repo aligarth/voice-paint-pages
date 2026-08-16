@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check } from "lucide-react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
@@ -35,12 +35,19 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+type PageSource =
+  | { kind: "text"; prompt: string }
+  | { kind: "photo"; image: string; variant?: string | undefined };
+
 type Page = {
   id: number;
   title: string;
   src: string | null;
   done: boolean;
-  error?: string;
+  error?: string | undefined;
+  source?: PageSource | undefined;
+  /** True while this single page is being re-drawn. */
+  regenerating?: boolean | undefined;
 };
 
 function Index() {
@@ -72,6 +79,8 @@ function Index() {
   const photoInput = useRef<HTMLInputElement | null>(null);
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [keepIds, setKeepIds] = useState<number[]>([]);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
@@ -97,6 +106,65 @@ function Index() {
 
 
 
+  const startReview = useCallback(() => {
+    setPages((prev) => {
+      setKeepIds(prev.filter((page) => page.src).map((page) => page.id));
+      return prev;
+    });
+    setReviewing(true);
+  }, []);
+
+  const applyReview = () => {
+    setPages((prev) =>
+      prev.filter((page) => keepIds.includes(page.id)).map((page, i) => ({ ...page, id: i })),
+    );
+    setReviewing(false);
+    setKeepIds([]);
+  };
+
+  const regeneratePage = async (id: number) => {
+    const page = pages.find((item) => item.id === id);
+    const source = page?.source;
+    if (!source) return;
+    setPages((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, src: null, done: false, error: undefined, regenerating: true } : item,
+      ),
+    );
+    const onFrame = (src: string, isFinal: boolean) =>
+      setPages((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, src, done: isFinal, regenerating: !isFinal } : item,
+        ),
+      );
+    try {
+      if (source.kind === "text") {
+        await streamImage("/api/generate-image", source.prompt, onFrame);
+      } else {
+        await streamImageFromPhoto("/api/photo-to-lineart", source.image, onFrame, source.variant);
+      }
+      setPages((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, done: true, regenerating: false } : item)),
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      setPages((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                done: true,
+                regenerating: false,
+                error: message.includes("402")
+                  ? "Out of AI credits — top up to keep drawing."
+                  : "This page didn't draw. Try again.",
+              }
+            : item,
+        ),
+      );
+    }
+  };
+
   const generate = useCallback(
     async (rawText: string) => {
       const { subject, pages: count } = parseRequest(rawText);
@@ -106,6 +174,7 @@ function Index() {
       }
       setGenError(null);
       setSaveMessage(null);
+      setReviewing(false);
       setBookTitle(subject);
       setBusy(true);
       const variations = [
@@ -127,6 +196,10 @@ function Index() {
         title: subject,
         src: null,
         done: false,
+        source: {
+          kind: "text" as const,
+          prompt: `${subject}${variations[i % variations.length] ?? ""}`,
+        },
       }));
       setPages(initial);
 
@@ -162,8 +235,9 @@ function Index() {
         }
       }
       setBusy(false);
+      startReview();
     },
-    [],
+    [startReview],
   );
 
   const pickPhotos = useCallback(async (files: File[]) => {
@@ -178,6 +252,7 @@ function Index() {
       if (!photos.length) return;
       setGenError(null);
       setSaveMessage(null);
+      setReviewing(false);
       setBookTitle("My photo coloring book");
       setBusy(true);
       const variants = [
@@ -190,7 +265,13 @@ function Index() {
         Array.from({ length: perPhoto }, (_, v) => ({ src, variant: variants[v % variants.length] ?? "" })),
       );
       setPages(
-        jobs.map((_, i) => ({ id: i, title: "My photo coloring book", src: null, done: false })),
+        jobs.map((job, i) => ({
+          id: i,
+          title: "My photo coloring book",
+          src: null,
+          done: false,
+          source: { kind: "photo" as const, image: job.src, variant: job.variant || undefined },
+        })),
       );
 
       for (let i = 0; i < jobs.length; i++) {
@@ -224,8 +305,9 @@ function Index() {
         }
       }
       setBusy(false);
+      startReview();
     },
-    [],
+    [startReview],
   );
 
 
@@ -520,44 +602,107 @@ function Index() {
             </div>
           </div>
 
+          {reviewing && (
+            <div className="paper-card mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
+              <p className="text-sm font-bold">
+                Review your variations — tap a thumbnail to keep or skip it.{" "}
+                <span className="text-muted-foreground">{keepIds.length} of {pages.length} kept</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setKeepIds(pages.filter((page) => page.src).map((page) => page.id))}
+                  className="btn-crayon text-sm"
+                >
+                  Keep all
+                </button>
+                <button
+                  type="button"
+                  onClick={applyReview}
+                  disabled={!keepIds.length}
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" /> Apply to my book
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {pages.map((page) => (
-              <button
-                key={page.id}
-                type="button"
-                disabled={!page.src}
-                onClick={() => setOpenPage(page.id)}
-                className="paper-card group relative aspect-square overflow-hidden p-2 text-left transition-transform enabled:hover:-translate-y-1 disabled:cursor-wait"
-              >
-                {page.src ? (
-                  <img
-                    src={page.src}
-                    alt={`Coloring page ${page.id + 1}: ${page.title}`}
+            {pages.map((page) => {
+              const kept = keepIds.includes(page.id);
+              return (
+                <div key={page.id} className="relative">
+                  <button
+                    type="button"
+                    disabled={!page.src}
+                    onClick={() =>
+                      reviewing
+                        ? setKeepIds((prev) =>
+                            prev.includes(page.id)
+                              ? prev.filter((id) => id !== page.id)
+                              : [...prev, page.id],
+                          )
+                        : setOpenPage(page.id)
+                    }
                     className={cn(
-                      "h-full w-full object-contain transition-[filter] duration-500",
-                      page.done ? "blur-0" : "blur-md",
+                      "paper-card group relative block aspect-square w-full overflow-hidden p-2 text-left transition-transform enabled:hover:-translate-y-1 disabled:cursor-wait",
+                      reviewing && !kept && "opacity-45",
+                      reviewing && kept && "ring-4 ring-primary",
                     )}
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                    {page.error ? (
-                      <span className="px-4 text-center text-sm font-semibold text-primary">
-                        {page.error}
-                      </span>
+                  >
+                    {page.src ? (
+                      <img
+                        src={page.src}
+                        alt={`Coloring page ${page.id + 1}: ${page.title}`}
+                        className={cn(
+                          "h-full w-full object-contain transition-[filter] duration-500",
+                          page.done ? "blur-0" : "blur-md",
+                        )}
+                      />
                     ) : (
-                      <>
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                        <span className="text-xs font-bold">Sketching page {page.id + 1}…</span>
-                      </>
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                        {page.error ? (
+                          <span className="px-4 text-center text-sm font-semibold text-primary">
+                            {page.error}
+                          </span>
+                        ) : (
+                          <>
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                            <span className="text-xs font-bold">
+                              {page.regenerating ? "Re-drawing" : "Sketching"} page {page.id + 1}…
+                            </span>
+                          </>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-                <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
-                  Page {page.id + 1}
-                </span>
-              </button>
-            ))}
+                    <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
+                      Page {page.id + 1}
+                    </span>
+                    {reviewing && kept && (
+                      <span className="absolute right-2 top-2 rounded-full border-2 border-border bg-primary p-1 text-primary-foreground">
+                        <Check className="h-4 w-4" />
+                      </span>
+                    )}
+                  </button>
+                  {page.source && (
+                    <button
+                      type="button"
+                      onClick={() => void regeneratePage(page.id)}
+                      disabled={busy || page.regenerating}
+                      className="btn-crayon mt-2 w-full justify-center text-sm disabled:opacity-50"
+                    >
+                      <RefreshCw
+                        className={cn("h-4 w-4", page.regenerating && "animate-spin")}
+                      />
+                      {page.regenerating ? "Re-drawing…" : "Regenerate this page"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
+
         </section>
       )}
 
