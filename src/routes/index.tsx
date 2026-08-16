@@ -493,9 +493,67 @@ function Index() {
               >
                 <Camera className="h-10 w-10" />
               </button>
-              <p className="text-sm font-bold">Snap it</p>
+              <p className="text-sm font-bold">
+                {snapShots.length ? `Snap another (${snapShots.length})` : "Snap it"}
+              </p>
             </div>
           </div>
+
+          {snapShots.length > 0 && (
+            <div className="w-full rounded-2xl border-2 border-dashed border-border bg-card/60 p-4">
+              <p className="text-center text-sm font-bold">
+                {snapShots.length} photo{snapShots.length === 1 ? "" : "s"} in this session
+              </p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                {snapShots.map((src, i) => (
+                  <div key={`${i}-${src.slice(-12)}`} className="relative">
+                    <img
+                      src={src}
+                      alt={`Snapped photo ${i + 1}`}
+                      className="h-20 w-20 rounded-xl border-2 border-border object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSnapShots((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label={`Remove photo ${i + 1}`}
+                      className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-border bg-card text-xs font-extrabold"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => snapInput.current?.click()}
+                  disabled={busy || snapShots.length >= 12}
+                  className="btn-crayon disabled:opacity-50"
+                >
+                  <Camera className="h-4 w-4" /> Snap another
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrepPhotos(snapShots);
+                    setSnapShots([]);
+                  }}
+                  disabled={busy}
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-6 py-2.5 text-base font-extrabold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+                >
+                  Use these {snapShots.length} photo{snapShots.length === 1 ? "" : "s"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSnapShots([])}
+                  className="text-sm font-bold text-muted-foreground underline"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
+
 
           {supported && (
             <button
