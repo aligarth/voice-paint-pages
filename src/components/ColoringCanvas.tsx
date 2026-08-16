@@ -214,18 +214,14 @@ export function ColoringCanvas({
       const width = lastWidth.current == null ? target : lastWidth.current * 0.6 + target * 0.4;
       lastWidth.current = width;
 
-      const drawPass = (w: number, alpha: number) => {
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = Math.max(0.6, w);
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.quadraticCurveTo(from.x, from.y, mid.x, mid.y);
-        ctx.stroke();
-      };
+      // Single opaque pass keeps the edge crisp (no translucent bleed halo).
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = Math.max(0.6, width);
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.quadraticCurveTo(from.x, from.y, mid.x, mid.y);
+      ctx.stroke();
 
-      drawPass(width * 1.35, 0.16); // soft bristle bleed
-      drawPass(width, 0.95); // body
-      drawPass(width * 0.45, 0.65); // loaded core
 
       lastMid.current = mid;
       ctx.restore();
