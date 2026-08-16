@@ -57,7 +57,9 @@ export function useMusic() {
   useEffect(() => {
     const l = () => force((n) => n + 1);
     listeners.add(l);
-    return () => listeners.delete(l);
+    return () => {
+      listeners.delete(l);
+    };
   }, []);
   return { ...state, current: state.tracks[state.index] ?? null };
 }
@@ -128,7 +130,8 @@ export function removeTrack(id: string) {
   const i = state.tracks.findIndex((t) => t.id === id);
   if (i === -1) return;
   const wasCurrent = i === state.index;
-  URL.revokeObjectURL(state.tracks[i].url);
+  const track = state.tracks[i];
+  if (track) URL.revokeObjectURL(track.url);
   state.tracks = state.tracks.filter((t) => t.id !== id);
   if (!state.tracks.length) {
     el()?.pause();
