@@ -431,6 +431,9 @@ function Index() {
           Describe your picture or snap a photo, then get clean line-art pages ready to paint with
           brushes, crayons and every color there is.
         </p>
+        <Link to="/books" className="btn-crayon mx-auto mt-5 text-sm">
+          <Library className="h-4 w-4" /> My books
+        </Link>
       </header>
 
       <section className="paper-card mx-auto mt-10 max-w-2xl p-6 sm:p-8">
