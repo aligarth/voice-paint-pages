@@ -82,6 +82,7 @@ function Index() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [heard, setHeard] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement | null>(null);
+  const snapInput = useRef<HTMLInputElement | null>(null);
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
   const [reviewing, setReviewing] = useState(false);
