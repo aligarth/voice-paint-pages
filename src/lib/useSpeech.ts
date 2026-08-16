@@ -125,7 +125,7 @@ export function useSpeech() {
     if (!Ctor) return;
     setSupported(true);
     const rec = new Ctor();
-    rec.lang = langRef.current;
+    rec.lang = resolveLangRef.current();
     rec.continuous = true;
     rec.interimResults = true;
     rec.onresult = (event) => {
