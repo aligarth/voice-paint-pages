@@ -65,6 +65,8 @@ export function ColoringCanvas({
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [showCheckpoints, setShowCheckpoints] = useState(false);
 
 
   useEffect(() => {
