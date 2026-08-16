@@ -275,7 +275,10 @@ export function ColoringCanvas({
 
   const buildWallMap = (lineData: ImageData, width: number, height: number) => {
     const wall = new Uint8Array(width * height);
-    const radius = Math.max(1, Math.floor(size / 4));
+    // Always bridge the tiny anti-aliased gaps common in generated line art.
+    // Without this minimum, a foreground region can leak into the background
+    // when either of the two smallest wall-width options is selected.
+    const radius = Math.max(2, Math.floor(size / 4));
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -289,8 +292,6 @@ export function ColoringCanvas({
         }
       }
     }
-
-    if (radius <= 1) return wall;
 
     const dilated = new Uint8Array(width * height);
     for (let y = 0; y < height; y++) {
