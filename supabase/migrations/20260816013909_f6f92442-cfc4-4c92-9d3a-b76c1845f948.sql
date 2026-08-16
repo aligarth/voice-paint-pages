@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.increment_shared_gallery_views(uuid);
