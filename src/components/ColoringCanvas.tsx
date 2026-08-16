@@ -296,10 +296,19 @@ export function ColoringCanvas({
       b: parseInt(full.slice(4, 6), 16) || 0,
     };
 
-    const matches = (i: number) =>
-      Math.abs((px[i] ?? 255) - sr) <= FILL_TOLERANCE &&
-      Math.abs((px[i + 1] ?? 255) - sg) <= FILL_TOLERANCE &&
-      Math.abs((px[i + 2] ?? 255) - sb) <= FILL_TOLERANCE;
+    const lum = (i: number) =>
+      0.299 * (px[i] ?? 255) + 0.587 * (px[i + 1] ?? 255) + 0.114 * (px[i + 2] ?? 255);
+    const seedIsDark = lum(seed) < DARK_WALL;
+
+    const matches = (i: number) => {
+      // Outlines are hard walls unless the tap itself started on the outline.
+      if (!seedIsDark && lum(i) < DARK_WALL) return false;
+      return (
+        Math.abs((px[i] ?? 255) - sr) <= FILL_TOLERANCE &&
+        Math.abs((px[i + 1] ?? 255) - sg) <= FILL_TOLERANCE &&
+        Math.abs((px[i + 2] ?? 255) - sb) <= FILL_TOLERANCE
+      );
+    };
 
     const mask = new Uint8Array(w * h);
     const stack: number[] = [sx, sy];
