@@ -85,6 +85,7 @@ function Index() {
   const snapInput = useRef<HTMLInputElement | null>(null);
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
+  const [snapShots, setSnapShots] = useState<string[]>([]);
   const [reviewing, setReviewing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [restored, setRestored] = useState(false);
