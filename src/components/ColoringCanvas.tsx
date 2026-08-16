@@ -408,10 +408,18 @@ export function ColoringCanvas({
       return; // still inside the previewed region
     }
 
-    const region = await computeRegion(px, py);
+    // Clear the old preview immediately so it doesn't leave a shadow while
+    // the new region is being computed.
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    previewMask.current = null;
+
+    const gen = ++previewGen.current;
+    const region = await computeRegion(px, py);
+
+    // Discard stale results from earlier pointer positions.
+    if (gen !== previewGen.current) return;
+
     if (!region || !region.pixels.length) {
-      previewMask.current = null;
       return;
     }
 
