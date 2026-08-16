@@ -8,6 +8,7 @@ import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/lib/savedBooks";
 import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
+import { PhotoPrep } from "@/components/PhotoPrep";
 import { cn } from "@/lib/utils";
 
 
@@ -69,6 +70,8 @@ function Index() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [heard, setHeard] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement | null>(null);
+  const [photoPageCount, setPhotoPageCount] = useState(1);
+  const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
@@ -163,43 +166,67 @@ function Index() {
     [],
   );
 
-  const generateFromPhotos = useCallback(async (files: File[]) => {
+  const pickPhotos = useCallback(async (files: File[]) => {
     if (!files.length) return;
     setGenError(null);
-    setSaveMessage(null);
-    setBookTitle("My photo coloring book");
-    setBusy(true);
-    setPages(
-      files.map((_, i) => ({ id: i, title: "My photo coloring book", src: null, done: false })),
-    );
-
-    for (let i = 0; i < files.length; i++) {
-      try {
-        const dataUrl = await fileToDataUrl(files[i]!);
-        await streamImageFromPhoto("/api/photo-to-lineart", dataUrl, (src, isFinal) => {
-          setPages((prev) =>
-            prev.map((page) => (page.id === i ? { ...page, src, done: isFinal } : page)),
-          );
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Something went wrong";
-        setPages((prev) =>
-          prev.map((page) =>
-            page.id === i
-              ? {
-                  ...page,
-                  done: true,
-                  error: message.includes("402")
-                    ? "Out of AI credits — top up to keep drawing."
-                    : "This photo didn't turn into a page. Try another.",
-                }
-              : page,
-          ),
-        );
-      }
-    }
-    setBusy(false);
+    const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
+    setPrepPhotos(urls);
   }, []);
+
+  const generateFromPhotos = useCallback(
+    async (photos: string[], perPhoto: number) => {
+      if (!photos.length) return;
+      setGenError(null);
+      setSaveMessage(null);
+      setBookTitle("My photo coloring book");
+      setBusy(true);
+      const variants = [
+        "",
+        "Zoom in a little closer on the main subject for this version.",
+        "Add a simple decorative background and border details for this version.",
+        "Make the outlines chunkier and the shapes simpler for this version.",
+      ];
+      const jobs = photos.flatMap((src, p) =>
+        Array.from({ length: perPhoto }, (_, v) => ({ src, variant: variants[v % variants.length] ?? "" })),
+      );
+      setPages(
+        jobs.map((_, i) => ({ id: i, title: "My photo coloring book", src: null, done: false })),
+      );
+
+      for (let i = 0; i < jobs.length; i++) {
+        const job = jobs[i]!;
+        try {
+          await streamImageFromPhoto(
+            "/api/photo-to-lineart",
+            job.src,
+            (src, isFinal) => {
+              setPages((prev) =>
+                prev.map((page) => (page.id === i ? { ...page, src, done: isFinal } : page)),
+              );
+            },
+            job.variant || undefined,
+          );
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Something went wrong";
+          setPages((prev) =>
+            prev.map((page) =>
+              page.id === i
+                ? {
+                    ...page,
+                    done: true,
+                    error: message.includes("402")
+                      ? "Out of AI credits — top up to keep drawing."
+                      : "This photo didn't turn into a page. Try another.",
+                  }
+                : page,
+            ),
+          );
+        }
+      }
+      setBusy(false);
+    },
+    [],
+  );
 
 
   // Heard speech waits for confirmation instead of generating straight away.
@@ -427,7 +454,7 @@ function Index() {
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           Snap a picture with your camera (or pick a few from your gallery) and we'll turn each one
-          into a coloring page — one page per photo.
+          into coloring pages. You'll get camera tips plus a quick crop and brightness step first.
         </p>
         <input
           ref={photoInput}
@@ -439,14 +466,33 @@ function Index() {
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []).slice(0, 12);
             e.target.value = "";
-            void generateFromPhotos(files);
+            void pickPhotos(files);
           }}
         />
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-sm font-bold">Pages per photo:</span>
+          {[1, 2, 3, 4].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setPhotoPageCount(n)}
+              aria-pressed={photoPageCount === n}
+              className={cn(
+                "h-10 w-10 rounded-full border-2 border-border text-base font-extrabold transition-transform hover:-translate-y-0.5",
+                photoPageCount === n
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-foreground",
+              )}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           onClick={() => photoInput.current?.click()}
           disabled={busy}
-          className="mt-5 inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary px-7 py-3 text-lg font-extrabold text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
+          className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary px-7 py-3 text-lg font-extrabold text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
           {busy ? "Turning photos into pages…" : "Take or choose photos"}
@@ -555,6 +601,16 @@ function Index() {
         </section>
       )}
 
+      {prepPhotos && (
+        <PhotoPrep
+          photos={prepPhotos}
+          onCancel={() => setPrepPhotos(null)}
+          onDone={(prepared) => {
+            setPrepPhotos(null);
+            void generateFromPhotos(prepared, photoPageCount);
+          }}
+        />
+      )}
     </main>
   );
 }
