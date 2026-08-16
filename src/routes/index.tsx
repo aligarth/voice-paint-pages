@@ -534,7 +534,7 @@ function Index() {
             disabled={exporting || !pages.some((page) => page.src)}
             className="btn-crayon disabled:opacity-50"
           >
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
             {exporting ? "Building ZIP…" : "Export ZIP"}
           </button>
         </div>
