@@ -15,6 +15,7 @@ import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
 import { PhotoPrep } from "@/components/PhotoPrep";
 import { exportPagesToPdf } from "@/lib/exportPdf";
+import { exportPagesToZip } from "@/lib/exportZip";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
