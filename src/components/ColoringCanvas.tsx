@@ -82,6 +82,7 @@ export function ColoringCanvas({
   const [showCheckpoints, setShowCheckpoints] = useState(false);
   const [fillMessage, setFillMessage] = useState<string | null>(null);
   const [fillTolerance, setFillTolerance] = useState(32);
+  const [fillMode, setFillMode] = useState<"closed" | "basic">("closed");
 
 
   useEffect(() => {
@@ -109,7 +110,7 @@ export function ColoringCanvas({
     wallCache.current = null;
     clearPreview();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, tool, size, color, fillTolerance]);
+  }, [src, tool, size, color, fillTolerance, fillMode]);
 
   useEffect(
     () => () => {
@@ -413,7 +414,7 @@ export function ColoringCanvas({
       return;
     }
 
-    const tint = region.touchesEdge
+    const tint = region.touchesEdge && fillMode === "closed"
       ? { r: 239, g: 68, b: 68, a: 77 }
       : { ...hexToRgba(color), a: 102 };
 
@@ -445,7 +446,7 @@ export function ColoringCanvas({
     clearPreview();
     if (!region) return;
 
-    if (region.touchesEdge) {
+    if (region.touchesEdge && fillMode === "closed") {
       setFillMessage("That area isn't closed — try a closed shape");
       window.setTimeout(() => setFillMessage(null), 2000);
       return;
@@ -768,6 +769,35 @@ export function ColoringCanvas({
               />
               <p className="mt-2 text-xs text-muted-foreground">
                 Lower is stricter about closed boundaries; higher fills across faint or broken lines.
+              </p>
+
+              <h3 className="label-chalk mt-5">Fill mode</h3>
+              <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border-2 border-border/70 bg-card p-1">
+                <button
+                  type="button"
+                  onClick={() => setFillMode("closed")}
+                  className={cn(
+                    "rounded-lg px-2 py-2 text-xs font-bold transition-colors",
+                    fillMode === "closed" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Closed shape
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFillMode("basic")}
+                  className={cn(
+                    "rounded-lg px-2 py-2 text-xs font-bold transition-colors",
+                    fillMode === "basic" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Fill area
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {fillMode === "closed"
+                  ? "Only fills fully enclosed shapes."
+                  : "Fills whatever area you tap, even if it reaches the edge."}
               </p>
             </>
           )}
