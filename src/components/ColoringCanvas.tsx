@@ -770,6 +770,35 @@ export function ColoringCanvas({
               <p className="mt-2 text-xs text-muted-foreground">
                 Lower is stricter about closed boundaries; higher fills across faint or broken lines.
               </p>
+
+              <h3 className="label-chalk mt-5">Fill mode</h3>
+              <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border-2 border-border/70 bg-card p-1">
+                <button
+                  type="button"
+                  onClick={() => setFillMode("closed")}
+                  className={cn(
+                    "rounded-lg px-2 py-2 text-xs font-bold transition-colors",
+                    fillMode === "closed" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Closed shape
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFillMode("basic")}
+                  className={cn(
+                    "rounded-lg px-2 py-2 text-xs font-bold transition-colors",
+                    fillMode === "basic" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Fill area
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {fillMode === "closed"
+                  ? "Only fills fully enclosed shapes."
+                  : "Fills whatever area you tap, even if it reaches the edge."}
+              </p>
             </>
           )}
 
