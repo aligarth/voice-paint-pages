@@ -57,6 +57,7 @@ function Index() {
     clearPendingCommand,
     lang,
     setLang,
+    detectedLang,
   } = useSpeech();
   const [pages, setPages] = useState<Page[]>([]);
   const [busy, setBusy] = useState(false);
