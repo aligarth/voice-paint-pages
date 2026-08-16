@@ -48,6 +48,8 @@ export function ColoringCanvas({
   const [size, setSize] = useState(24);
   const [panelOpen, setPanelOpen] = useState(true);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
 
   useEffect(() => {
