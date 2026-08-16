@@ -334,8 +334,21 @@ export function ColoringCanvas({
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <button type="button" onClick={undo} className="btn-crayon">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={history.current.length === 0}
+              className="btn-crayon disabled:opacity-50"
+            >
               <RotateCcw className="h-4 w-4" /> Undo
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={future.current.length === 0}
+              className="btn-crayon disabled:opacity-50"
+            >
+              <Redo className="h-4 w-4" /> Redo
             </button>
             <button type="button" onClick={clear} className="btn-crayon">
               <Trash2 className="h-4 w-4" /> Clear
