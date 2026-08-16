@@ -1054,14 +1054,23 @@ function Index() {
                     )}
                   >
                     {page.src ? (
-                      <img
-                        src={page.src}
-                        alt={`Coloring page ${page.id + 1}: ${page.title}`}
-                        className={cn(
-                          "h-full w-full object-contain transition-[filter] duration-500",
-                          page.done ? "blur-0" : "blur-md",
+                      <div className="relative h-full w-full">
+                        <img
+                          src={page.src}
+                          alt={`Coloring page ${page.id + 1}: ${page.title}`}
+                          className={cn(
+                            "h-full w-full object-contain transition-[filter] duration-500",
+                            page.done ? "blur-0" : "blur-md",
+                          )}
+                        />
+                        {page.paint && (
+                          <img
+                            src={page.paint}
+                            alt=""
+                            className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+                          />
                         )}
-                      />
+                      </div>
                     ) : (
                       <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
                         {page.error ? (
@@ -1087,19 +1096,33 @@ function Index() {
                       </span>
                     )}
                   </button>
-                  {page.source && (
-                    <button
-                      type="button"
-                      onClick={() => void regeneratePage(page.id)}
-                      disabled={busy || page.regenerating}
-                      className="btn-crayon mt-2 w-full justify-center text-sm disabled:opacity-50"
-                    >
-                      <RefreshCw
-                        className={cn("h-4 w-4", page.regenerating && "animate-spin")}
-                      />
-                      {page.regenerating ? "Re-drawing…" : "Regenerate this page"}
-                    </button>
-                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {page.source && (
+                      <button
+                        type="button"
+                        onClick={() => void regeneratePage(page.id)}
+                        disabled={busy || page.regenerating}
+                        className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                      >
+                        <RefreshCw
+                          className={cn("h-4 w-4", page.regenerating && "animate-spin")}
+                        />
+                        {page.regenerating ? "Re-drawing…" : "Regenerate"}
+                      </button>
+                    )}
+                    {page.src && page.done && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void exportPagePng(page as Page & { src: string; done: true })
+                        }
+                        className="btn-crayon flex-1 justify-center text-sm"
+                        aria-label={`Export page ${page.id + 1} as PNG`}
+                      >
+                        <ImageDown className="h-4 w-4" /> PNG
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
