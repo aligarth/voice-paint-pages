@@ -3,6 +3,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, staticFile,
 import { loadFont } from "@remotion/google-fonts/Fredoka";
 import { palette } from "../lib/colors";
 import { slideUp, scaleIn } from "../lib/animations";
+import { FootageLayer, footageTextShadow } from "../components/FootageLayer";
 
 const { fontFamily: displayFont } = loadFont("normal", { weights: ["600"], subsets: ["latin"] });
 
@@ -20,27 +21,31 @@ export const ColorItScene: React.FC = () => {
     extrapolateRight: "clamp",
   });
 
-  const imageSize = Math.min(width, height) * (isVertical ? 0.72 : 0.55);
+  const imageSize = Math.min(width, height) * (isVertical ? 0.5 : 0.42);
   const imageX = width / 2 - imageSize / 2;
-  const imageY = isVertical ? height * 0.28 : height * 0.22;
+  const imageY = isVertical ? height * 0.3 : height * 0.26;
 
+  const cardAnim = scaleIn(frame, 30, 12);
   const swatchScale = scaleIn(frame, 30, 60);
 
   const colors = [palette.primary, palette.accent, palette.green, palette.blue, palette.purple, "#FF6B9D", "#40E0D0"];
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <FootageLayer src="color-it.webm" dim={0.2} zoom={0.09} />
+
       <div
         style={{
           fontFamily: displayFont,
           fontSize: titleSize,
           fontWeight: 600,
-          color: palette.charcoal,
+          color: palette.white,
+          textShadow: footageTextShadow,
           textAlign: "center",
           opacity: titleAnim.opacity,
           transform: `translateY(${titleAnim.y}px)`,
           position: "absolute",
-          top: isVertical ? height * 0.08 : height * 0.08,
+          top: isVertical ? height * 0.08 : height * 0.07,
         }}
       >
         You color it.
@@ -56,8 +61,10 @@ export const ColorItScene: React.FC = () => {
           borderRadius: 24,
           background: palette.white,
           border: `4px solid ${palette.charcoal}`,
-          boxShadow: `12px 12px 0 rgba(45,42,38,0.12)`,
+          boxShadow: `0 24px 60px rgba(45,42,38,0.45)`,
           overflow: "hidden",
+          opacity: cardAnim.opacity,
+          transform: `scale(${cardAnim.scale}) rotate(-2deg)`,
         }}
       >
         <div
@@ -106,7 +113,7 @@ export const ColorItScene: React.FC = () => {
               borderRadius: "50%",
               background: color,
               border: `3px solid ${palette.white}`,
-              boxShadow: `0 4px 12px rgba(45,42,38,0.15)`,
+              boxShadow: `0 6px 18px rgba(45,42,38,0.4)`,
               transform: `translateY(${Math.sin((frame + i * 20) * 0.1) * 4}px)`,
             }}
           />

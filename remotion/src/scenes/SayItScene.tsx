@@ -4,6 +4,7 @@ import { loadFont } from "@remotion/google-fonts/Fredoka";
 import { loadFont as loadNunito } from "@remotion/google-fonts/Nunito";
 import { palette } from "../lib/colors";
 import { slideUp, scaleIn } from "../lib/animations";
+import { FootageLayer, footageTextShadow } from "../components/FootageLayer";
 
 const { fontFamily: displayFont } = loadFont("normal", { weights: ["600"], subsets: ["latin"] });
 const { fontFamily: bodyFont } = loadNunito("normal", { weights: ["700"], subsets: ["latin"] });
@@ -30,17 +31,20 @@ export const SayItScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <FootageLayer src="say-it.webm" dim={0.18} zoom={0.07} />
+
       <div
         style={{
           fontFamily: displayFont,
           fontSize: titleSize,
           fontWeight: 600,
-          color: palette.charcoal,
+          color: palette.white,
+          textShadow: footageTextShadow,
           textAlign: "center",
           opacity: titleAnim.opacity,
           transform: `translateY(${titleAnim.y}px)`,
           position: "absolute",
-          top: isVertical ? height * 0.12 : height * 0.1,
+          top: isVertical ? height * 0.09 : height * 0.07,
         }}
       >
         Say it.
@@ -49,7 +53,7 @@ export const SayItScene: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          top: isVertical ? height * 0.32 : height * 0.38,
+          bottom: isVertical ? height * 0.2 : height * 0.16,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -66,7 +70,7 @@ export const SayItScene: React.FC = () => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            boxShadow: `0 12px 40px rgba(232,90,79,0.35)`,
+            boxShadow: `0 12px 40px rgba(232,90,79,0.45)`,
             transform: `scale(${micPulse})`,
           }}
         >
@@ -101,10 +105,11 @@ export const SayItScene: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          bottom: isVertical ? height * 0.12 : height * 0.1,
+          bottom: isVertical ? height * 0.06 : height * 0.05,
           fontFamily: bodyFont,
           fontSize: isVertical ? width * 0.04 : height * 0.035,
-          color: palette.softGray,
+          color: palette.white,
+          textShadow: footageTextShadow,
           opacity: captionAnim.opacity,
           transform: `translateY(${captionAnim.y}px)`,
           textAlign: "center",
