@@ -188,6 +188,22 @@ function Index() {
     link.click();
   };
 
+  const exportZip = async () => {
+    const ready = pages
+      .filter((page) => page.src)
+      .map((page) => ({ src: page.src as string, paint: page.paint ?? null }));
+    if (!ready.length) return;
+    setExporting(true);
+    try {
+      await exportPagesToZip(bookTitle || "My coloring book", ready);
+      setSaveMessage("ZIP downloaded!");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not build the ZIP.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleSaveBook = async () => {
     const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
     if (!sources.length) return;
