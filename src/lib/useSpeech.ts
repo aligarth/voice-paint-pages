@@ -222,10 +222,12 @@ export function useSpeech() {
       if (wasCommand) {
         setWakeActive(false);
         wakeEndIndexRef.current = 0;
-        if (wakeEnabledRef.current && !manualStopRef.current) {
-          const command = transcriptRef.current;
-          if (command) setPendingCommand(command);
-        }
+      }
+      // A captured request (wake phrase or plain tap-and-talk) goes up for
+      // confirmation, unless the user tapped stop themselves.
+      if (!manualStopRef.current) {
+        const command = transcriptRef.current;
+        if (command) setPendingCommand(command);
       }
       manualStopRef.current = false;
       if (wakeEnabledRef.current) {
