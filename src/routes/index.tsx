@@ -10,7 +10,14 @@ import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
-import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/lib/savedBooks";
+import {
+  deleteBook,
+  listBooks,
+  makeBookId,
+  saveBook,
+  saveBookRecord,
+  type SavedBook,
+} from "@/lib/savedBooks";
 import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
 import { PhotoPrep } from "@/components/PhotoPrep";
@@ -107,6 +114,8 @@ function Index() {
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  /** Page id -> the one-page book it was auto-saved into, so redraws replace instead of duplicate. */
+  const autoSavedRef = useRef<Map<number, { bookId: string; src: string }>>(new Map());
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
