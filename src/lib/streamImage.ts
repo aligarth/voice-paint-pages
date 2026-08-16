@@ -70,11 +70,13 @@ export async function streamImage(
   endpoint: string,
   prompt: string,
   onImage: OnImage,
+  signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt }),
+    signal,
   });
   if (!res.ok) throw new Error(await res.text().catch(() => `Request failed (${res.status})`));
 
@@ -86,6 +88,7 @@ export async function streamImage(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt, stream: false }),
+    signal,
   });
   if (!retry.ok) throw new Error(await retry.text().catch(() => "Image generation failed"));
   const json = await retry.json();
