@@ -5,7 +5,9 @@ import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
 import { streamImage } from "@/lib/streamImage";
 import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/lib/savedBooks";
+import { SPEECH_LANGUAGES } from "@/lib/languages";
 import { cn } from "@/lib/utils";
+
 
 
 export const Route = createFileRoute("/")({
@@ -52,6 +54,8 @@ function Index() {
     pendingCommand,
     toggleWake,
     clearPendingCommand,
+    lang,
+    setLang,
   } = useSpeech();
   const [pages, setPages] = useState<Page[]>([]);
   const [busy, setBusy] = useState(false);
