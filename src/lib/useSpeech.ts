@@ -195,29 +195,12 @@ export function useSpeech() {
         window.clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = null;
       }
-      const wasCommand = wakeActiveRef.current;
-      if (wasCommand) {
-        setWakeActive(false);
-        wakeEndIndexRef.current = 0;
-      }
-      // A captured request (wake phrase or plain tap-and-talk) goes up for
-      // confirmation, unless the user tapped stop themselves.
+      // A captured request goes up for confirmation, unless the user tapped stop themselves.
       if (!manualStopRef.current) {
         const command = transcriptRef.current;
         if (command) setPendingCommand(command);
       }
       manualStopRef.current = false;
-      if (wakeEnabledRef.current) {
-        window.setTimeout(() => {
-          try {
-            if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
-            recognitionRef.current?.start();
-            setListening(true);
-          } catch {
-            setListening(false);
-          }
-        }, 300);
-      }
     };
     recognitionRef.current = rec;
     return () => {
