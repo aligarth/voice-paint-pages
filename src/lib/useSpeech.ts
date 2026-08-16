@@ -155,22 +155,8 @@ export function useSpeech() {
       }
 
 
-      if (!wakeActiveRef.current && wakeEnabledRef.current) {
-        const lower = text.toLowerCase();
-        const idx = lower.indexOf(WAKE_PHRASE);
-        if (idx !== -1) {
-          wakeEndIndexRef.current = idx + WAKE_PHRASE.length;
-          setWakeActive(true);
-          const after = text.slice(wakeEndIndexRef.current).trim();
-          setTranscript(after);
-        }
-        return;
-      }
-
       const lastResult = event.results[event.results.length - 1];
-      const spoken = wakeActiveRef.current
-        ? text.slice(wakeEndIndexRef.current).trim()
-        : text.trim();
+      const spoken = text.trim();
       setTranscript(spoken);
 
       // Every new result (interim included) pushes the auto-stop back, so the
