@@ -41,6 +41,7 @@ export function ColoringCanvas({
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const history = useRef<ImageData[]>([]);
+  const future = useRef<ImageData[]>([]);
 
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#ED0A3F");
