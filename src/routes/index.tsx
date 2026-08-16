@@ -543,6 +543,7 @@ function Index() {
                       setSnapShots((prev) => {
                         const next = [...prev];
                         const [moved] = next.splice(from, 1);
+                        if (!moved) return prev;
                         next.splice(i, 0, moved);
                         return next;
                       });
