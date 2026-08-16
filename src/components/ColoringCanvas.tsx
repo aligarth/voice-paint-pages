@@ -72,6 +72,10 @@ export function ColoringCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
+  useEffect(() => {
+    setFavorites(getFavoriteColors());
+  }, []);
+
   const reportPaint = () => {
     const canvas = canvasRef.current;
     if (!canvas || !onPaintChange) return;
