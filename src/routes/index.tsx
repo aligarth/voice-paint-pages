@@ -434,7 +434,7 @@ function Index() {
         setBusy(false);
       }
     },
-    [startReview],
+    [startReview, textPageCount],
   );
 
   const pickPhotos = useCallback(async (files: File[]) => {
