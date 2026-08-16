@@ -328,6 +328,42 @@ function Index() {
           )}
 
 
+          {heard && !busy && (
+            <div className="w-full rounded-2xl border-2 border-accent bg-accent/10 p-4 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                I heard
+              </p>
+              <p className="mt-1 text-lg font-extrabold">“{heard}”</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Edit it below if that's not right, then confirm.
+              </p>
+              <div className="mt-3 flex flex-wrap justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHeard(null);
+                    stop();
+                    void generate(transcript);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-accent px-5 py-2 text-sm font-extrabold text-accent-foreground"
+                >
+                  <Check className="h-4 w-4" /> Yes, draw it
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHeard(null);
+                    setTranscript("");
+                    start();
+                  }}
+                  className="btn-crayon"
+                >
+                  <Mic className="h-4 w-4" /> Say it again
+                </button>
+              </div>
+            </div>
+          )}
+
           <textarea
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
@@ -340,6 +376,7 @@ function Index() {
             type="button"
             onClick={() => {
               clearPendingCommand();
+              setHeard(null);
               stop();
               void generate(transcript);
             }}
@@ -349,6 +386,7 @@ function Index() {
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
             {busy ? "Drawing your book…" : "Make my coloring book"}
           </button>
+
 
           {(micError || genError) && (
             <p className="text-sm font-semibold text-primary">{micError ?? genError}</p>
