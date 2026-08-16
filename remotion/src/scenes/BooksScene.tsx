@@ -3,6 +3,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, staticFile,
 import { loadFont } from "@remotion/google-fonts/Fredoka";
 import { palette } from "../lib/colors";
 import { slideUp } from "../lib/animations";
+import { FootageLayer, footageTextShadow } from "../components/FootageLayer";
 
 const { fontFamily: displayFont } = loadFont("normal", { weights: ["600"], subsets: ["latin"] });
 
@@ -21,22 +22,25 @@ export const BooksScene: React.FC = () => {
     { src: "images/dragon-lineart.jpg", rotate: -3, y: 40 },
   ];
 
-  const pageSize = Math.min(width, height) * (isVertical ? 0.28 : 0.22);
-  const shelfY = isVertical ? height * 0.42 : height * 0.4;
+  const pageSize = Math.min(width, height) * (isVertical ? 0.24 : 0.2);
+  const shelfY = isVertical ? height * 0.52 : height * 0.46;
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <FootageLayer src="together.mp4" dim={0.24} zoom={0.07} />
+
       <div
         style={{
           fontFamily: displayFont,
           fontSize: titleSize,
           fontWeight: 600,
-          color: palette.charcoal,
+          color: palette.white,
+          textShadow: footageTextShadow,
           textAlign: "center",
           opacity: titleAnim.opacity,
           transform: `translateY(${titleAnim.y}px)`,
           position: "absolute",
-          top: isVertical ? height * 0.1 : height * 0.1,
+          top: isVertical ? height * 0.1 : height * 0.08,
         }}
       >
         Keep every book.
@@ -71,7 +75,7 @@ export const BooksScene: React.FC = () => {
                 borderRadius: 12,
                 background: palette.white,
                 border: `3px solid ${palette.charcoal}`,
-                boxShadow: `0 8px 20px rgba(45,42,38,0.12)`,
+                boxShadow: `0 16px 36px rgba(45,42,38,0.45)`,
                 opacity: progress,
                 transform: `rotate(${page.rotate}deg) translateY(${(1 - progress) * 60}px)`,
                 overflow: "hidden",
@@ -94,8 +98,9 @@ export const BooksScene: React.FC = () => {
           width: pageSize * 3.6,
           height: 14,
           transform: "translateX(-50%)",
-          background: palette.accentDark,
+          background: palette.accent,
           borderRadius: 7,
+          boxShadow: `0 10px 24px rgba(45,42,38,0.4)`,
           opacity: interpolate(frame, [50, 80], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
         }}
       />
