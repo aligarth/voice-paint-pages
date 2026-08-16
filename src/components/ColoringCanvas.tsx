@@ -95,6 +95,7 @@ export function ColoringCanvas({
     history.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     if (history.current.length > 20) history.current.shift();
     future.current = [];
+    updateHistoryState();
   };
 
   const strokeSegment = (from: { x: number; y: number }, to: { x: number; y: number }) => {
