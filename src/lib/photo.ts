@@ -35,12 +35,15 @@ export type PhotoAdjust = {
   brightness: number;
   /** 0.5 – 2 */
   contrast: number;
+  /** Draw a closed black rectangle around the photo so line art has sealed edges. */
+  border?: boolean;
 };
 
 export const DEFAULT_ADJUST: PhotoAdjust = {
   crop: { x: 0, y: 0, w: 1, h: 1 },
   brightness: 1.1,
   contrast: 1.2,
+  border: true,
 };
 
 /** Applies crop + brightness/contrast and returns a downscaled JPEG data URL. */
