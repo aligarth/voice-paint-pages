@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
+import { Route as ApiPhotoToLineartRouteImport } from './routes/api/photo-to-lineart'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   path: '/api/generate-image',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPhotoToLineartRoute = ApiPhotoToLineartRouteImport.update({
+  id: '/api/photo-to-lineart',
+  path: '/api/photo-to-lineart',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
+  '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/generate-image'
+  fullPaths: '/' | '/api/generate-image' | '/api/photo-to-lineart'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/generate-image'
-  id: '__root__' | '/' | '/api/generate-image'
+  to: '/' | '/api/generate-image' | '/api/photo-to-lineart'
+  id: '__root__' | '/' | '/api/generate-image' | '/api/photo-to-lineart'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
+  ApiPhotoToLineartRoute: typeof ApiPhotoToLineartRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGenerateImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/photo-to-lineart': {
+      id: '/api/photo-to-lineart'
+      path: '/api/photo-to-lineart'
+      fullPath: '/api/photo-to-lineart'
+      preLoaderRoute: typeof ApiPhotoToLineartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
+  ApiPhotoToLineartRoute: ApiPhotoToLineartRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

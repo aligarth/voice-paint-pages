@@ -94,3 +94,31 @@ export async function streamImage(
   if (!final) throw new Error("No image was returned");
   onImage(final, true);
 }
+
+export async function streamImageFromPhoto(
+  endpoint: string,
+  image: string,
+  onImage: OnImage,
+): Promise<void> {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image }),
+  });
+  if (!res.ok) throw new Error(await res.text().catch(() => `Request failed (${res.status})`));
+
+  const got = await readSse(res, onImage);
+  if (got) return;
+
+  const retry = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image, stream: false }),
+  });
+  if (!retry.ok) throw new Error(await retry.text().catch(() => "Image generation failed"));
+  const json = await retry.json();
+  const images = collectImages(json);
+  const final = images[images.length - 1];
+  if (!final) throw new Error("No image was returned");
+  onImage(final, true);
+}

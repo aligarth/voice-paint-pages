@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
-import { streamImage } from "@/lib/streamImage";
+import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/lib/savedBooks";
 import { SPEECH_LANGUAGES } from "@/lib/languages";
+import { fileToDataUrl } from "@/lib/photo";
 import { cn } from "@/lib/utils";
 
 
@@ -64,6 +65,7 @@ function Index() {
   const [genError, setGenError] = useState<string | null>(null);
   const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
@@ -157,6 +159,45 @@ function Index() {
     },
     [],
   );
+
+  const generateFromPhotos = useCallback(async (files: File[]) => {
+    if (!files.length) return;
+    setGenError(null);
+    setSaveMessage(null);
+    setBookTitle("My photo coloring book");
+    setBusy(true);
+    setPages(
+      files.map((_, i) => ({ id: i, title: "My photo coloring book", src: null, done: false })),
+    );
+
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const dataUrl = await fileToDataUrl(files[i]!);
+        await streamImageFromPhoto("/api/photo-to-lineart", dataUrl, (src, isFinal) => {
+          setPages((prev) =>
+            prev.map((page) => (page.id === i ? { ...page, src, done: isFinal } : page)),
+          );
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Something went wrong";
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === i
+              ? {
+                  ...page,
+                  done: true,
+                  error: message.includes("402")
+                    ? "Out of AI credits — top up to keep drawing."
+                    : "This photo didn't turn into a page. Try another.",
+                }
+              : page,
+          ),
+        );
+      }
+    }
+    setBusy(false);
+  }, []);
+
 
   useEffect(() => {
     if (pendingCommand && !busy) {
@@ -302,6 +343,38 @@ function Index() {
             <p className="text-sm font-semibold text-primary">{micError ?? genError}</p>
           )}
         </div>
+      </section>
+
+      <section className="paper-card mx-auto mt-6 max-w-2xl p-6 text-center sm:p-8">
+        <h2 className="flex items-center justify-center gap-2 text-2xl font-extrabold">
+          <Camera className="h-6 w-6" /> Or make a book from your photos
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Snap a picture with your camera (or pick a few from your gallery) and we'll turn each one
+          into a coloring page — one page per photo.
+        </p>
+        <input
+          ref={photoInput}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []).slice(0, 12);
+            e.target.value = "";
+            void generateFromPhotos(files);
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => photoInput.current?.click()}
+          disabled={busy}
+          className="mt-5 inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary px-7 py-3 text-lg font-extrabold text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
+          {busy ? "Turning photos into pages…" : "Take or choose photos"}
+        </button>
       </section>
 
       {pages.length > 0 && (
