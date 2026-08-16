@@ -892,6 +892,20 @@ function Index() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Edit it below if that's not right, then confirm.
               </p>
+              <label className="mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground">
+                Pages to create:
+                <select
+                  value={textPageCount}
+                  onChange={(e) => setTextPageCount(Number(e.target.value))}
+                  className="rounded-xl border-2 border-border bg-card px-2 py-1 text-foreground"
+                >
+                  {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
