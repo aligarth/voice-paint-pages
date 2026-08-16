@@ -16,9 +16,13 @@ export const Route = createFileRoute("/api/generate-image")({
 
         const fullPrompt =
           `A coloring book page: clean black outline line art of ${prompt}. ` +
-          `Bold even black contour lines, pure white background, no shading, no grey, no color, ` +
-          `no text, large simple enclosed areas that are easy to color in, centered composition, ` +
-          `printable coloring book illustration.`;
+          `CRITICAL: every outline must be one continuous unbroken loop - all shapes fully closed, ` +
+          `every line meets another line, absolutely no gaps, no breaks, no open ends, no dashed or ` +
+          `sketchy strokes, so each area is completely sealed and can be filled with color without ` +
+          `leaking into neighboring areas. ` +
+          `Bold even black contour lines of uniform thickness, pure white background, no shading, ` +
+          `no hatching, no grey, no color, no text, large simple enclosed areas that are easy to ` +
+          `color in, centered composition, printable coloring book illustration.`;
 
         const upstream = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
           method: "POST",
