@@ -43,7 +43,3 @@ export async function fetchSharedGallery(id: string): Promise<SharedGallery | nu
   return data as SharedGallery;
 }
 
-export async function incrementGalleryViews(id: string) {
-  // Views are incremented server-side via a public API route to keep anon writes minimal.
-  await fetch(`/api/public/gallery/${id}/view`, { method: "POST" });
-}
