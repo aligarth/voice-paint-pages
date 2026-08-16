@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
+import { MusicPlayer } from "@/components/MusicPlayer";
 import { parseRequest, useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/lib/savedBooks";
@@ -397,6 +398,8 @@ function Index() {
           )}
         </div>
       </section>
+
+      <MusicPlayer />
 
       <section className="paper-card mx-auto mt-6 max-w-2xl p-6 text-center sm:p-8">
         <h2 className="flex items-center justify-center gap-2 text-2xl font-extrabold">
