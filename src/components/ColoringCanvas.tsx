@@ -4,6 +4,7 @@ import {
   Paintbrush,
   Pencil,
   RotateCcw,
+  Redo,
   Trash2,
   Download,
   Droplet,
