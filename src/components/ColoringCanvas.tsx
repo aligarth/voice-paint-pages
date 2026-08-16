@@ -39,7 +39,10 @@ const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
 ];
 
 /** Per-channel slack so soft anti-aliased edges join their region instead of haloing. */
-const FILL_TOLERANCE = 32;
+const FILL_TOLERANCE = 12;
+
+/** Anything darker than this counts as an outline wall the fill can never cross. */
+const DARK_WALL = 110;
 
 
 export function ColoringCanvas({
@@ -253,8 +256,12 @@ export function ColoringCanvas({
     ctx.drawImage(canvas, 0, 0);
     const line = lineArtRef.current;
     if (line && line.complete && line.naturalWidth) {
+      // Match the on-screen object-contain fit exactly, or lines land off from the tap.
+      const scale = Math.min(out.width / line.naturalWidth, out.height / line.naturalHeight);
+      const dw = line.naturalWidth * scale;
+      const dh = line.naturalHeight * scale;
       ctx.globalCompositeOperation = "multiply";
-      ctx.drawImage(line, 0, 0, out.width, out.height);
+      ctx.drawImage(line, (out.width - dw) / 2, (out.height - dh) / 2, dw, dh);
       ctx.globalCompositeOperation = "source-over";
     }
     try {
@@ -292,10 +299,19 @@ export function ColoringCanvas({
       b: parseInt(full.slice(4, 6), 16) || 0,
     };
 
-    const matches = (i: number) =>
-      Math.abs((px[i] ?? 255) - sr) <= FILL_TOLERANCE &&
-      Math.abs((px[i + 1] ?? 255) - sg) <= FILL_TOLERANCE &&
-      Math.abs((px[i + 2] ?? 255) - sb) <= FILL_TOLERANCE;
+    const lum = (i: number) =>
+      0.299 * (px[i] ?? 255) + 0.587 * (px[i + 1] ?? 255) + 0.114 * (px[i + 2] ?? 255);
+    const seedIsDark = lum(seed) < DARK_WALL;
+
+    const matches = (i: number) => {
+      // Outlines are hard walls unless the tap itself started on the outline.
+      if (!seedIsDark && lum(i) < DARK_WALL) return false;
+      return (
+        Math.abs((px[i] ?? 255) - sr) <= FILL_TOLERANCE &&
+        Math.abs((px[i + 1] ?? 255) - sg) <= FILL_TOLERANCE &&
+        Math.abs((px[i + 2] ?? 255) - sb) <= FILL_TOLERANCE
+      );
+    };
 
     const mask = new Uint8Array(w * h);
     const stack: number[] = [sx, sy];
