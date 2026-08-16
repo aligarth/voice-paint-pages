@@ -150,6 +150,17 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
           })}
           <button
             type="button"
+            onClick={() => setAdjust((a) => ({ ...a, border: a.border === false }))}
+            aria-pressed={adjust.border !== false}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border-2 border-border px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5",
+              adjust.border !== false ? "bg-primary text-primary-foreground" : "bg-card",
+            )}
+          >
+            <Square className="h-4 w-4" /> Add border
+          </button>
+          <button
+            type="button"
             onClick={() => setLocked((v) => !v)}
             aria-pressed={locked}
             className={cn(
