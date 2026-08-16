@@ -14,6 +14,7 @@ import { deleteBook, listBooks, saveBook, MAX_BOOKS, type SavedBook } from "@/li
 import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
 import { PhotoPrep } from "@/components/PhotoPrep";
+import { CameraCapture } from "@/components/CameraCapture";
 import { exportPagesToPdf } from "@/lib/exportPdf";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
@@ -89,6 +90,7 @@ function Index() {
   const [heard, setHeard] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement | null>(null);
   const snapInput = useRef<HTMLInputElement | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [textPageCount, setTextPageCount] = useState(1);
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
@@ -525,6 +527,15 @@ function Index() {
     setPrepPhotos(urls);
   }, []);
 
+  const openCamera = useCallback(() => {
+    setGenError(null);
+    if (typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function") {
+      setCameraOpen(true);
+      return;
+    }
+    snapInput.current?.click();
+  }, []);
+
   const addSnaps = useCallback(async (files: File[]) => {
     if (!files.length) return;
     setGenError(null);
@@ -744,7 +755,7 @@ function Index() {
             <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
-                onClick={() => snapInput.current?.click()}
+                onClick={openCamera}
                 disabled={busy}
                 className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-border bg-secondary text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
                 aria-label="Snap a photo"
@@ -831,7 +842,7 @@ function Index() {
               <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                 <button
                   type="button"
-                  onClick={() => snapInput.current?.click()}
+                  onClick={openCamera}
                   disabled={busy || snapShots.length >= 12}
                   className="btn-crayon disabled:opacity-50"
                 >
@@ -1043,6 +1054,21 @@ function Index() {
           )}
         </div>
       </section>
+
+      {cameraOpen && (
+        <CameraCapture
+          max={12}
+          onClose={() => setCameraOpen(false)}
+          onFallback={() => {
+            setCameraOpen(false);
+            snapInput.current?.click();
+          }}
+          onCapture={(urls) => {
+            setCameraOpen(false);
+            setSnapShots((prev) => [...prev, ...urls].slice(0, 12));
+          }}
+        />
+      )}
 
       <MusicPlayer />
 
