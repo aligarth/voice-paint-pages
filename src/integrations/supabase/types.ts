@@ -43,7 +43,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_shared_gallery_views: {
+        Args: { gallery_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
