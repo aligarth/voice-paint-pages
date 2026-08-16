@@ -200,12 +200,14 @@ function Index() {
   }, []);
 
 
+  // Heard speech waits for confirmation instead of generating straight away.
   useEffect(() => {
     if (pendingCommand && !busy) {
-      generate(pendingCommand);
+      setHeard(pendingCommand);
+      setTranscript(pendingCommand);
       clearPendingCommand();
     }
-  }, [pendingCommand, busy, generate, clearPendingCommand]);
+  }, [pendingCommand, busy, clearPendingCommand, setTranscript]);
 
   const activePage = pages.find((page) => page.id === openPage);
 
