@@ -22,6 +22,8 @@ import {
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
 import { exportPagesToZip } from "@/lib/exportZip";
+import { downloadFlattenedPage } from "@/lib/flattenPage";
+
 import { saveSession } from "@/lib/session";
 
 export const Route = createFileRoute("/books")({
