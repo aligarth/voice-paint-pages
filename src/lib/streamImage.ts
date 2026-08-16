@@ -76,7 +76,7 @@ export async function streamImage(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt }),
-    signal,
+    signal: signal ?? null,
   });
   if (!res.ok) throw new Error(await res.text().catch(() => `Request failed (${res.status})`));
 
@@ -88,7 +88,7 @@ export async function streamImage(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt, stream: false }),
-    signal,
+    signal: signal ?? null,
   });
   if (!retry.ok) throw new Error(await retry.text().catch(() => "Image generation failed"));
   const json = await retry.json();
@@ -103,11 +103,13 @@ export async function streamImageFromPhoto(
   image: string,
   onImage: OnImage,
   variant?: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image, variant }),
+    signal: signal ?? null,
   });
   if (!res.ok) throw new Error(await res.text().catch(() => `Request failed (${res.status})`));
 
@@ -118,6 +120,7 @@ export async function streamImageFromPhoto(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image, variant, stream: false }),
+    signal: signal ?? null,
   });
   if (!retry.ok) throw new Error(await retry.text().catch(() => "Image generation failed"));
   const json = await retry.json();
