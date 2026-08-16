@@ -70,6 +70,7 @@ export function ColoringCanvas({
   const [favorites, setFavorites] = useState<string[]>([]);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [showCheckpoints, setShowCheckpoints] = useState(false);
+  const [fillMessage, setFillMessage] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -203,7 +204,47 @@ export function ColoringCanvas({
     return { r, g, b, a: 255 };
   };
 
+  const buildWallMap = (lineData: ImageData, width: number, height: number) => {
+    const wall = new Uint8Array(width * height);
+    const radius = Math.max(1, Math.floor(size / 4));
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const lr = lineData.data[idx] ?? 0;
+        const lg = lineData.data[idx + 1] ?? 0;
+        const lb = lineData.data[idx + 2] ?? 0;
+        const la = lineData.data[idx + 3] ?? 0;
+        if (la >= 30 && (lr + lg + lb) / 3 < 120) {
+          wall[y * width + x] = 1;
+        }
+      }
+    }
+
+    if (radius <= 1) return wall;
+
+    const dilated = new Uint8Array(width * height);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (wall[y * width + x]) {
+          for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+              if (dx * dx + dy * dy > radius * radius) continue;
+              const nx = x + dx;
+              const ny = y + dy;
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                dilated[ny * width + nx] = 1;
+              }
+            }
+          }
+        }
+      }
+    }
+    return dilated;
+  };
+
   const floodFill = async (startX: number, startY: number) => {
+    console.log("[floodFill] entered", startX, startY);
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -224,6 +265,7 @@ export function ColoringCanvas({
 
     const fill = hexToRgba(color);
     const tolerance = 32;
+    const wallMap = buildWallMap(lineData, width, height);
 
     const matchesTarget = (idx: number) => {
       const dr = (paintData.data[idx] ?? 0) - tr;
@@ -233,35 +275,27 @@ export function ColoringCanvas({
       return Math.hypot(dr, dg, db, da) <= tolerance;
     };
 
-    const isWall = (idx: number) => {
-      const lr = lineData.data[idx] ?? 0;
-      const lg = lineData.data[idx + 1] ?? 0;
-      const lb = lineData.data[idx + 2] ?? 0;
-      const la = lineData.data[idx + 3] ?? 0;
-      if (la < 30) return false;
-      const brightness = (lr + lg + lb) / 3;
-      return brightness < 120;
-    };
+    const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
 
-    if (isWall(targetIdx)) return;
+    if (isWall(sx, sy)) return;
 
     const visited = new Uint8Array(width * height);
     const stack: [number, number][] = [[sx, sy]];
-    let filled = false;
+    const region: [number, number][] = [];
+    let touchesEdge = false;
 
     while (stack.length) {
       const [x, y] = stack.pop()!;
       const idx = (y * width + x) * 4;
       if (visited[y * width + x]) continue;
       if (!matchesTarget(idx)) continue;
-      if (isWall(idx)) continue;
+      if (isWall(x, y)) continue;
 
       visited[y * width + x] = 1;
-      paintData.data[idx] = fill.r;
-      paintData.data[idx + 1] = fill.g;
-      paintData.data[idx + 2] = fill.b;
-      paintData.data[idx + 3] = fill.a;
-      filled = true;
+      region.push([x, y]);
+      if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+        touchesEdge = true;
+      }
 
       if (x > 0) stack.push([x - 1, y]);
       if (x < width - 1) stack.push([x + 1, y]);
@@ -269,7 +303,22 @@ export function ColoringCanvas({
       if (y < height - 1) stack.push([x, y + 1]);
     }
 
-    if (filled) {
+    console.log("[floodFill] start", sx, sy, "touchesEdge", touchesEdge, "region", region.length);
+
+    if (touchesEdge) {
+      setFillMessage("That area isn't closed — try a closed shape");
+      window.setTimeout(() => setFillMessage(null), 2000);
+      return;
+    }
+
+    if (region.length) {
+      for (const [x, y] of region) {
+        const idx = (y * width + x) * 4;
+        paintData.data[idx] = fill.r;
+        paintData.data[idx + 1] = fill.g;
+        paintData.data[idx + 2] = fill.b;
+        paintData.data[idx + 3] = fill.a;
+      }
       ctx.putImageData(paintData, 0, 0);
       reportPaint();
     }
@@ -433,7 +482,7 @@ export function ColoringCanvas({
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
           className="absolute inset-0 h-full w-full touch-none"
-          style={{ cursor: "crosshair" }}
+          style={{ cursor: tool === "bucket" ? "pointer" : "crosshair" }}
         />
         <img
           ref={lineArtRef}
@@ -442,6 +491,12 @@ export function ColoringCanvas({
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
           draggable={false}
         />
+
+        {fillMessage && (
+          <div className="pointer-events-none absolute left-1/2 top-6 z-20 -translate-x-1/2 rounded-full bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-md backdrop-blur animate-in fade-in slide-in-from-top-2">
+            {fillMessage}
+          </div>
+        )}
 
         <button
           type="button"
@@ -485,7 +540,9 @@ export function ColoringCanvas({
             ))}
           </div>
 
-          <h3 className="label-chalk mt-5">Size</h3>
+          <h3 className="label-chalk mt-5">
+            {tool === "bucket" ? "Wall width" : "Size"}
+          </h3>
           <div className="mt-3 flex items-center gap-2">
             {BRUSH_SIZES.map((value) => (
               <button
