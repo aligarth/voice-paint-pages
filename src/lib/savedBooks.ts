@@ -66,3 +66,22 @@ export async function deleteBook(id: string): Promise<SavedBook[]> {
   await tx("readwrite", (store) => store.delete(id));
   return listBooks();
 }
+
+export async function renameBook(id: string, title: string): Promise<SavedBook[]> {
+  const books = await listBooks();
+  const book = books.find((item) => item.id === id);
+  if (!book) return books;
+  await tx("readwrite", (store) => store.put({ ...book, title: title.trim() || book.title }));
+  return listBooks();
+}
+
+/** Removes one page from a book; deletes the whole book when it was the last page. */
+export async function deleteBookPage(id: string, pageIndex: number): Promise<SavedBook[]> {
+  const books = await listBooks();
+  const book = books.find((item) => item.id === id);
+  if (!book) return books;
+  const pages = book.pages.filter((_, i) => i !== pageIndex);
+  if (!pages.length) return deleteBook(id);
+  await tx("readwrite", (store) => store.put({ ...book, pages }));
+  return listBooks();
+}
