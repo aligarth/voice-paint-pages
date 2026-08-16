@@ -186,7 +186,7 @@ function Index() {
         "Add a simple decorative background and border details for this version.",
         "Make the outlines chunkier and the shapes simpler for this version.",
       ];
-      const jobs = photos.flatMap((src, p) =>
+      const jobs = photos.flatMap((src) =>
         Array.from({ length: perPhoto }, (_, v) => ({ src, variant: variants[v % variants.length] ?? "" })),
       );
       setPages(
