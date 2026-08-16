@@ -948,23 +948,6 @@ function Index() {
           )}
 
           {supported && (
-            <button
-              type="button"
-              onClick={toggleWake}
-              className={cn(
-                "flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-bold transition-colors",
-                wakeEnabled
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:bg-accent/10",
-              )}
-              aria-pressed={wakeEnabled}
-            >
-              <Ear className="h-4 w-4" />
-              {wakeEnabled ? "'Color my day' is on" : "Listen for 'Color my day'"}
-            </button>
-          )}
-
-          {supported && (
             <label className="flex flex-col items-center gap-1 text-xs font-bold text-muted-foreground">
               Speak in any language
               <select
