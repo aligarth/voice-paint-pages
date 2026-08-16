@@ -247,12 +247,30 @@ function Index() {
           )}
 
           {supported && (
+            <label className="flex flex-col items-center gap-1 text-xs font-bold text-muted-foreground">
+              Speak in any language
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                className="rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground outline-none focus:border-accent"
+              >
+                {SPEECH_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {supported && (
             <p className="max-w-md text-center text-xs text-muted-foreground">
               {wakeEnabled
                 ? "Keep this tab open. Your mic stays active so the wake phrase works."
                 : "Tap the mic or type your request below."}
             </p>
           )}
+
 
           <textarea
             value={transcript}
