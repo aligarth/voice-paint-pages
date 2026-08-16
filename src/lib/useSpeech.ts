@@ -285,8 +285,6 @@ export function parseRequest(input: string): { subject: string; pages: number } 
   }
   const subject = text
     .trim()
-    .replace(/\bcolor my day\b/gi, "")
-    .trim()
     .replace(
       /\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b\s*(pages?|pictures?|drawings?|sheets?)\b/gi,
       "",
