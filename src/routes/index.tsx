@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, ImageDown, Library, Eye, X, Pencil } from "lucide-react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, FileArchive, ImageDown, Library, Eye, X, Pencil, Share2, RotateCcw } from "lucide-react";
 
 function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === "AbortError";
@@ -15,7 +15,9 @@ import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
 import { PhotoPrep } from "@/components/PhotoPrep";
 import { exportPagesToPdf } from "@/lib/exportPdf";
+import { exportPagesToZip } from "@/lib/exportZip";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
+import { createSharedGallery } from "@/lib/share";
 import { cn } from "@/lib/utils";
 
 
@@ -87,6 +89,7 @@ function Index() {
   const [heard, setHeard] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement | null>(null);
   const snapInput = useRef<HTMLInputElement | null>(null);
+  const [textPageCount, setTextPageCount] = useState(1);
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
   const [snapShots, setSnapShots] = useState<string[]>([]);
@@ -97,6 +100,8 @@ function Index() {
   const [previewSnap, setPreviewSnap] = useState<string | null>(null);
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -187,6 +192,49 @@ function Index() {
     link.click();
   };
 
+  const exportZip = async () => {
+    const ready = pages
+      .filter((page) => page.src)
+      .map((page) => ({ src: page.src as string, paint: page.paint ?? null }));
+    if (!ready.length) return;
+    setExporting(true);
+    try {
+      await exportPagesToZip(bookTitle || "My coloring book", ready);
+      setSaveMessage("ZIP downloaded!");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not build the ZIP.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const shareBook = async () => {
+    const ready = pages
+      .filter((page) => page.src)
+      .map((page) => ({
+        src: page.src as string,
+        paint: page.paint ?? null,
+        title: page.title,
+      }));
+    if (!ready.length) return;
+    setSharing(true);
+    try {
+      const { url } = await createSharedGallery(bookTitle || "My coloring book", ready);
+      setShareUrl(url);
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: bookTitle || "My coloring book", url });
+        } catch {
+          // user cancelled
+        }
+      }
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not share this book.");
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const handleSaveBook = async () => {
     const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
     if (!sources.length) return;
@@ -204,8 +252,89 @@ function Index() {
     setBookTitle("");
     setOpenPage(null);
     setSaveMessage(null);
+    setShareUrl(null);
     void clearSession();
   };
+
+  const regenerateAll = useCallback(async () => {
+    if (!bookTitle) return;
+    setSaveMessage(null);
+    setShareUrl(null);
+    setReviewing(false);
+    setBusy(true);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const count = pages.length || textPageCount;
+    const variations = [
+      "",
+      " in a playful scene",
+      " with a big smile, close up",
+      " surrounded by flowers and stars",
+      " having an adventure outdoors",
+      " with a friend",
+      " under a bright sun",
+      " with patterns and swirls in the background",
+      " celebrating with balloons",
+      " resting peacefully",
+      " in a busy landscape",
+      " with decorative border details",
+    ];
+    setPages((prev) =>
+      prev.map((page, i) => ({
+        ...page,
+        src: null,
+        done: false,
+        source: {
+          kind: "text" as const,
+          prompt: `${bookTitle}${variations[i % variations.length] ?? ""}`,
+        },
+      })),
+    );
+
+    for (let i = 0; i < count; i++) {
+      if (controller.signal.aborted) break;
+      try {
+        await streamImage(
+          "/api/generate-image",
+          `${bookTitle}${variations[i % variations.length] ?? ""}`,
+          (dataUrl, isFinal) => {
+            setPages((prev) =>
+              prev.map((page) =>
+                page.id === i ? { ...page, src: dataUrl, done: isFinal } : page,
+              ),
+            );
+          },
+          controller.signal,
+        );
+      } catch (err) {
+        if (isAbortError(err)) {
+          setPages((prev) =>
+            prev.map((page) =>
+              page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
+            ),
+          );
+          break;
+        }
+        const message = err instanceof Error ? err.message : "Something went wrong";
+        console.error("page regeneration failed", message);
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === i
+              ? {
+                  ...page,
+                  done: true,
+                  error: message.includes("402")
+                    ? "Out of AI credits — top up to keep drawing."
+                    : "This page didn't redraw. Try again.",
+                }
+              : page,
+          ),
+        );
+      }
+    }
+    setBusy(false);
+  }, [bookTitle, pages.length, textPageCount]);
 
   const openSavedBook = (book: SavedBook) => {
     setBookTitle(book.title);
@@ -297,11 +426,12 @@ function Index() {
 
   const generate = useCallback(
     async (rawText: string) => {
-      const { subject, pages: count } = parseRequest(rawText);
+      const { subject, pages: parsedCount } = parseRequest(rawText);
       if (!subject) {
-        setGenError("Tell me what to draw, like “five pages of friendly dinosaurs”.");
+        setGenError('Tell me what to draw, like "five pages of friendly dinosaurs".');
         return;
       }
+      const count = Math.max(1, Math.min(8, textPageCount || parsedCount || 1));
       setGenError(null);
       setSaveMessage(null);
       setReviewing(false);
@@ -385,7 +515,7 @@ function Index() {
         setBusy(false);
       }
     },
-    [startReview],
+    [startReview, textPageCount],
   );
 
   const pickPhotos = useCallback(async (files: File[]) => {
@@ -511,6 +641,24 @@ function Index() {
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
             {exporting ? "Building PDF…" : "Export PDF"}
           </button>
+          <button
+            type="button"
+            onClick={() => void exportZip()}
+            disabled={exporting || !pages.some((page) => page.src)}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+            {exporting ? "Building ZIP…" : "Export ZIP"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void shareBook()}
+            disabled={sharing || !pages.some((page) => page.src)}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+            {sharing ? "Sharing…" : "Share gallery"}
+          </button>
         </div>
         <h1 className="mb-6 text-3xl font-extrabold capitalize">
           {activePage.title} <span className="text-muted-foreground">· page {activePage.id + 1}</span>
@@ -522,6 +670,7 @@ function Index() {
           key={activePage.id}
           src={activePage.src}
           title={activePage.title}
+          pageIndex={activePage.id}
           initialPaint={activePage.paint ?? null}
           onPaintChange={(paint) =>
             setPages((prev) =>
@@ -824,6 +973,20 @@ function Index() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Edit it below if that's not right, then confirm.
               </p>
+              <label className="mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground">
+                Pages to create:
+                <select
+                  value={textPageCount}
+                  onChange={(e) => setTextPageCount(Number(e.target.value))}
+                  className="rounded-xl border-2 border-border bg-card px-2 py-1 text-foreground"
+                >
+                  {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
@@ -969,6 +1132,15 @@ function Index() {
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 {exporting ? "Building PDF…" : "Export PDF"}
               </button>
+              <button
+                type="button"
+                onClick={() => void exportZip()}
+                disabled={exporting || !pages.some((page) => page.src)}
+                className="btn-crayon disabled:opacity-50"
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+                {exporting ? "Building ZIP…" : "Export ZIP"}
+              </button>
               <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
                 <Sparkles className="h-4 w-4" /> Start a new book
               </button>
@@ -985,11 +1157,55 @@ function Index() {
               >
                 <Pencil className="h-4 w-4" /> Edit request
               </button>
+              <button
+                type="button"
+                onClick={() => void regenerateAll()}
+                disabled={busy || !pages.some((page) => page.src)}
+                className="btn-crayon disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {busy ? "Redrawing…" : "Regenerate all"}
+              </button>
+              <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
+                <RotateCcw className="h-4 w-4" /> Start over
+              </button>
               {saveMessage && (
                 <span className="text-xs font-semibold text-primary">{saveMessage}</span>
               )}
             </div>
           </div>
+
+          {shareUrl && (
+            <div className="paper-card mt-5 p-4">
+              <p className="text-sm font-bold">Your gallery is live!</p>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={shareUrl}
+                  className="flex-1 rounded-xl border-2 border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(shareUrl);
+                    setSaveMessage("Link copied!");
+                  }}
+                  className="btn-crayon text-sm"
+                >
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShareUrl(null)}
+                  className="rounded-full border-2 border-border p-2"
+                  aria-label="Close share link"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {busy && pages.length > 0 && (
             <div className="paper-card mt-5 p-4">

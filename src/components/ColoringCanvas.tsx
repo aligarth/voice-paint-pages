@@ -10,34 +10,51 @@ import {
   Droplet,
   PanelRightOpen,
   PanelRightClose,
+  Heart,
+  X,
+  Clock,
+  PaintBucket,
 } from "lucide-react";
 import { BRUSH_SIZES, CRAYON_COLORS, SPECTRUM } from "@/lib/palette";
+import { addFavoriteColor, getFavoriteColors, removeFavoriteColor } from "@/lib/favoriteColors";
+import {
+  deleteCheckpoint,
+  listCheckpoints,
+  restoreCheckpoint,
+  saveCheckpoint,
+  type Checkpoint,
+} from "@/lib/checkpoints";
 import { cn } from "@/lib/utils";
 
 
-type Tool = "brush" | "crayon" | "marker" | "eraser";
+type Tool = "brush" | "crayon" | "marker" | "eraser" | "bucket";
 
 const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
   { id: "brush", label: "Paint brush", icon: Paintbrush },
   { id: "crayon", label: "Crayon", icon: Pencil },
   { id: "marker", label: "Marker", icon: Droplet },
+  { id: "bucket", label: "Fill color", icon: PaintBucket },
   { id: "eraser", label: "Eraser", icon: Eraser },
 ];
 
 export function ColoringCanvas({
   src,
   title,
+  pageIndex = 0,
   initialPaint,
   onPaintChange,
 }: {
   src: string;
   title: string;
+  /** Which page of the current book this canvas represents. */
+  pageIndex?: number;
   /** Previously saved transparent paint layer to restore. */
   initialPaint?: string | null;
   /** Called with the paint layer (data URL) whenever the drawing changes. */
   onPaintChange?: (paint: string | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lineArtRef = useRef<HTMLImageElement | null>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const history = useRef<ImageData[]>([]);
@@ -50,6 +67,9 @@ export function ColoringCanvas({
   const [isDrawing, setIsDrawing] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [showCheckpoints, setShowCheckpoints] = useState(false);
 
 
   useEffect(() => {
@@ -67,6 +87,21 @@ export function ColoringCanvas({
     saved.src = initialPaint;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
+
+  useEffect(() => {
+    setFavorites(getFavoriteColors());
+    setCheckpoints(listCheckpoints(title, pageIndex));
+  }, [title, pageIndex]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const paint = canvas.toDataURL("image/png");
+      setCheckpoints(saveCheckpoint(title, pageIndex, paint));
+    }, 45_000);
+    return () => window.clearInterval(id);
+  }, [title, pageIndex]);
 
   const reportPaint = () => {
     const canvas = canvasRef.current;
@@ -148,12 +183,109 @@ export function ColoringCanvas({
     ctx.restore();
   };
 
+  const getLineArtData = async () => {
+    const img = lineArtRef.current;
+    if (!img || !img.complete) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  };
+
+  const hexToRgba = (hex: string) => {
+    const clean = hex.replace("#", "");
+    const r = Number.parseInt(clean.slice(0, 2), 16);
+    const g = Number.parseInt(clean.slice(2, 4), 16);
+    const b = Number.parseInt(clean.slice(4, 6), 16);
+    return { r, g, b, a: 255 };
+  };
+
+  const floodFill = async (startX: number, startY: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const width = canvas.width;
+    const height = canvas.height;
+    const sx = Math.max(0, Math.min(width - 1, Math.floor(startX)));
+    const sy = Math.max(0, Math.min(height - 1, Math.floor(startY)));
+
+    const paintData = ctx.getImageData(0, 0, width, height);
+    const lineData = await getLineArtData();
+    if (!lineData) return;
+
+    const targetIdx = (sy * width + sx) * 4;
+    const tr = paintData.data[targetIdx] ?? 0;
+    const tg = paintData.data[targetIdx + 1] ?? 0;
+    const tb = paintData.data[targetIdx + 2] ?? 0;
+    const ta = paintData.data[targetIdx + 3] ?? 0;
+
+    const fill = hexToRgba(color);
+    const tolerance = 32;
+
+    const matchesTarget = (idx: number) => {
+      const dr = (paintData.data[idx] ?? 0) - tr;
+      const dg = (paintData.data[idx + 1] ?? 0) - tg;
+      const db = (paintData.data[idx + 2] ?? 0) - tb;
+      const da = (paintData.data[idx + 3] ?? 0) - ta;
+      return Math.hypot(dr, dg, db, da) <= tolerance;
+    };
+
+    const isWall = (idx: number) => {
+      const lr = lineData.data[idx] ?? 0;
+      const lg = lineData.data[idx + 1] ?? 0;
+      const lb = lineData.data[idx + 2] ?? 0;
+      const la = lineData.data[idx + 3] ?? 0;
+      if (la < 30) return false;
+      const brightness = (lr + lg + lb) / 3;
+      return brightness < 120;
+    };
+
+    if (isWall(targetIdx)) return;
+
+    const visited = new Uint8Array(width * height);
+    const stack: [number, number][] = [[sx, sy]];
+    let filled = false;
+
+    while (stack.length) {
+      const [x, y] = stack.pop()!;
+      const idx = (y * width + x) * 4;
+      if (visited[y * width + x]) continue;
+      if (!matchesTarget(idx)) continue;
+      if (isWall(idx)) continue;
+
+      visited[y * width + x] = 1;
+      paintData.data[idx] = fill.r;
+      paintData.data[idx + 1] = fill.g;
+      paintData.data[idx + 2] = fill.b;
+      paintData.data[idx + 3] = fill.a;
+      filled = true;
+
+      if (x > 0) stack.push([x - 1, y]);
+      if (x < width - 1) stack.push([x + 1, y]);
+      if (y > 0) stack.push([x, y - 1]);
+      if (y < height - 1) stack.push([x, y + 1]);
+    }
+
+    if (filled) {
+      ctx.putImageData(paintData, 0, 0);
+      reportPaint();
+    }
+  };
+
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
+    const point = pointFromEvent(e);
+    if (tool === "bucket") {
+      pushHistory();
+      void floodFill(point.x, point.y);
+      return;
+    }
     pushHistory();
     drawing.current = true;
     setIsDrawing(true);
-    const point = pointFromEvent(e);
     lastPoint.current = point;
     strokeSegment(point, { x: point.x + 0.01, y: point.y + 0.01 });
   };
@@ -233,6 +365,38 @@ export function ColoringCanvas({
     link.click();
   };
 
+  const snapshotCheckpoint = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const paint = canvas.toDataURL("image/png");
+    setCheckpoints(saveCheckpoint(title, pageIndex, paint));
+  };
+
+  const loadCheckpoint = (id: string) => {
+    const paint = restoreCheckpoint(title, pageIndex, id);
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx || paint === null) return;
+    pushHistory();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (paint) {
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        reportPaint();
+        updateHistoryState();
+      };
+      img.src = paint;
+    } else {
+      reportPaint();
+      updateHistoryState();
+    }
+  };
+
+  const removeCheckpoint = (id: string) => {
+    setCheckpoints(deleteCheckpoint(title, pageIndex, id));
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -272,6 +436,7 @@ export function ColoringCanvas({
           style={{ cursor: "crosshair" }}
         />
         <img
+          ref={lineArtRef}
           src={src}
           alt={`Line art of ${title}`}
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
@@ -301,7 +466,7 @@ export function ColoringCanvas({
 
         <section className="paper-card p-4">
           <h3 className="label-chalk">Tools</h3>
-          <div className="mt-3 grid grid-cols-4 gap-2">
+          <div className="mt-3 grid grid-cols-5 gap-2">
             {TOOLS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -368,6 +533,69 @@ export function ColoringCanvas({
               <Download className="h-4 w-4" /> Save
             </button>
           </div>
+
+          <div className="mt-5 border-t-2 border-border/40 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="label-chalk">Checkpoints</h3>
+              <button
+                type="button"
+                onClick={() => setShowCheckpoints((prev) => !prev)}
+                className="text-xs font-bold text-primary underline"
+              >
+                {showCheckpoints ? "Hide" : "Show"} ({checkpoints.length})
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Auto-saved every 45 seconds while you color.
+            </p>
+            <button
+              type="button"
+              onClick={snapshotCheckpoint}
+              className="btn-crayon mt-2 w-full justify-center text-sm"
+            >
+              <Clock className="h-4 w-4" /> Save checkpoint now
+            </button>
+
+            {showCheckpoints && (
+              <div className="mt-3 max-h-48 space-y-2 overflow-y-auto rounded-xl border-2 border-border/60 bg-card/50 p-2">
+                {checkpoints.length === 0 && (
+                  <p className="p-2 text-center text-xs text-muted-foreground">
+                    No checkpoints yet. Keep coloring — they'll appear automatically.
+                  </p>
+                )}
+                {checkpoints.map((checkpoint) => (
+                  <div
+                    key={checkpoint.id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-card p-2"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold">{checkpoint.label}</p>
+                      <p className="text-[0.65rem] text-muted-foreground">
+                        {new Date(checkpoint.savedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => loadCheckpoint(checkpoint.id)}
+                        className="rounded-full border-2 border-border bg-card px-2 py-1 text-[0.65rem] font-bold transition-transform hover:scale-105"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeCheckpoint(checkpoint.id)}
+                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                        aria-label="Delete checkpoint"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="paper-card p-4">
@@ -385,11 +613,58 @@ export function ColoringCanvas({
             </label>
           </div>
 
-          <div
-            className="mt-3 h-14 w-full rounded-xl border-2 border-border/70"
-            style={{ backgroundColor: color }}
-            aria-label={`Current color ${color}`}
-          />
+          <div className="mt-3 flex items-center gap-3">
+            <div
+              className="h-14 flex-1 rounded-xl border-2 border-border/70"
+              style={{ backgroundColor: color }}
+              aria-label={`Current color ${color}`}
+            />
+            <button
+              type="button"
+              onClick={() => setFavorites(addFavoriteColor(color))}
+              disabled={favorites.includes(color.toLowerCase())}
+              className="flex h-10 items-center gap-1 rounded-full border-2 border-border bg-card px-3 text-xs font-bold transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+              title="Save to favorites"
+              aria-label="Save current color to favorites"
+            >
+              <Heart className={cn("h-4 w-4", favorites.includes(color.toLowerCase()) && "fill-primary text-primary")} />
+              Save
+            </button>
+          </div>
+
+          {favorites.length > 0 && (
+            <>
+              <p className="mt-4 text-[0.7rem] font-bold tracking-wide text-muted-foreground">
+                MY FAVORITES
+              </p>
+              <div className="mt-2 grid grid-cols-9 gap-1.5">
+                {favorites.map((hex) => (
+                  <div key={hex} className="group relative aspect-square">
+                    <button
+                      type="button"
+                      title={hex}
+                      aria-label={hex}
+                      onClick={() => setColor(hex)}
+                      className={cn(
+                        "h-full w-full rounded-md border border-border/60 transition-transform hover:scale-110",
+                        color.toLowerCase() === hex && "ring-2 ring-foreground",
+                      )}
+                      style={{ backgroundColor: hex }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFavorites(removeFavoriteColor(hex))}
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-card text-[0.6rem] opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-label={`Remove ${hex} from favorites`}
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <p className="mt-4 text-[0.7rem] font-bold tracking-wide text-muted-foreground">
             CRAYON BOX

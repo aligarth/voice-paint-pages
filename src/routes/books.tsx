@@ -5,6 +5,7 @@ import {
   BookOpen,
   Check,
   FileDown,
+  FileArchive,
   ImageDown,
   Loader2,
   Pencil,
@@ -20,6 +21,7 @@ import {
   type SavedBook,
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
+import { exportPagesToZip } from "@/lib/exportZip";
 import { saveSession } from "@/lib/session";
 
 export const Route = createFileRoute("/books")({
@@ -75,6 +77,22 @@ function BooksPage() {
       setMessage(`Downloaded “${book.title}” as a PDF.`);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not build the PDF.");
+    } finally {
+      setExportingId(null);
+    }
+  };
+
+  const exportBookZip = async (book: SavedBook) => {
+    setExportingId(`${book.id}-zip`);
+    setMessage(null);
+    try {
+      await exportPagesToZip(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
+      setMessage(`Downloaded “${book.title}” as a ZIP.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not build the ZIP.");
     } finally {
       setExportingId(null);
     }
@@ -209,6 +227,19 @@ function BooksPage() {
                     <FileDown className="h-4 w-4" />
                   )}
                   {exportingId === book.id ? "Building PDF…" : "Export PDF"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-crayon disabled:opacity-50"
+                  disabled={exportingId === `${book.id}-zip`}
+                  onClick={() => void exportBookZip(book)}
+                >
+                  {exportingId === `${book.id}-zip` ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileArchive className="h-4 w-4" />
+                  )}
+                  {exportingId === `${book.id}-zip` ? "Building ZIP…" : "Export ZIP"}
                 </button>
                 <button type="button" className="btn-crayon" onClick={() => void openBook(book)}>
                   Open & color
