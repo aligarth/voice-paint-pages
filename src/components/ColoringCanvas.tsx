@@ -275,7 +275,10 @@ export function ColoringCanvas({
 
   const buildWallMap = (lineData: ImageData, width: number, height: number) => {
     const wall = new Uint8Array(width * height);
-    const radius = Math.max(1, Math.floor(size / 4));
+    // Always bridge the tiny anti-aliased gaps common in generated line art.
+    // Without this minimum, a foreground region can leak into the background
+    // when either of the two smallest wall-width options is selected.
+    const radius = Math.max(2, Math.floor(size / 4));
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -289,8 +292,6 @@ export function ColoringCanvas({
         }
       }
     }
-
-    if (radius <= 1) return wall;
 
     const dilated = new Uint8Array(width * height);
     for (let y = 0; y < height; y++) {
@@ -336,13 +337,53 @@ export function ColoringCanvas({
     const wallMap = await getWallMap(width, height);
     if (!wallMap) return null;
 
-    const targetIdx = (sy * width + sx) * 4;
+    const tolerance = fillTolerance;
+
+    const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
+
+    // A finger or bucket cursor often lands on the outline itself. Pick the
+    // nearest open pixel instead of treating that very common tap as a miss.
+    // Prefer the candidate closest to the center of the page, which selects
+    // the foreground side of an outline rather than the outer background.
+    let seedX = sx;
+    let seedY = sy;
+    if (isWall(seedX, seedY)) {
+      const maxRadius = Math.max(12, Math.floor(size * 1.5));
+      let best: { x: number; y: number; centerDistance: number } | null = null;
+      for (let radius = 1; radius <= maxRadius && !best; radius++) {
+        const candidates: { x: number; y: number }[] = [];
+        for (let offset = -radius; offset <= radius; offset++) {
+          candidates.push(
+            { x: sx + offset, y: sy - radius },
+            { x: sx + offset, y: sy + radius },
+            { x: sx - radius, y: sy + offset },
+            { x: sx + radius, y: sy + offset },
+          );
+        }
+        for (const candidate of candidates) {
+          if (
+            candidate.x < 0 ||
+            candidate.x >= width ||
+            candidate.y < 0 ||
+            candidate.y >= height ||
+            isWall(candidate.x, candidate.y)
+          ) continue;
+          const centerDistance = Math.hypot(candidate.x - width / 2, candidate.y - height / 2);
+          if (!best || centerDistance < best.centerDistance) {
+            best = { ...candidate, centerDistance };
+          }
+        }
+      }
+      if (!best) return null;
+      seedX = best.x;
+      seedY = best.y;
+    }
+
+    const targetIdx = (seedY * width + seedX) * 4;
     const tr = paintData.data[targetIdx] ?? 0;
     const tg = paintData.data[targetIdx + 1] ?? 0;
     const tb = paintData.data[targetIdx + 2] ?? 0;
     const ta = paintData.data[targetIdx + 3] ?? 0;
-    const tolerance = fillTolerance;
-
     const matchesTarget = (idx: number) => {
       const dr = (paintData.data[idx] ?? 0) - tr;
       const dg = (paintData.data[idx + 1] ?? 0) - tg;
@@ -351,11 +392,8 @@ export function ColoringCanvas({
       return Math.hypot(dr, dg, db, da) <= tolerance;
     };
 
-    const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
-    if (isWall(sx, sy)) return null;
-
     const visited = new Uint8Array(width * height);
-    const stack: [number, number][] = [[sx, sy]];
+    const stack: [number, number][] = [[seedX, seedY]];
     const pixels: [number, number][] = [];
     let touchesEdge = false;
 
