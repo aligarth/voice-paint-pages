@@ -459,9 +459,8 @@ export function ColoringCanvas({
             ))}
           </div>
 
-          <h3 className="label-chalk mt-5">
-            {tool === "bucket" ? "Wall width" : "Size"}
-          </h3>
+          <h3 className="label-chalk mt-5">Size</h3>
+
           <div className="mt-3 flex items-center gap-2">
             {BRUSH_SIZES.map((value) => (
               <button
