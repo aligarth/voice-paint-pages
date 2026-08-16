@@ -22,6 +22,8 @@ import {
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
 import { exportPagesToZip } from "@/lib/exportZip";
+import { downloadFlattenedPage } from "@/lib/flattenPage";
+
 import { saveSession } from "@/lib/session";
 
 export const Route = createFileRoute("/books")({
@@ -101,38 +103,16 @@ function BooksPage() {
   const exportPagePng = async (book: SavedBook, index: number) => {
     const src = book.pages[index];
     if (!src) return;
-    const canvas = document.createElement("canvas");
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = src;
-    await new Promise<void>((resolve) => {
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-    });
-    canvas.width = img.naturalWidth || 1024;
-    canvas.height = img.naturalHeight || 1024;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const paint = book.paints?.[index];
-    if (paint) {
-      const paintImg = new Image();
-      paintImg.crossOrigin = "anonymous";
-      paintImg.src = paint;
-      await new Promise<void>((resolve) => {
-        paintImg.onload = () => resolve();
-        paintImg.onerror = () => resolve();
-      });
-      ctx.drawImage(paintImg, 0, 0, canvas.width, canvas.height);
+    try {
+      await downloadFlattenedPage(
+        { src, paint: book.paints?.[index] ?? null },
+        `${book.title.replace(/\s+/g, "-").toLowerCase()}-page-${index + 1}.png`,
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not export this page.");
     }
-    ctx.globalCompositeOperation = "multiply";
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = `${book.title.replace(/\s+/g, "-").toLowerCase()}-page-${index + 1}.png`;
-    link.click();
   };
+
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">

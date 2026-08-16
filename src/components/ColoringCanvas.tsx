@@ -26,6 +26,8 @@ import {
   type Checkpoint,
 } from "@/lib/checkpoints";
 import { cn } from "@/lib/utils";
+import { downloadFlattenedPage } from "@/lib/flattenPage";
+
 
 
 type Tool = "brush" | "crayon" | "marker" | "eraser" | "fill";
@@ -443,28 +445,18 @@ export function ColoringCanvas({
   const download = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const out = document.createElement("canvas");
-    out.width = canvas.width;
-    out.height = canvas.height;
-    const ctx = out.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(canvas, 0, 0);
-    const line = new Image();
-    line.crossOrigin = "anonymous";
-    line.src = src;
-    await new Promise((resolve) => {
-      line.onload = resolve;
-      line.onerror = resolve;
-    });
-    ctx.globalCompositeOperation = "multiply";
-    ctx.drawImage(line, 0, 0, out.width, out.height);
-    const link = document.createElement("a");
-    link.href = out.toDataURL("image/png");
-    link.download = `${title.replace(/\s+/g, "-").toLowerCase() || "coloring-page"}.png`;
-    link.click();
+    let paint: string | null = null;
+    try {
+      paint = canvas.toDataURL("image/png");
+    } catch {
+      paint = null;
+    }
+    await downloadFlattenedPage(
+      { src, paint },
+      `${title.replace(/\s+/g, "-").toLowerCase() || "coloring-page"}.png`,
+    );
   };
+
 
   const snapshotCheckpoint = () => {
     const canvas = canvasRef.current;
