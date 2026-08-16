@@ -27,14 +27,18 @@ import {
 import { cn } from "@/lib/utils";
 
 
-type Tool = "brush" | "crayon" | "marker" | "eraser";
+type Tool = "brush" | "crayon" | "marker" | "eraser" | "fill";
 
 const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
   { id: "brush", label: "Paint brush", icon: Paintbrush },
   { id: "crayon", label: "Crayon", icon: Pencil },
   { id: "marker", label: "Marker", icon: Droplet },
+  { id: "fill", label: "Fill color", icon: PaintBucket },
   { id: "eraser", label: "Eraser", icon: Eraser },
 ];
+
+/** Per-channel slack so soft anti-aliased edges join their region instead of haloing. */
+const FILL_TOLERANCE = 32;
 
 
 export function ColoringCanvas({
