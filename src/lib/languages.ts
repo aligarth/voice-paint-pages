@@ -79,6 +79,9 @@ export const SPEECH_LANGUAGES: SpeechLanguage[] = [
   { code: "zu-ZA", label: "isiZulu" },
 ];
 
+/** Sentinel value meaning "figure the language out for me". */
+export const AUTO_LANG = "auto";
+
 /** Picks the closest supported locale for the visitor's browser language. */
 export function detectLanguage(preferred?: string): string {
   const wanted = (preferred ?? "").toLowerCase();
@@ -88,4 +91,53 @@ export function detectLanguage(preferred?: string): string {
   const base = wanted.split("-")[0];
   const partial = SPEECH_LANGUAGES.find((l) => l.code.toLowerCase().startsWith(`${base}-`));
   return partial?.code ?? "en-US";
+}
+
+/**
+ * Locales to try, in order, when auto-detecting: every language the device
+ * advertises, then English as a final fallback.
+ */
+export function candidateLocales(preferred?: readonly string[]): string[] {
+  const list = (preferred && preferred.length ? preferred : ["en-US"]).map((l) =>
+    detectLanguage(l),
+  );
+  const out: string[] = [];
+  for (const code of [...list, "en-US"]) {
+    if (!out.includes(code)) out.push(code);
+  }
+  return out;
+}
+
+const SCRIPT_LOCALES: { test: RegExp; code: string }[] = [
+  { test: /[\u0600-\u06ff]/, code: "ar-SA" },
+  { test: /[\u0590-\u05ff]/, code: "he-IL" },
+  { test: /[\u0400-\u04ff]/, code: "ru-RU" },
+  { test: /[\u0370-\u03ff]/, code: "el-GR" },
+  { test: /[\u0900-\u097f]/, code: "hi-IN" },
+  { test: /[\u0980-\u09ff]/, code: "bn-BD" },
+  { test: /[\u0a00-\u0a7f]/, code: "pa-IN" },
+  { test: /[\u0a80-\u0aff]/, code: "gu-IN" },
+  { test: /[\u0b80-\u0bff]/, code: "ta-IN" },
+  { test: /[\u0c00-\u0c7f]/, code: "te-IN" },
+  { test: /[\u0c80-\u0cff]/, code: "kn-IN" },
+  { test: /[\u0d00-\u0d7f]/, code: "ml-IN" },
+  { test: /[\u0e00-\u0e7f]/, code: "th-TH" },
+  { test: /[\u1000-\u109f]/, code: "my-MM" },
+  { test: /[\u10a0-\u10ff]/, code: "ka-GE" },
+  { test: /[\u0530-\u058f]/, code: "hy-AM" },
+  { test: /[\uac00-\ud7af\u1100-\u11ff]/, code: "ko-KR" },
+  { test: /[\u3040-\u30ff]/, code: "ja-JP" },
+  { test: /[\u4e00-\u9fff]/, code: "zh-CN" },
+];
+
+/**
+ * Guesses the spoken locale from a recognized transcript's script, so the next
+ * capture can switch to it automatically. Returns null for Latin script, where
+ * the script alone tells us nothing.
+ */
+export function detectLocaleFromText(text: string): string | null {
+  for (const { test, code } of SCRIPT_LOCALES) {
+    if (test.test(text)) return code;
+  }
+  return null;
 }

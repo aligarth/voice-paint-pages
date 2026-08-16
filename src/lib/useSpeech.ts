@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectLanguage } from "./languages";
+import { AUTO_LANG, candidateLocales, detectLocaleFromText } from "./languages";
 
 
 type SpeechResultEvent = {
@@ -29,7 +29,9 @@ export function useSpeech() {
   const [wakeEnabled, setWakeEnabled] = useState(false);
   const [wakeActive, setWakeActive] = useState(false);
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);
-  const [lang, setLang] = useState("en-US");
+  // "auto" = let the app work the language out; anything else is a manual pick.
+  const [lang, setLang] = useState<string>(AUTO_LANG);
+  const [detectedLang, setDetectedLang] = useState("en-US");
 
   const wakeEnabledRef = useRef(wakeEnabled);
   const wakeActiveRef = useRef(wakeActive);
@@ -39,23 +41,59 @@ export function useSpeech() {
   const silenceTimerRef = useRef<number | null>(null);
   const manualStopRef = useRef(false);
   const langRef = useRef(lang);
+  const candidatesRef = useRef<string[]>(["en-US"]);
+  const candidateIndexRef = useRef(0);
 
   useEffect(() => { wakeEnabledRef.current = wakeEnabled; }, [wakeEnabled]);
   useEffect(() => { wakeActiveRef.current = wakeActive; }, [wakeActive]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
-  // Start from the visitor's own device language.
+  // Build the auto-detect candidate list from every language the device advertises.
   useEffect(() => {
-    setLang(detectLanguage(navigator.language));
+    const nav = navigator as Navigator & { languages?: readonly string[] };
+    const remembered = localStorage.getItem("say-and-color:lang");
+    const list = candidateLocales(nav.languages ?? [nav.language]);
+    if (remembered) {
+      candidatesRef.current = [remembered, ...list.filter((c) => c !== remembered)];
+    } else {
+      candidatesRef.current = list;
+    }
+    candidateIndexRef.current = 0;
+    setDetectedLang(candidatesRef.current[0] ?? "en-US");
   }, []);
+
+  /** The locale recognition should actually run in right now. */
+  const resolveLang = useCallback(() => {
+    if (langRef.current !== AUTO_LANG) return langRef.current;
+    return candidatesRef.current[candidateIndexRef.current] ?? "en-US";
+  }, []);
+
+  const resolveLangRef = useRef(resolveLang);
+  useEffect(() => { resolveLangRef.current = resolveLang; }, [resolveLang]);
+
+  /** Remembers a locale we know worked so later sessions start there. */
+  const rememberLang = useCallback((code: string) => {
+    candidatesRef.current = [code, ...candidatesRef.current.filter((c) => c !== code)];
+    candidateIndexRef.current = 0;
+    setDetectedLang(code);
+    try {
+      localStorage.setItem("say-and-color:lang", code);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+
+  const rememberLangRef = useRef(rememberLang);
+  useEffect(() => { rememberLangRef.current = rememberLang; }, [rememberLang]);
 
   // Apply the chosen language, restarting recognition if it is already running.
   useEffect(() => {
     langRef.current = lang;
+    if (lang !== AUTO_LANG) setDetectedLang(lang);
     const rec = recognitionRef.current;
     if (!rec) return;
-    rec.lang = lang;
+    rec.lang = resolveLang();
     if (listeningRef.current) {
       try {
         rec.stop();
@@ -63,7 +101,7 @@ export function useSpeech() {
         /* noop */
       }
     }
-  }, [lang]);
+  }, [lang, resolveLang]);
 
 
   const autoStop = useCallback(() => {
@@ -87,7 +125,7 @@ export function useSpeech() {
     if (!Ctor) return;
     setSupported(true);
     const rec = new Ctor();
-    rec.lang = langRef.current;
+    rec.lang = resolveLangRef.current();
     rec.continuous = true;
     rec.interimResults = true;
     rec.onresult = (event) => {
@@ -96,6 +134,17 @@ export function useSpeech() {
         const alt = event.results[i]?.[0];
         if (alt) text += alt.transcript;
       }
+
+      // Words came through, so the current locale works — lock it in. If the
+      // script says another language, remember that one for the next capture.
+      if (text.trim()) {
+        const current = resolveLangRef.current();
+        const fromScript = detectLocaleFromText(text);
+        if (langRef.current === AUTO_LANG) {
+          rememberLangRef.current(fromScript ?? current);
+        }
+      }
+
 
       if (!wakeActiveRef.current && wakeEnabledRef.current) {
         const lower = text.toLowerCase();
@@ -124,6 +173,18 @@ export function useSpeech() {
       }
     };
     rec.onerror = (e) => {
+      // In auto mode, nothing heard / unsupported locale means try the next
+      // language the device advertises before bothering the user.
+      const retryable =
+        e.error === "no-speech" || e.error === "no-match" || e.error === "language-not-supported";
+      if (langRef.current === AUTO_LANG && retryable) {
+        const next = (candidateIndexRef.current + 1) % candidatesRef.current.length;
+        candidateIndexRef.current = next;
+        setDetectedLang(candidatesRef.current[next] ?? "en-US");
+        if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
+        setListening(false);
+        return;
+      }
       const msg =
         e.error === "not-allowed"
           ? "Microphone access was blocked. Allow it in your browser settings."
@@ -150,7 +211,7 @@ export function useSpeech() {
       if (wakeEnabledRef.current) {
         window.setTimeout(() => {
           try {
-            if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
+            if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
             recognitionRef.current?.start();
             setListening(true);
           } catch {
@@ -181,7 +242,7 @@ export function useSpeech() {
     setPendingCommand(null);
     wakeEndIndexRef.current = 0;
     try {
-      if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
+      if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
       recognitionRef.current?.start();
       setListening(true);
     } catch {
@@ -208,7 +269,7 @@ export function useSpeech() {
       if (listeningRef.current) return;
     }
     try {
-      if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
+      if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
       recognitionRef.current?.start();
       setListening(true);
     } catch {
@@ -242,6 +303,7 @@ export function useSpeech() {
     pendingCommand,
     lang,
     setLang,
+    detectedLang,
 
     toggleWake,
     clearPendingCommand,
