@@ -702,7 +702,7 @@ function Index() {
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []).slice(0, 12);
             e.target.value = "";
-            void pickPhotos(files);
+            void addSnaps(files);
           }}
         />
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
