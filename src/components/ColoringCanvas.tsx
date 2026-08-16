@@ -253,8 +253,12 @@ export function ColoringCanvas({
     ctx.drawImage(canvas, 0, 0);
     const line = lineArtRef.current;
     if (line && line.complete && line.naturalWidth) {
+      // Match the on-screen object-contain fit exactly, or lines land off from the tap.
+      const scale = Math.min(out.width / line.naturalWidth, out.height / line.naturalHeight);
+      const dw = line.naturalWidth * scale;
+      const dh = line.naturalHeight * scale;
       ctx.globalCompositeOperation = "multiply";
-      ctx.drawImage(line, 0, 0, out.width, out.height);
+      ctx.drawImage(line, (out.width - dw) / 2, (out.height - dh) / 2, dw, dh);
       ctx.globalCompositeOperation = "source-over";
     }
     try {
