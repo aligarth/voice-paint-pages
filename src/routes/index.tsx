@@ -91,6 +91,7 @@ function Index() {
   const [restored, setRestored] = useState(false);
   const [keepIds, setKeepIds] = useState<number[]>([]);
   const [previewSnap, setPreviewSnap] = useState<string | null>(null);
+  const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
