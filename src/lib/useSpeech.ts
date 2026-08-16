@@ -29,7 +29,9 @@ export function useSpeech() {
   const [wakeEnabled, setWakeEnabled] = useState(false);
   const [wakeActive, setWakeActive] = useState(false);
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);
-  const [lang, setLang] = useState("en-US");
+  // "auto" = let the app work the language out; anything else is a manual pick.
+  const [lang, setLang] = useState<string>(AUTO_LANG);
+  const [detectedLang, setDetectedLang] = useState("en-US");
 
   const wakeEnabledRef = useRef(wakeEnabled);
   const wakeActiveRef = useRef(wakeActive);
@@ -39,23 +41,59 @@ export function useSpeech() {
   const silenceTimerRef = useRef<number | null>(null);
   const manualStopRef = useRef(false);
   const langRef = useRef(lang);
+  const candidatesRef = useRef<string[]>(["en-US"]);
+  const candidateIndexRef = useRef(0);
 
   useEffect(() => { wakeEnabledRef.current = wakeEnabled; }, [wakeEnabled]);
   useEffect(() => { wakeActiveRef.current = wakeActive; }, [wakeActive]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
-  // Start from the visitor's own device language.
+  // Build the auto-detect candidate list from every language the device advertises.
   useEffect(() => {
-    setLang(detectLanguage(navigator.language));
+    const nav = navigator as Navigator & { languages?: readonly string[] };
+    const remembered = localStorage.getItem("say-and-color:lang");
+    const list = candidateLocales(nav.languages ?? [nav.language]);
+    if (remembered) {
+      candidatesRef.current = [remembered, ...list.filter((c) => c !== remembered)];
+    } else {
+      candidatesRef.current = list;
+    }
+    candidateIndexRef.current = 0;
+    setDetectedLang(candidatesRef.current[0] ?? "en-US");
   }, []);
+
+  /** The locale recognition should actually run in right now. */
+  const resolveLang = useCallback(() => {
+    if (langRef.current !== AUTO_LANG) return langRef.current;
+    return candidatesRef.current[candidateIndexRef.current] ?? "en-US";
+  }, []);
+
+  const resolveLangRef = useRef(resolveLang);
+  useEffect(() => { resolveLangRef.current = resolveLang; }, [resolveLang]);
+
+  /** Remembers a locale we know worked so later sessions start there. */
+  const rememberLang = useCallback((code: string) => {
+    candidatesRef.current = [code, ...candidatesRef.current.filter((c) => c !== code)];
+    candidateIndexRef.current = 0;
+    setDetectedLang(code);
+    try {
+      localStorage.setItem("say-and-color:lang", code);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
+
+  const rememberLangRef = useRef(rememberLang);
+  useEffect(() => { rememberLangRef.current = rememberLang; }, [rememberLang]);
 
   // Apply the chosen language, restarting recognition if it is already running.
   useEffect(() => {
     langRef.current = lang;
+    if (lang !== AUTO_LANG) setDetectedLang(lang);
     const rec = recognitionRef.current;
     if (!rec) return;
-    rec.lang = lang;
+    rec.lang = resolveLang();
     if (listeningRef.current) {
       try {
         rec.stop();
@@ -63,7 +101,7 @@ export function useSpeech() {
         /* noop */
       }
     }
-  }, [lang]);
+  }, [lang, resolveLang]);
 
 
   const autoStop = useCallback(() => {
