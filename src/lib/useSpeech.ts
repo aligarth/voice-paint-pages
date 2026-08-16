@@ -18,8 +18,6 @@ type Recognition = {
   onend: (() => void) | null;
 };
 
-const WAKE_PHRASE = "color my day";
-
 /**
  * How long we wait after speech stops before closing the mic.
  * Long enough that natural mid-sentence pauses ("five pages of… um… dragons")
@@ -44,26 +42,19 @@ export function useSpeech() {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [wakeEnabled, setWakeEnabled] = useState(false);
-  const [wakeActive, setWakeActive] = useState(false);
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);
   // "auto" = let the app work the language out; anything else is a manual pick.
   const [lang, setLang] = useState<string>(AUTO_LANG);
   const [detectedLang, setDetectedLang] = useState("en-US");
 
-  const wakeEnabledRef = useRef(wakeEnabled);
-  const wakeActiveRef = useRef(wakeActive);
   const listeningRef = useRef(listening);
   const transcriptRef = useRef(transcript);
-  const wakeEndIndexRef = useRef(0);
   const silenceTimerRef = useRef<number | null>(null);
   const manualStopRef = useRef(false);
   const langRef = useRef(lang);
   const candidatesRef = useRef<string[]>(["en-US"]);
   const candidateIndexRef = useRef(0);
 
-  useEffect(() => { wakeEnabledRef.current = wakeEnabled; }, [wakeEnabled]);
-  useEffect(() => { wakeActiveRef.current = wakeActive; }, [wakeActive]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
 
