@@ -12,9 +12,17 @@ import {
   PanelRightClose,
   Heart,
   X,
+  Clock,
 } from "lucide-react";
 import { BRUSH_SIZES, CRAYON_COLORS, SPECTRUM } from "@/lib/palette";
 import { addFavoriteColor, getFavoriteColors, removeFavoriteColor } from "@/lib/favoriteColors";
+import {
+  deleteCheckpoint,
+  listCheckpoints,
+  restoreCheckpoint,
+  saveCheckpoint,
+  type Checkpoint,
+} from "@/lib/checkpoints";
 import { cn } from "@/lib/utils";
 
 
