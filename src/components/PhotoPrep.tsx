@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, Crop, Sun, X, ArrowRight, Lock, LockOpen, Smile, Box, Image as ImageIcon } from "lucide-react";
+import { Camera, Check, Crop, Sun, X, ArrowRight, Lock, LockOpen, Smile, Box, Square, Image as ImageIcon } from "lucide-react";
 import { DEFAULT_ADJUST, adjustPhoto, type PhotoAdjust } from "@/lib/photo";
 import { cn } from "@/lib/utils";
 
@@ -150,6 +150,17 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
           })}
           <button
             type="button"
+            onClick={() => setAdjust((a) => ({ ...a, border: a.border === false }))}
+            aria-pressed={adjust.border !== false}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border-2 border-border px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5",
+              adjust.border !== false ? "bg-primary text-primary-foreground" : "bg-card",
+            )}
+          >
+            <Square className="h-4 w-4" /> Add border
+          </button>
+          <button
+            type="button"
             onClick={() => setLocked((v) => !v)}
             aria-pressed={locked}
             className={cn(
@@ -191,7 +202,11 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
               }}
             />
           )}
+          {adjust.border !== false && (
+            <div className="pointer-events-none absolute inset-[3%] border-4 border-foreground" />
+          )}
         </div>
+
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-bold">
