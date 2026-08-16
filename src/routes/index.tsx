@@ -19,13 +19,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Speak what you want to draw, choose how many pages, and color your custom coloring book right in the browser with brushes, crayons and every color.",
+          "Speak or snap a photo to create a custom coloring book, then color the pages in your browser with brushes, crayons and every color.",
       },
       { property: "og:title", content: "Say & Color — Voice-Made Coloring Books" },
       {
         property: "og:description",
         content:
-          "Talk into your mic, get instant line-art coloring pages, and paint them with brushes, crayons and endless colors.",
+          "Talk or snap a photo to get instant line-art coloring pages, then paint them with brushes, crayons and endless colors.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -238,50 +238,70 @@ function Index() {
           <Palette className="h-4 w-4" /> On-demand coloring book
         </span>
         <h1 className="mt-5 text-5xl font-extrabold leading-tight sm:text-6xl">
-          Say it. <span className="text-primary">We draw it.</span>
+          Say it or snap it.
           <br />
-          You color it.
+          <span className="text-primary">We draw it.</span> You color it.
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-          Hold the mic and describe your picture — “six pages of sea turtles surfing”. Your pages
-          appear as clean line art, ready to paint with brushes, crayons and every color there is.
+          Describe your picture or snap a photo, then get clean line-art pages ready to paint with
+          brushes, crayons and every color there is.
         </p>
       </header>
 
       <section className="paper-card mx-auto mt-10 max-w-2xl p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4">
-          <button
-            type="button"
-            onClick={() => {
-              const micActive = wakeActive || (!wakeEnabled && listening);
-              micActive ? stop() : start();
-            }}
-            disabled={!supported || busy}
-            className={cn(
-              "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border text-primary-foreground transition-transform disabled:opacity-50",
-              listening || wakeActive
-                ? "animate-pulse bg-primary"
-                : "bg-secondary text-secondary-foreground hover:-translate-y-1",
-            )}
-            aria-label={wakeActive ? "Stop listening" : wakeEnabled ? "Start speaking" : listening ? "Stop listening" : "Start speaking"}
-          >
-            {wakeActive || (!wakeEnabled && listening) ? (
-              <MicOff className="h-10 w-10" />
-            ) : (
-              <Mic className="h-10 w-10" />
-            )}
-          </button>
-          <p className="text-sm font-bold">
-            {wakeActive
-              ? "Say your request…"
-              : wakeEnabled
-                ? "Listening for 'Color my day'"
-                : listening
-                  ? "Listening… tap to stop"
-                  : supported
-                    ? "Tap and talk"
-                    : "Or type below"}
-          </p>
+          <div className="flex flex-wrap items-start justify-center gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const micActive = wakeActive || (!wakeEnabled && listening);
+                  micActive ? stop() : start();
+                }}
+                disabled={!supported || busy}
+                className={cn(
+                  "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border text-primary-foreground transition-transform disabled:opacity-50",
+                  listening || wakeActive
+                    ? "animate-pulse bg-primary"
+                    : "bg-secondary text-secondary-foreground hover:-translate-y-1",
+                )}
+                aria-label={wakeActive ? "Stop listening" : wakeEnabled ? "Start speaking" : listening ? "Stop listening" : "Start speaking"}
+              >
+                {wakeActive || (!wakeEnabled && listening) ? (
+                  <MicOff className="h-10 w-10" />
+                ) : (
+                  <Mic className="h-10 w-10" />
+                )}
+              </button>
+              <p className="text-sm font-bold">
+                {wakeActive
+                  ? "Say your request…"
+                  : wakeEnabled
+                    ? "Listening for 'Color my day'"
+                    : listening
+                      ? "Listening… tap to stop"
+                      : supported
+                        ? "Tap and talk"
+                        : "Or type below"}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => photoInput.current?.click()}
+                disabled={busy}
+                className={cn(
+                  "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border transition-transform disabled:opacity-50",
+                  "bg-secondary text-secondary-foreground hover:-translate-y-1",
+                )}
+                aria-label="Snap it"
+              >
+                {busy ? <Loader2 className="h-10 w-10 animate-spin" /> : <Camera className="h-10 w-10" />}
+              </button>
+              <p className="text-sm font-bold">Snap it</p>
+            </div>
+          </div>
 
           {supported && (
             <button
