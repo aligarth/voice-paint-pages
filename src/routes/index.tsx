@@ -368,6 +368,9 @@ function Index() {
       setReviewing(false);
       setBookTitle("My photo coloring book");
       setBusy(true);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const variants = [
         "",
         "Zoom in a little closer on the main subject for this version.",
@@ -388,6 +391,7 @@ function Index() {
       );
 
       for (let i = 0; i < jobs.length; i++) {
+        if (controller.signal.aborted) break;
         const job = jobs[i]!;
         try {
           await streamImageFromPhoto(
@@ -399,8 +403,17 @@ function Index() {
               );
             },
             job.variant || undefined,
+            controller.signal,
           );
         } catch (err) {
+          if (isAbortError(err)) {
+            setPages((prev) =>
+              prev.map((page) =>
+                page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
+              ),
+            );
+            break;
+          }
           const message = err instanceof Error ? err.message : "Something went wrong";
           setPages((prev) =>
             prev.map((page) =>
@@ -417,8 +430,13 @@ function Index() {
           );
         }
       }
-      setBusy(false);
-      startReview();
+      abortRef.current = null;
+      if (!controller.signal.aborted) {
+        setBusy(false);
+        startReview();
+      } else {
+        setBusy(false);
+      }
     },
     [startReview],
   );
