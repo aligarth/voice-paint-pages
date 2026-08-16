@@ -4,7 +4,7 @@ export type SavedBook = {
   savedAt: number;
   pages: string[];
   /** Optional painted layers for each page, aligned by index. */
-  paints?: (string | null)[];
+  paints?: (string | null)[] | undefined;
 };
 
 export const MAX_BOOKS = 5;
