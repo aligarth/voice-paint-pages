@@ -440,10 +440,26 @@ export function ColoringCanvas({
 
 
   const onPointerUp = () => {
+    if (tool === "bucket") {
+      const pending = pendingFill.current;
+      pendingFill.current = null;
+      if (pending) {
+        pushHistory();
+        void floodFill(pending.x, pending.y);
+      }
+      return;
+    }
     drawing.current = false;
     lastPoint.current = null;
     setIsDrawing(false);
     reportPaint();
+  };
+
+  const onPointerLeave = () => {
+    pendingFill.current = null;
+    clearPreview();
+    if (tool === "bucket") return;
+    onPointerUp();
   };
 
 
