@@ -253,17 +253,32 @@ export function ColoringCanvas({
     ctx.restore();
   };
 
+  /**
+   * Rasterise the line art into the paint canvas coordinate space.
+   * The <img> is rendered with object-contain, so we must letterbox the
+   * bitmap the same way or the walls land in the wrong place and fills leak.
+   */
   const getLineArtData = async () => {
     const img = lineArtRef.current;
-    if (!img || !img.complete) return null;
+    if (!img || !img.complete || !img.naturalWidth) return null;
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 1024;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // White background so letterbox bands are treated as open space.
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const scale = Math.min(
+      canvas.width / img.naturalWidth,
+      canvas.height / img.naturalHeight,
+    );
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
     return ctx.getImageData(0, 0, canvas.width, canvas.height);
   };
+
 
   const hexToRgba = (hex: string) => {
     const clean = hex.replace("#", "");
