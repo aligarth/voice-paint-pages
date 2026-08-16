@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Check, Crop, Sun, X, ArrowRight } from "lucide-react";
+import { Camera, Check, Crop, Sun, X, ArrowRight, Lock, LockOpen, Smile, Box, Image as ImageIcon } from "lucide-react";
 import { DEFAULT_ADJUST, adjustPhoto, type PhotoAdjust } from "@/lib/photo";
 import { cn } from "@/lib/utils";
 
@@ -18,18 +18,31 @@ const TIPS = [
   "Plain background = cleaner outlines",
 ];
 
+/** Smart framing presets — fractions of the source photo. */
+const PRESETS = [
+  { id: "full", label: "Full photo", icon: ImageIcon, crop: { x: 0, y: 0, w: 1, h: 1 } },
+  { id: "face", label: "Face", icon: Smile, crop: { x: 0.2, y: 0.06, w: 0.6, h: 0.6 } },
+  { id: "object", label: "Object", icon: Box, crop: { x: 0.12, y: 0.12, w: 0.76, h: 0.76 } },
+] as const;
+
 /** Guided crop + brightness/contrast step before turning photos into line art. */
 export function PhotoPrep({ photos, onCancel, onDone }: Props) {
   const [index, setIndex] = useState(0);
   const [adjust, setAdjust] = useState<PhotoAdjust>(DEFAULT_ADJUST);
   const [ready, setReady] = useState<string[]>([]);
   const [working, setWorking] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [preset, setPreset] = useState<string>("full");
   const frame = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ x: number; y: number } | null>(null);
 
+  // Keep framing when the crop is locked, otherwise reset for each new photo.
   useEffect(() => {
-    setAdjust(DEFAULT_ADJUST);
-  }, [index]);
+    if (!locked) {
+      setAdjust(DEFAULT_ADJUST);
+      setPreset("full");
+    }
+  }, [index, locked]);
 
   const current = photos[index];
   if (!current) return null;
@@ -44,6 +57,7 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
   };
 
   const handleDown = (e: React.PointerEvent) => {
+    if (locked) return;
     const p = point(e);
     if (!p) return;
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -52,10 +66,11 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
   };
 
   const handleMove = (e: React.PointerEvent) => {
-    if (!drag.current) return;
+    if (!drag.current || locked) return;
     const p = point(e);
     if (!p) return;
     const start = drag.current;
+    setPreset("custom");
     setAdjust((a) => ({
       ...a,
       crop: {
@@ -109,8 +124,47 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
           ))}
         </ul>
 
-        <p className="mt-4 flex items-center gap-2 text-sm font-bold">
-          <Crop className="h-4 w-4" /> Drag on the photo to crop to your subject
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-2 text-sm font-bold">
+            <Crop className="h-4 w-4" /> Framing
+          </span>
+          {PRESETS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setPreset(item.id);
+                  setAdjust((a) => ({ ...a, crop: { ...item.crop } }));
+                }}
+                aria-pressed={preset === item.id}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border-2 border-border px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5",
+                  preset === item.id ? "bg-primary text-primary-foreground" : "bg-card",
+                )}
+              >
+                <Icon className="h-4 w-4" /> {item.label}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setLocked((v) => !v)}
+            aria-pressed={locked}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border-2 border-border px-3 py-1.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5",
+              locked ? "bg-primary text-primary-foreground" : "bg-card",
+            )}
+          >
+            {locked ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
+            {locked ? "Crop locked" : "Lock crop"}
+          </button>
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {locked
+            ? "This crop, brightness and contrast stay the same for every photo."
+            : "Pick a preset or drag on the photo to crop to your subject."}
         </p>
         <div
           ref={frame}
@@ -171,7 +225,10 @@ export function PhotoPrep({ photos, onCancel, onDone }: Props) {
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <button
             type="button"
-            onClick={() => setAdjust(DEFAULT_ADJUST)}
+            onClick={() => {
+              setAdjust(DEFAULT_ADJUST);
+              setPreset("full");
+            }}
             className="btn-crayon text-sm"
           >
             Reset
