@@ -440,7 +440,7 @@ export function ColoringCanvas({
 
         <section className="paper-card p-4">
           <h3 className="label-chalk">Tools</h3>
-          <div className="mt-3 grid grid-cols-5 gap-2">
+          <div className="mt-3 grid grid-cols-4 gap-2">
             {TOOLS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
