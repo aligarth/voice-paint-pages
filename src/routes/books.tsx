@@ -227,6 +227,19 @@ function BooksPage() {
                   )}
                   {exportingId === book.id ? "Building PDF…" : "Export PDF"}
                 </button>
+                <button
+                  type="button"
+                  className="btn-crayon disabled:opacity-50"
+                  disabled={exportingId === `${book.id}-zip`}
+                  onClick={() => void exportBookZip(book)}
+                >
+                  {exportingId === `${book.id}-zip` ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileDown className="h-4 w-4" />
+                  )}
+                  {exportingId === `${book.id}-zip` ? "Building ZIP…" : "Export ZIP"}
+                </button>
                 <button type="button" className="btn-crayon" onClick={() => void openBook(book)}>
                   Open & color
                 </button>
