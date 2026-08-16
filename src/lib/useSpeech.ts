@@ -211,7 +211,7 @@ export function useSpeech() {
       if (wakeEnabledRef.current) {
         window.setTimeout(() => {
           try {
-            if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
+            if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
             recognitionRef.current?.start();
             setListening(true);
           } catch {
@@ -242,7 +242,7 @@ export function useSpeech() {
     setPendingCommand(null);
     wakeEndIndexRef.current = 0;
     try {
-      if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
+      if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
       recognitionRef.current?.start();
       setListening(true);
     } catch {
@@ -269,7 +269,7 @@ export function useSpeech() {
       if (listeningRef.current) return;
     }
     try {
-      if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
+      if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
       recognitionRef.current?.start();
       setListening(true);
     } catch {
