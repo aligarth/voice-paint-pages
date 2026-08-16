@@ -162,37 +162,16 @@ function Index() {
   };
 
   const exportPagePng = async (page: Page & { src: string }) => {
-    const canvas = document.createElement("canvas");
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = page.src;
-    await new Promise<void>((resolve) => {
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-    });
-    canvas.width = img.naturalWidth || 1024;
-    canvas.height = img.naturalHeight || 1024;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (page.paint) {
-      const paintImg = new Image();
-      paintImg.crossOrigin = "anonymous";
-      paintImg.src = page.paint;
-      await new Promise<void>((resolve) => {
-        paintImg.onload = () => resolve();
-        paintImg.onerror = () => resolve();
-      });
-      ctx.drawImage(paintImg, 0, 0, canvas.width, canvas.height);
+    try {
+      await downloadFlattenedPage(
+        { src: page.src, paint: page.paint ?? null },
+        `${(bookTitle || "page").replace(/\s+/g, "-").toLowerCase()}-${page.id + 1}.png`,
+      );
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not export this page.");
     }
-    ctx.globalCompositeOperation = "multiply";
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = `${(bookTitle || "page").replace(/\s+/g, "-").toLowerCase()}-${page.id + 1}.png`;
-    link.click();
   };
+
 
   const exportZip = async () => {
     const ready = pages
