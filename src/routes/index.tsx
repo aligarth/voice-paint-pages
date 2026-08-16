@@ -347,7 +347,7 @@ function Index() {
     async (rawText: string) => {
       const { subject, pages: parsedCount } = parseRequest(rawText);
       if (!subject) {
-        setGenError("Tell me what to draw, like “five pages of friendly dinosaurs".");
+        setGenError('Tell me what to draw, like "five pages of friendly dinosaurs".');
         return;
       }
       const count = Math.max(1, Math.min(8, textPageCount || parsedCount || 1));
