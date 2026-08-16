@@ -176,18 +176,20 @@ export function useSpeech() {
         return;
       }
 
-      if (wakeActiveRef.current) {
-        const commandText = text.slice(wakeEndIndexRef.current).trim();
-        setTranscript(commandText);
-        const lastResult = event.results[event.results.length - 1];
-        if (lastResult?.isFinal) {
-          if (silenceTimerRef.current) window.clearTimeout(silenceTimerRef.current);
-          silenceTimerRef.current = window.setTimeout(() => {
-            stopRef.current();
-          }, 1200);
-        }
-      } else {
-        setTranscript(text.trim());
+      const lastResult = event.results[event.results.length - 1];
+      const spoken = wakeActiveRef.current
+        ? text.slice(wakeEndIndexRef.current).trim()
+        : text.trim();
+      setTranscript(spoken);
+
+      // Every new result (interim included) pushes the auto-stop back, so the
+      // mic only closes after a real pause in speech.
+      if (spoken) {
+        if (silenceTimerRef.current) window.clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = window.setTimeout(
+          () => stopRef.current(),
+          silenceDelay(spoken, Boolean(lastResult?.isFinal)),
+        );
       }
     };
     rec.onerror = (e) => {
