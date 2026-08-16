@@ -474,6 +474,19 @@ function Index() {
                         : "Or type below"}
               </p>
             </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => snapInput.current?.click()}
+                disabled={busy}
+                className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-border bg-secondary text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
+                aria-label="Snap a photo"
+              >
+                <Camera className="h-10 w-10" />
+              </button>
+              <p className="text-sm font-bold">Snap it</p>
+            </div>
           </div>
 
           {supported && (
