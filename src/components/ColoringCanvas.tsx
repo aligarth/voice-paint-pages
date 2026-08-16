@@ -280,21 +280,22 @@ export function ColoringCanvas({
     const px = visible.data;
 
     const seed = (sy * w + sx) * 4;
-    const sr = px[seed];
-    const sg = px[seed + 1];
-    const sb = px[seed + 2];
+    const sr = px[seed] ?? 255;
+    const sg = px[seed + 1] ?? 255;
+    const sb = px[seed + 2] ?? 255;
 
-    const target = { r: 0, g: 0, b: 0 };
     const hex = color.replace("#", "");
     const full = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
-    target.r = parseInt(full.slice(0, 2), 16) || 0;
-    target.g = parseInt(full.slice(2, 4), 16) || 0;
-    target.b = parseInt(full.slice(4, 6), 16) || 0;
+    const target = {
+      r: parseInt(full.slice(0, 2), 16) || 0,
+      g: parseInt(full.slice(2, 4), 16) || 0,
+      b: parseInt(full.slice(4, 6), 16) || 0,
+    };
 
     const matches = (i: number) =>
-      Math.abs(px[i] - sr) <= FILL_TOLERANCE &&
-      Math.abs(px[i + 1] - sg) <= FILL_TOLERANCE &&
-      Math.abs(px[i + 2] - sb) <= FILL_TOLERANCE;
+      Math.abs((px[i] ?? 255) - sr) <= FILL_TOLERANCE &&
+      Math.abs((px[i + 1] ?? 255) - sg) <= FILL_TOLERANCE &&
+      Math.abs((px[i + 2] ?? 255) - sb) <= FILL_TOLERANCE;
 
     const mask = new Uint8Array(w * h);
     const stack: number[] = [sx, sy];
