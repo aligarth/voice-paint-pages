@@ -55,12 +55,8 @@ export function ColoringCanvas({
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lineArtRef = useRef<HTMLImageElement | null>(null);
-  const previewRef = useRef<HTMLCanvasElement | null>(null);
-  const previewMask = useRef<Uint8Array | null>(null);
-  const wallCache = useRef<{ key: string; wall: Uint8Array } | null>(null);
   const rafRef = useRef<number | null>(null);
-  const previewGen = useRef(0);
-  const pendingFill = useRef<{ x: number; y: number } | null>(null);
+
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   /** canvas px per CSS px, so the size chips paint at the thickness they show. */
