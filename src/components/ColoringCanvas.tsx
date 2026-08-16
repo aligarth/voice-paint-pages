@@ -39,7 +39,10 @@ const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
 ];
 
 /** Per-channel slack so soft anti-aliased edges join their region instead of haloing. */
-const FILL_TOLERANCE = 32;
+const FILL_TOLERANCE = 12;
+
+/** Anything darker than this counts as an outline wall the fill can never cross. */
+const DARK_WALL = 110;
 
 
 export function ColoringCanvas({
