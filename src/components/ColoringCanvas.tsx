@@ -348,7 +348,7 @@ export function ColoringCanvas({
             <button
               type="button"
               onClick={undo}
-              disabled={history.current.length === 0}
+              disabled={!canUndo}
               className="btn-crayon disabled:opacity-50"
             >
               <RotateCcw className="h-4 w-4" /> Undo
@@ -356,7 +356,7 @@ export function ColoringCanvas({
             <button
               type="button"
               onClick={redo}
-              disabled={future.current.length === 0}
+              disabled={!canRedo}
               className="btn-crayon disabled:opacity-50"
             >
               <Redo className="h-4 w-4" /> Redo
