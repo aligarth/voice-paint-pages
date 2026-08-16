@@ -183,12 +183,109 @@ export function ColoringCanvas({
     ctx.restore();
   };
 
+  const getLineArtData = async () => {
+    const img = lineArtRef.current;
+    if (!img || !img.complete) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  };
+
+  const hexToRgba = (hex: string) => {
+    const clean = hex.replace("#", "");
+    const r = Number.parseInt(clean.slice(0, 2), 16);
+    const g = Number.parseInt(clean.slice(2, 4), 16);
+    const b = Number.parseInt(clean.slice(4, 6), 16);
+    return { r, g, b, a: 255 };
+  };
+
+  const floodFill = async (startX: number, startY: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const width = canvas.width;
+    const height = canvas.height;
+    const sx = Math.max(0, Math.min(width - 1, Math.floor(startX)));
+    const sy = Math.max(0, Math.min(height - 1, Math.floor(startY)));
+
+    const paintData = ctx.getImageData(0, 0, width, height);
+    const lineData = await getLineArtData();
+    if (!lineData) return;
+
+    const targetIdx = (sy * width + sx) * 4;
+    const tr = paintData.data[targetIdx];
+    const tg = paintData.data[targetIdx + 1];
+    const tb = paintData.data[targetIdx + 2];
+    const ta = paintData.data[targetIdx + 3];
+
+    const fill = hexToRgba(color);
+    const tolerance = 32;
+
+    const matchesTarget = (idx: number) => {
+      const dr = paintData.data[idx] - tr;
+      const dg = paintData.data[idx + 1] - tg;
+      const db = paintData.data[idx + 2] - tb;
+      const da = paintData.data[idx + 3] - ta;
+      return Math.hypot(dr, dg, db, da) <= tolerance;
+    };
+
+    const isWall = (idx: number) => {
+      const lr = lineData.data[idx];
+      const lg = lineData.data[idx + 1];
+      const lb = lineData.data[idx + 2];
+      const la = lineData.data[idx + 3];
+      if (la < 30) return false;
+      const brightness = (lr + lg + lb) / 3;
+      return brightness < 120;
+    };
+
+    if (isWall(targetIdx)) return;
+
+    const visited = new Uint8Array(width * height);
+    const stack: [number, number][] = [[sx, sy]];
+    let filled = false;
+
+    while (stack.length) {
+      const [x, y] = stack.pop()!;
+      const idx = (y * width + x) * 4;
+      if (visited[y * width + x]) continue;
+      if (!matchesTarget(idx)) continue;
+      if (isWall(idx)) continue;
+
+      visited[y * width + x] = 1;
+      paintData.data[idx] = fill.r;
+      paintData.data[idx + 1] = fill.g;
+      paintData.data[idx + 2] = fill.b;
+      paintData.data[idx + 3] = fill.a;
+      filled = true;
+
+      if (x > 0) stack.push([x - 1, y]);
+      if (x < width - 1) stack.push([x + 1, y]);
+      if (y > 0) stack.push([x, y - 1]);
+      if (y < height - 1) stack.push([x, y + 1]);
+    }
+
+    if (filled) {
+      ctx.putImageData(paintData, 0, 0);
+      reportPaint();
+    }
+  };
+
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
+    const point = pointFromEvent(e);
+    if (tool === "bucket") {
+      pushHistory();
+      void floodFill(point.x, point.y);
+      return;
+    }
     pushHistory();
     drawing.current = true;
     setIsDrawing(true);
-    const point = pointFromEvent(e);
     lastPoint.current = point;
     strokeSegment(point, { x: point.x + 0.01, y: point.y + 0.01 });
   };
