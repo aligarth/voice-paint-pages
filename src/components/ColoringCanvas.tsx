@@ -387,6 +387,7 @@ export function ColoringCanvas({
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     previewMask.current = null;
+    previewGen.current += 1;
   };
 
   const drawPreview = async (px: number, py: number) => {
