@@ -1,7 +1,7 @@
 import React from "react";
 import {
   AbsoluteFill,
-  OffthreadVideo,
+  Video,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
@@ -42,7 +42,7 @@ export const FootageLayer: React.FC<Props> = ({
   return (
     <AbsoluteFill style={{ overflow: "hidden", backgroundColor: palette.paperDark }}>
       <AbsoluteFill style={{ transform: `scale(${scale})`, opacity: fadeIn }}>
-        <OffthreadVideo
+        <Video
           src={staticFile(`video/${src}`)}
           muted
           trimBefore={Math.round(startFrom * fps)}
