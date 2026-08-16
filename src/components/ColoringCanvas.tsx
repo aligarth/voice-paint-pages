@@ -436,6 +436,7 @@ export function ColoringCanvas({
           style={{ cursor: "crosshair" }}
         />
         <img
+          ref={lineArtRef}
           src={src}
           alt={`Line art of ${title}`}
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
