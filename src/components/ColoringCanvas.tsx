@@ -4,6 +4,7 @@ import {
   Paintbrush,
   Pencil,
   RotateCcw,
+  Redo,
   Trash2,
   Download,
   Droplet,
@@ -40,12 +41,15 @@ export function ColoringCanvas({
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const history = useRef<ImageData[]>([]);
+  const future = useRef<ImageData[]>([]);
 
   const [tool, setTool] = useState<Tool>("brush");
   const [color, setColor] = useState("#ED0A3F");
   const [size, setSize] = useState(24);
   const [panelOpen, setPanelOpen] = useState(true);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
 
   useEffect(() => {
@@ -70,6 +74,11 @@ export function ColoringCanvas({
     onPaintChange(canvas.toDataURL("image/png"));
   };
 
+  const updateHistoryState = () => {
+    setCanUndo(history.current.length > 0);
+    setCanRedo(future.current.length > 0);
+  };
+
   const pointFromEvent = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
@@ -85,6 +94,8 @@ export function ColoringCanvas({
     if (!canvas || !ctx) return;
     history.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     if (history.current.length > 20) history.current.shift();
+    future.current = [];
+    updateHistoryState();
   };
 
   const strokeSegment = (from: { x: number; y: number }, to: { x: number; y: number }) => {
@@ -167,7 +178,22 @@ export function ColoringCanvas({
     const ctx = canvas?.getContext("2d");
     const previous = history.current.pop();
     if (!canvas || !ctx || !previous) return;
+    future.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if (future.current.length > 20) future.current.shift();
     ctx.putImageData(previous, 0, 0);
+    updateHistoryState();
+    reportPaint();
+  };
+
+  const redo = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    const next = future.current.pop();
+    if (!canvas || !ctx || !next) return;
+    history.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    if (history.current.length > 20) history.current.shift();
+    ctx.putImageData(next, 0, 0);
+    updateHistoryState();
     reportPaint();
   };
 
@@ -177,6 +203,7 @@ export function ColoringCanvas({
     if (!canvas || !ctx) return;
     pushHistory();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    updateHistoryState();
     onPaintChange?.(null);
   };
 
@@ -205,6 +232,25 @@ export function ColoringCanvas({
     link.download = `${title.replace(/\s+/g, "-").toLowerCase() || "coloring-page"}.png`;
     link.click();
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key.toLowerCase() === "z" && e.shiftKey) {
+        e.preventDefault();
+        redo();
+      } else if (e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        undo();
+      } else if (e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const showPanel = panelOpen && !isDrawing;
 
@@ -299,8 +345,21 @@ export function ColoringCanvas({
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <button type="button" onClick={undo} className="btn-crayon">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className="btn-crayon disabled:opacity-50"
+            >
               <RotateCcw className="h-4 w-4" /> Undo
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className="btn-crayon disabled:opacity-50"
+            >
+              <Redo className="h-4 w-4" /> Redo
             </button>
             <button type="button" onClick={clear} className="btn-crayon">
               <Trash2 className="h-4 w-4" /> Clear

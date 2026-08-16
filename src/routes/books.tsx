@@ -5,6 +5,7 @@ import {
   BookOpen,
   Check,
   FileDown,
+  ImageDown,
   Loader2,
   Pencil,
   Trash2,
@@ -57,7 +58,7 @@ function BooksPage() {
   const openBook = async (book: SavedBook) => {
     await saveSession({
       title: book.title,
-      pages: book.pages.map((src) => ({ src })),
+      pages: book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
       openPage: null,
     });
     void navigate({ to: "/" });
@@ -67,13 +68,52 @@ function BooksPage() {
     setExportingId(book.id);
     setMessage(null);
     try {
-      await exportPagesToPdf(book.title, book.pages.map((src) => ({ src })));
+      await exportPagesToPdf(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
       setMessage(`Downloaded “${book.title}” as a PDF.`);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not build the PDF.");
     } finally {
       setExportingId(null);
     }
+  };
+
+  const exportPagePng = async (book: SavedBook, index: number) => {
+    const src = book.pages[index];
+    if (!src) return;
+    const canvas = document.createElement("canvas");
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = src;
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    });
+    canvas.width = img.naturalWidth || 1024;
+    canvas.height = img.naturalHeight || 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const paint = book.paints?.[index];
+    if (paint) {
+      const paintImg = new Image();
+      paintImg.crossOrigin = "anonymous";
+      paintImg.src = paint;
+      await new Promise<void>((resolve) => {
+        paintImg.onload = () => resolve();
+        paintImg.onerror = () => resolve();
+      });
+      ctx.drawImage(paintImg, 0, 0, canvas.width, canvas.height);
+    }
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${book.title.replace(/\s+/g, "-").toLowerCase()}-page-${index + 1}.png`;
+    link.click();
   };
 
   return (
@@ -186,21 +226,40 @@ function BooksPage() {
             <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {book.pages.map((src, index) => (
                 <div key={index} className="rounded-2xl border-2 border-border p-2">
-                  <img
-                    src={src}
-                    alt={`${book.title} page ${index + 1}`}
-                    className="aspect-square w-full rounded-xl object-contain"
-                  />
+                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-white">
+                    <img
+                      src={src}
+                      alt={`${book.title} page ${index + 1}`}
+                      className="absolute inset-0 h-full w-full object-contain"
+                    />
+                    {book.paints?.[index] && (
+                      <img
+                        src={book.paints[index]!}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-contain"
+                      />
+                    )}
+                  </div>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <span className="text-xs font-extrabold">Page {index + 1}</span>
-                    <button
-                      type="button"
-                      aria-label={`Delete page ${index + 1}`}
-                      className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                      onClick={async () => setBooks(await deleteBookPage(book.id, index))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-label={`Export page ${index + 1} as PNG`}
+                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                        onClick={() => void exportPagePng(book, index)}
+                      >
+                        <ImageDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete page ${index + 1}`}
+                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                        onClick={async () => setBooks(await deleteBookPage(book.id, index))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

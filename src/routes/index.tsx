@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, Library, Eye, X } from "lucide-react";
+import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, Ear, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, ImageDown, Library, Eye, X, Pencil } from "lucide-react";
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
+}
 import { Link } from "@tanstack/react-router";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
@@ -93,6 +97,7 @@ function Index() {
   const [previewSnap, setPreviewSnap] = useState<string | null>(null);
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
@@ -149,11 +154,45 @@ function Index() {
     }
   };
 
+  const exportPagePng = async (page: Page & { src: string }) => {
+    const canvas = document.createElement("canvas");
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = page.src;
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    });
+    canvas.width = img.naturalWidth || 1024;
+    canvas.height = img.naturalHeight || 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (page.paint) {
+      const paintImg = new Image();
+      paintImg.crossOrigin = "anonymous";
+      paintImg.src = page.paint;
+      await new Promise<void>((resolve) => {
+        paintImg.onload = () => resolve();
+        paintImg.onerror = () => resolve();
+      });
+      ctx.drawImage(paintImg, 0, 0, canvas.width, canvas.height);
+    }
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${(bookTitle || "page").replace(/\s+/g, "-").toLowerCase()}-${page.id + 1}.png`;
+    link.click();
+  };
+
   const handleSaveBook = async () => {
     const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
     if (!sources.length) return;
     try {
-      setSavedBooks(await saveBook(bookTitle || "My coloring book", sources));
+      const paints = pages.map((page) => page.paint ?? null);
+      setSavedBooks(await saveBook(bookTitle || "My coloring book", sources, paints));
       setSaveMessage("Saved to your bookshelf!");
     } catch (err) {
       setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
@@ -170,7 +209,15 @@ function Index() {
 
   const openSavedBook = (book: SavedBook) => {
     setBookTitle(book.title);
-    setPages(book.pages.map((src, i) => ({ id: i, title: book.title, src, done: true })));
+    setPages(
+      book.pages.map((src, i) => ({
+        id: i,
+        title: book.title,
+        src,
+        done: true,
+        paint: book.paints?.[i] ?? null,
+      })),
+    );
     setOpenPage(null);
     setSaveMessage(null);
   };
@@ -236,6 +283,18 @@ function Index() {
     }
   };
 
+  const cancelGeneration = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setBusy(false);
+    setPages((prev) =>
+      prev.map((page) =>
+        !page.done && !page.src ? { ...page, done: true, error: "Cancelled" } : page,
+      ),
+    );
+    setGenError("Generation cancelled.");
+  }, []);
+
   const generate = useCallback(
     async (rawText: string) => {
       const { subject, pages: count } = parseRequest(rawText);
@@ -248,6 +307,9 @@ function Index() {
       setReviewing(false);
       setBookTitle(subject);
       setBusy(true);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const variations = [
         "",
         " in a playful scene",
@@ -275,6 +337,7 @@ function Index() {
       setPages(initial);
 
       for (let i = 0; i < count; i++) {
+        if (controller.signal.aborted) break;
         try {
           await streamImage(
             "/api/generate-image",
@@ -286,8 +349,17 @@ function Index() {
                 ),
               );
             },
+            controller.signal,
           );
         } catch (err) {
+          if (isAbortError(err)) {
+            setPages((prev) =>
+              prev.map((page) =>
+                page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
+              ),
+            );
+            break;
+          }
           const message = err instanceof Error ? err.message : "Something went wrong";
           console.error("page generation failed", message);
           setPages((prev) =>
@@ -305,8 +377,13 @@ function Index() {
           );
         }
       }
-      setBusy(false);
-      startReview();
+      abortRef.current = null;
+      if (!controller.signal.aborted) {
+        setBusy(false);
+        startReview();
+      } else {
+        setBusy(false);
+      }
     },
     [startReview],
   );
@@ -333,6 +410,9 @@ function Index() {
       setReviewing(false);
       setBookTitle("My photo coloring book");
       setBusy(true);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const variants = [
         "",
         "Zoom in a little closer on the main subject for this version.",
@@ -353,6 +433,7 @@ function Index() {
       );
 
       for (let i = 0; i < jobs.length; i++) {
+        if (controller.signal.aborted) break;
         const job = jobs[i]!;
         try {
           await streamImageFromPhoto(
@@ -364,8 +445,17 @@ function Index() {
               );
             },
             job.variant || undefined,
+            controller.signal,
           );
         } catch (err) {
+          if (isAbortError(err)) {
+            setPages((prev) =>
+              prev.map((page) =>
+                page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
+              ),
+            );
+            break;
+          }
           const message = err instanceof Error ? err.message : "Something went wrong";
           setPages((prev) =>
             prev.map((page) =>
@@ -382,8 +472,13 @@ function Index() {
           );
         }
       }
-      setBusy(false);
-      startReview();
+      abortRef.current = null;
+      if (!controller.signal.aborted) {
+        setBusy(false);
+        startReview();
+      } else {
+        setBusy(false);
+      }
     },
     [startReview],
   );
@@ -877,6 +972,19 @@ function Index() {
               <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
                 <Sparkles className="h-4 w-4" /> Start a new book
               </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const text = transcript || bookTitle;
+                  setTranscript(text);
+                  setHeard(text);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="btn-crayon disabled:opacity-50"
+              >
+                <Pencil className="h-4 w-4" /> Edit request
+              </button>
               {saveMessage && (
                 <span className="text-xs font-semibold text-primary">{saveMessage}</span>
               )}
@@ -899,6 +1007,13 @@ function Index() {
                   }}
                 />
               </div>
+              <button
+                type="button"
+                onClick={cancelGeneration}
+                className="btn-crayon mt-4 w-full justify-center border-primary text-primary"
+              >
+                <X className="h-4 w-4" /> Cancel generation
+              </button>
             </div>
           )}
 
@@ -952,14 +1067,23 @@ function Index() {
                     )}
                   >
                     {page.src ? (
-                      <img
-                        src={page.src}
-                        alt={`Coloring page ${page.id + 1}: ${page.title}`}
-                        className={cn(
-                          "h-full w-full object-contain transition-[filter] duration-500",
-                          page.done ? "blur-0" : "blur-md",
+                      <div className="relative h-full w-full">
+                        <img
+                          src={page.src}
+                          alt={`Coloring page ${page.id + 1}: ${page.title}`}
+                          className={cn(
+                            "h-full w-full object-contain transition-[filter] duration-500",
+                            page.done ? "blur-0" : "blur-md",
+                          )}
+                        />
+                        {page.paint && (
+                          <img
+                            src={page.paint}
+                            alt=""
+                            className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+                          />
                         )}
-                      />
+                      </div>
                     ) : (
                       <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
                         {page.error ? (
@@ -985,19 +1109,33 @@ function Index() {
                       </span>
                     )}
                   </button>
-                  {page.source && (
-                    <button
-                      type="button"
-                      onClick={() => void regeneratePage(page.id)}
-                      disabled={busy || page.regenerating}
-                      className="btn-crayon mt-2 w-full justify-center text-sm disabled:opacity-50"
-                    >
-                      <RefreshCw
-                        className={cn("h-4 w-4", page.regenerating && "animate-spin")}
-                      />
-                      {page.regenerating ? "Re-drawing…" : "Regenerate this page"}
-                    </button>
-                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {page.source && (
+                      <button
+                        type="button"
+                        onClick={() => void regeneratePage(page.id)}
+                        disabled={busy || page.regenerating}
+                        className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                      >
+                        <RefreshCw
+                          className={cn("h-4 w-4", page.regenerating && "animate-spin")}
+                        />
+                        {page.regenerating ? "Re-drawing…" : "Regenerate"}
+                      </button>
+                    )}
+                    {page.src && page.done && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void exportPagePng(page as Page & { src: string; done: true })
+                        }
+                        className="btn-crayon flex-1 justify-center text-sm"
+                        aria-label={`Export page ${page.id + 1} as PNG`}
+                      >
+                        <ImageDown className="h-4 w-4" /> PNG
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
