@@ -352,10 +352,47 @@ export function ColoringCanvas({
     };
 
     const isWall = (x: number, y: number) => wallMap[y * width + x] === 1;
-    if (isWall(sx, sy)) return null;
+
+    // A finger or bucket cursor often lands on the outline itself. Pick the
+    // nearest open pixel instead of treating that very common tap as a miss.
+    // Prefer the candidate closest to the center of the page, which selects
+    // the foreground side of an outline rather than the outer background.
+    let seedX = sx;
+    let seedY = sy;
+    if (isWall(seedX, seedY)) {
+      const maxRadius = Math.max(12, Math.floor(size * 1.5));
+      let best: { x: number; y: number; centerDistance: number } | null = null;
+      for (let radius = 1; radius <= maxRadius && !best; radius++) {
+        const candidates: { x: number; y: number }[] = [];
+        for (let offset = -radius; offset <= radius; offset++) {
+          candidates.push(
+            { x: sx + offset, y: sy - radius },
+            { x: sx + offset, y: sy + radius },
+            { x: sx - radius, y: sy + offset },
+            { x: sx + radius, y: sy + offset },
+          );
+        }
+        for (const candidate of candidates) {
+          if (
+            candidate.x < 0 ||
+            candidate.x >= width ||
+            candidate.y < 0 ||
+            candidate.y >= height ||
+            isWall(candidate.x, candidate.y)
+          ) continue;
+          const centerDistance = Math.hypot(candidate.x - width / 2, candidate.y - height / 2);
+          if (!best || centerDistance < best.centerDistance) {
+            best = { ...candidate, centerDistance };
+          }
+        }
+      }
+      if (!best) return null;
+      seedX = best.x;
+      seedY = best.y;
+    }
 
     const visited = new Uint8Array(width * height);
-    const stack: [number, number][] = [[sx, sy]];
+    const stack: [number, number][] = [[seedX, seedY]];
     const pixels: [number, number][] = [];
     let touchesEdge = false;
 
