@@ -102,16 +102,8 @@ export function ColoringCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
 
-  useEffect(() => {
-    const preview = previewRef.current;
-    if (preview) {
-      preview.width = 1024;
-      preview.height = 1024;
-    }
-    wallCache.current = null;
-    clearPreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, tool, size, color, fillTolerance, fillMode]);
+
+
 
   useEffect(
     () => () => {
