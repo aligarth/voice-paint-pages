@@ -92,6 +92,7 @@ function Index() {
   const [keepIds, setKeepIds] = useState<number[]>([]);
   const [previewSnap, setPreviewSnap] = useState<string | null>(null);
   const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
