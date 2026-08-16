@@ -62,6 +62,11 @@ export function ColoringCanvas({
   const pendingFill = useRef<{ x: number; y: number } | null>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
+  /** canvas px per CSS px, so the size chips paint at the thickness they show. */
+  const displayScale = useRef(1);
+  const lastMid = useRef<{ x: number; y: number } | null>(null);
+  const lastWidth = useRef<number | null>(null);
+  const lastTime = useRef(0);
   const history = useRef<ImageData[]>([]);
   const future = useRef<ImageData[]>([]);
 
@@ -158,13 +163,18 @@ export function ColoringCanvas({
     updateHistoryState();
   };
 
-  const strokeSegment = (from: { x: number; y: number }, to: { x: number; y: number }) => {
+  const strokeSegment = (
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    pressure = 0,
+  ) => {
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
+    const scaled = size * displayScale.current;
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.lineWidth = size;
+    ctx.lineWidth = scaled;
 
     if (tool === "eraser") {
       ctx.globalCompositeOperation = "destination-out";
@@ -187,15 +197,48 @@ export function ColoringCanvas({
         ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const t = i / steps;
-          const jitter = (Math.random() - 0.5) * size * 0.35;
+          const jitter = (Math.random() - 0.5) * scaled * 0.35;
           const x = from.x + (to.x - from.x) * t + jitter;
           const y = from.y + (to.y - from.y) * t + jitter;
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
-        ctx.lineWidth = size * (0.6 + pass * 0.2);
+        ctx.lineWidth = scaled * (0.6 + pass * 0.2);
         ctx.stroke();
       }
+      ctx.restore();
+      return;
+    }
+
+    if (tool === "brush") {
+      // Smooth the path through midpoints so quick strokes curve instead of faceting.
+      const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+      const start = lastMid.current ?? from;
+      const now = performance.now();
+      const dt = Math.max(8, now - (lastTime.current || now));
+      const speed = Math.hypot(to.x - from.x, to.y - from.y) / dt;
+      lastTime.current = now;
+
+      // Faster strokes thin out; reported pen pressure wins when available.
+      const dynamic = pressure > 0 ? 0.55 + pressure * 0.75 : 1.15 - Math.min(0.5, speed / 4);
+      const target = scaled * Math.max(0.35, Math.min(1.3, dynamic));
+      const width = lastWidth.current == null ? target : lastWidth.current * 0.6 + target * 0.4;
+      lastWidth.current = width;
+
+      const drawPass = (w: number, alpha: number) => {
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = Math.max(0.6, w);
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.quadraticCurveTo(from.x, from.y, mid.x, mid.y);
+        ctx.stroke();
+      };
+
+      drawPass(width * 1.35, 0.16); // soft bristle bleed
+      drawPass(width, 0.95); // body
+      drawPass(width * 0.45, 0.65); // loaded core
+
+      lastMid.current = mid;
       ctx.restore();
       return;
     }
@@ -441,7 +484,12 @@ export function ColoringCanvas({
     drawing.current = true;
     setIsDrawing(true);
     lastPoint.current = point;
-    strokeSegment(point, { x: point.x + 0.01, y: point.y + 0.01 });
+    const rect = e.currentTarget.getBoundingClientRect();
+    displayScale.current = rect.width ? Math.max(1, e.currentTarget.width / rect.width) : 1;
+    lastMid.current = point;
+    lastWidth.current = null;
+    lastTime.current = performance.now();
+    strokeSegment(point, { x: point.x + 0.01, y: point.y + 0.01 }, e.pressure);
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -453,7 +501,7 @@ export function ColoringCanvas({
     }
     if (!drawing.current || !lastPoint.current) return;
     const point = pointFromEvent(e);
-    strokeSegment(lastPoint.current, point);
+    strokeSegment(lastPoint.current, point, e.pressure);
     lastPoint.current = point;
   };
 
@@ -470,6 +518,8 @@ export function ColoringCanvas({
     }
     drawing.current = false;
     lastPoint.current = null;
+    lastMid.current = null;
+    lastWidth.current = null;
     setIsDrawing(false);
     reportPaint();
   };
