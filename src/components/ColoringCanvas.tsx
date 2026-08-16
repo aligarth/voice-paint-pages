@@ -290,7 +290,9 @@ export function ColoringCanvas({
 
   const buildWallMap = (lineData: ImageData, width: number, height: number) => {
     const wall = new Uint8Array(width * height);
-    const radius = Math.max(1, Math.floor(size / 4));
+    // Higher tolerance = more forgiving: faint/antialiased pixels count as walls,
+    // which seals small gaps in the drawing. Independent of the brush size.
+    const darkLimit = 150 + Math.round(fillTolerance * 0.8);
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -299,36 +301,16 @@ export function ColoringCanvas({
         const lg = lineData.data[idx + 1] ?? 0;
         const lb = lineData.data[idx + 2] ?? 0;
         const la = lineData.data[idx + 3] ?? 0;
-        if (la >= 30 && (lr + lg + lb) / 3 < 90 + fillTolerance) {
+        if (la >= 24 && (lr + lg + lb) / 3 < darkLimit) {
           wall[y * width + x] = 1;
         }
       }
     }
-
-    if (radius <= 1) return wall;
-
-    const dilated = new Uint8Array(width * height);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (wall[y * width + x]) {
-          for (let dy = -radius; dy <= radius; dy++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-              if (dx * dx + dy * dy > radius * radius) continue;
-              const nx = x + dx;
-              const ny = y + dy;
-              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                dilated[ny * width + nx] = 1;
-              }
-            }
-          }
-        }
-      }
-    }
-    return dilated;
+    return wall;
   };
 
   const getWallMap = async (width: number, height: number) => {
-    const key = `${src}|${size}|${fillTolerance}`;
+    const key = `${src}|${width}x${height}|${fillTolerance}`;
     if (wallCache.current && wallCache.current.key === key) return wallCache.current.wall;
     const lineData = await getLineArtData();
     if (!lineData) return null;
@@ -336,6 +318,7 @@ export function ColoringCanvas({
     wallCache.current = { key, wall };
     return wall;
   };
+
 
   /** Detect the region that a fill at this point would cover. */
   const computeRegion = async (startX: number, startY: number) => {
