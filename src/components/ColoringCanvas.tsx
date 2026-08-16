@@ -486,17 +486,40 @@ export function ColoringCanvas({
 
     if (region.pixels.length) {
       const fill = hexToRgba(color);
-      const { paintData, width } = region;
-      for (const [x, y] of region.pixels) {
+      const { paintData, width, height, visited } = region;
+      const paint = (x: number, y: number) => {
         const idx = (y * width + x) * 4;
         paintData.data[idx] = fill.r;
         paintData.data[idx + 1] = fill.g;
         paintData.data[idx + 2] = fill.b;
         paintData.data[idx + 3] = fill.a;
+      };
+      for (const [x, y] of region.pixels) paint(x, y);
+      // Feather 2px outward so the color tucks under the outline instead of
+      // leaving a white halo (the line art sits on top in multiply blend).
+      const grown = new Uint8Array(visited);
+      for (let pass = 0; pass < 2; pass++) {
+        const next = new Uint8Array(grown);
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (grown[y * width + x]) continue;
+            const n =
+              (x > 0 && grown[y * width + x - 1]) ||
+              (x < width - 1 && grown[y * width + x + 1]) ||
+              (y > 0 && grown[(y - 1) * width + x]) ||
+              (y < height - 1 && grown[(y + 1) * width + x]);
+            if (n) {
+              next[y * width + x] = 1;
+              paint(x, y);
+            }
+          }
+        }
+        grown.set(next);
       }
       ctx.putImageData(paintData, 0, 0);
       reportPaint();
     }
+
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
