@@ -90,6 +90,7 @@ function Index() {
   const [exporting, setExporting] = useState(false);
   const [restored, setRestored] = useState(false);
   const [keepIds, setKeepIds] = useState<number[]>([]);
+  const [previewSnap, setPreviewSnap] = useState<string | null>(null);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
