@@ -19,6 +19,8 @@ export function CameraCapture({ onCapture, onClose, onFallback, max = 12 }: Prop
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [facing, setFacing] = useState<"user" | "environment">("environment");
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [deviceId, setDeviceId] = useState<string>("");
   const [shots, setShots] = useState<string[]>([]);
 
   const stop = useCallback(() => {
@@ -34,7 +36,11 @@ export function CameraCapture({ onCapture, onClose, onFallback, max = 12 }: Prop
       stop();
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 960 } },
+          video: {
+            ...(deviceId ? { deviceId: { exact: deviceId } } : { facingMode: facing }),
+            width: { ideal: 1280 },
+            height: { ideal: 960 },
+          },
           audio: false,
         });
         if (cancelled) {
@@ -47,6 +53,15 @@ export function CameraCapture({ onCapture, onClose, onFallback, max = 12 }: Prop
           await videoRef.current.play().catch(() => undefined);
         }
         setReady(true);
+        // Labels are only exposed once permission is granted.
+        const list = await navigator.mediaDevices.enumerateDevices();
+        if (cancelled) return;
+        const cams = list.filter((d) => d.kind === "videoinput");
+        setDevices(cams);
+        if (!deviceId) {
+          const active = stream.getVideoTracks()[0]?.getSettings().deviceId;
+          if (active) setDeviceId(active);
+        }
       } catch (err) {
         const name = (err as { name?: string })?.name ?? "";
         setError(
@@ -63,7 +78,7 @@ export function CameraCapture({ onCapture, onClose, onFallback, max = 12 }: Prop
       cancelled = true;
       stop();
     };
-  }, [facing, stop]);
+  }, [facing, deviceId, stop]);
 
   const snap = useCallback(() => {
     const video = videoRef.current;
@@ -149,13 +164,34 @@ export function CameraCapture({ onCapture, onClose, onFallback, max = 12 }: Prop
               >
                 <Camera className="h-4 w-4" /> Take photo
               </button>
-              <button
-                type="button"
-                onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-                className="btn-crayon"
-              >
-                <RefreshCw className="h-4 w-4" /> Flip camera
-              </button>
+              {devices.length > 1 ? (
+                <label className="inline-flex items-center gap-2 text-sm font-bold">
+                  <span className="sr-only">Camera</span>
+                  <select
+                    value={deviceId}
+                    onChange={(e) => setDeviceId(e.target.value)}
+                    className="max-w-[16rem] rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold"
+                    aria-label="Choose camera"
+                  >
+                    {devices.map((d, i) => (
+                      <option key={d.deviceId || i} value={d.deviceId}>
+                        {d.label || `Camera ${i + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeviceId("");
+                    setFacing((f) => (f === "user" ? "environment" : "user"));
+                  }}
+                  className="btn-crayon"
+                >
+                  <RefreshCw className="h-4 w-4" /> Flip camera
+                </button>
+              )}
             </>
           )}
           {shots.length > 0 && (
