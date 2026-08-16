@@ -402,9 +402,20 @@ function Index() {
   if (activePage?.src) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <button type="button" onClick={() => setOpenPage(null)} className="btn-crayon mb-6">
-          <ArrowLeft className="h-4 w-4" /> Back to my book
-        </button>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <button type="button" onClick={() => setOpenPage(null)} className="btn-crayon">
+            <ArrowLeft className="h-4 w-4" /> Back to my book
+          </button>
+          <button
+            type="button"
+            onClick={() => void exportPdf()}
+            disabled={exporting || !pages.some((page) => page.src)}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {exporting ? "Building PDF…" : "Export PDF"}
+          </button>
+        </div>
         <h1 className="mb-6 text-3xl font-extrabold capitalize">
           {activePage.title} <span className="text-muted-foreground">· page {activePage.id + 1}</span>
         </h1>
