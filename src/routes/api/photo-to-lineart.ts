@@ -23,7 +23,11 @@ export const Route = createFileRoute("/api/photo-to-lineart")({
           "and can be filled with color without leaking into neighboring areas. " +
           "Uniform line thickness, pure white background, no shading, no hatching, no grey, no " +
           "color, no text, large simple enclosed areas that are easy to color in, printable " +
-          "coloring page.";
+          "coloring page. " +
+          "Keep the rectangular border already present around the photo: reproduce it as four " +
+          "straight, unbroken, uniform black lines forming a fully closed frame at the edge of " +
+          "the page. If the photo has no border, add one. Do not crop the border away, do not " +
+          "leave gaps in the corners, and do not add any extra frames or decoration.";
 
         const upstream = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
           method: "POST",
