@@ -27,15 +27,15 @@ import {
 import { cn } from "@/lib/utils";
 
 
-type Tool = "brush" | "crayon" | "marker" | "eraser" | "bucket";
+type Tool = "brush" | "crayon" | "marker" | "eraser";
 
 const TOOLS: { id: Tool; label: string; icon: typeof Paintbrush }[] = [
   { id: "brush", label: "Paint brush", icon: Paintbrush },
   { id: "crayon", label: "Crayon", icon: Pencil },
   { id: "marker", label: "Marker", icon: Droplet },
-  { id: "bucket", label: "Fill color", icon: PaintBucket },
   { id: "eraser", label: "Eraser", icon: Eraser },
 ];
+
 
 export function ColoringCanvas({
   src,
