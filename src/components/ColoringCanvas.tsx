@@ -700,6 +700,30 @@ export function ColoringCanvas({
             ))}
           </div>
 
+          {tool === "bucket" && (
+            <>
+              <h3 className="label-chalk mt-5 flex items-center justify-between">
+                <span>Fill tolerance</span>
+                <span className="text-xs font-semibold text-muted-foreground">{fillTolerance}</span>
+              </h3>
+              <input
+                type="range"
+                min={8}
+                max={96}
+                step={4}
+                value={fillTolerance}
+                onChange={(e) => setFillTolerance(Number(e.target.value))}
+                aria-label="Fill tolerance"
+                className="mt-3 w-full accent-accent"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Lower is stricter about closed boundaries; higher fills across faint or broken lines.
+              </p>
+            </>
+          )}
+
+
+
           <div className="mt-5 flex flex-wrap gap-2">
             <button
               type="button"
