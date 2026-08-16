@@ -65,8 +65,45 @@ export function adjustPhoto(src: string, adjust: PhotoAdjust): Promise<string> {
         resolve(src);
         return;
       }
+      const border = adjust.border !== false;
+      const short = Math.min(canvas.width, canvas.height);
+      const pad = border ? Math.max(6, Math.round(short * 0.03)) : 0;
+
+      if (border) {
+        ctx.filter = "none";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
       ctx.filter = `brightness(${adjust.brightness}) contrast(${adjust.contrast})`;
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(
+        img,
+        sx,
+        sy,
+        sw,
+        sh,
+        pad,
+        pad,
+        Math.max(1, canvas.width - pad * 2),
+        Math.max(1, canvas.height - pad * 2),
+      );
+
+      if (border) {
+        ctx.filter = "none";
+        const lw = Math.max(3, Math.round(short * 0.015));
+        ctx.lineWidth = lw;
+        ctx.strokeStyle = "#0a0a0a";
+        ctx.lineJoin = "miter";
+        const half = lw / 2;
+        const inset = Math.max(half, pad - half);
+        ctx.strokeRect(
+          inset,
+          inset,
+          Math.max(1, canvas.width - inset * 2),
+          Math.max(1, canvas.height - inset * 2),
+        );
+      }
+
       resolve(canvas.toDataURL("image/jpeg", 0.9));
     };
     img.src = src;
