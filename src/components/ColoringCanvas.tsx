@@ -523,6 +523,7 @@ export function ColoringCanvas({
         <img
           ref={lineArtRef}
           src={src}
+          crossOrigin="anonymous"
           alt={`Line art of ${title}`}
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
           draggable={false}
