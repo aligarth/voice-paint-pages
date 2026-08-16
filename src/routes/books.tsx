@@ -7,17 +7,21 @@ import {
   FileDown,
   FileArchive,
   ImageDown,
+  Layers,
   Loader2,
   Pencil,
+  Undo2,
   Trash2,
   X,
 } from "lucide-react";
 import {
+  combineBooks,
   deleteBook,
   deleteBookPage,
   listBooks,
   renameBook,
-  MAX_BOOKS,
+  undoCombine,
+  type CombineUndo,
   type SavedBook,
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
@@ -54,6 +58,43 @@ function BooksPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [combineTitle, setCombineTitle] = useState("My big coloring book");
+  const [combining, setCombining] = useState(false);
+  const [undoPayload, setUndoPayload] = useState<CombineUndo | null>(null);
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+
+  const combineSelected = async () => {
+    if (selected.length < 2) return;
+    setCombining(true);
+    setMessage(null);
+    try {
+      const result = await combineBooks(selected, combineTitle);
+      setBooks(result.books);
+      setUndoPayload(result.undo);
+      setMessage(`Combined ${result.undo.removed.length} books into “${result.undo.created.title}”.`);
+      setSelected([]);
+      setSelecting(false);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not combine those books.");
+    } finally {
+      setCombining(false);
+    }
+  };
+
+  const revertCombine = async () => {
+    if (!undoPayload) return;
+    try {
+      setBooks(await undoCombine(undoPayload));
+      setMessage("Put those books back the way they were.");
+      setUndoPayload(null);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not undo the combine.");
+    }
+  };
 
   useEffect(() => {
     void listBooks().then(setBooks);
@@ -124,13 +165,58 @@ function BooksPage() {
         <h1 className="flex flex-wrap items-center gap-3 text-4xl font-extrabold">
           <BookOpen className="h-8 w-8" /> My books
           <span className="text-base font-bold text-muted-foreground">
-            {books ? `${books.length}/${MAX_BOOKS} saved` : "loading…"}
+            {books ? `${books.length} saved` : "loading…"}
           </span>
         </h1>
         <p className="mt-3 max-w-xl text-base text-muted-foreground">
-          Rename a book, remove pages you don't want, export the whole book as a PDF, or reopen it to
-          keep coloring.
+          Every picture you draw is saved here as its own little book. Combine any of them into one
+          big book, rename, remove pages, export a PDF, or reopen a book to keep coloring.
         </p>
+
+        {books && books.length > 1 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="btn-crayon"
+              onClick={() => {
+                setSelecting((prev) => !prev);
+                setSelected([]);
+              }}
+            >
+              <Layers className="h-4 w-4" /> {selecting ? "Cancel selecting" : "Combine books"}
+            </button>
+            {undoPayload && (
+              <button type="button" className="btn-crayon" onClick={() => void revertCombine()}>
+                <Undo2 className="h-4 w-4" /> Undo combine
+              </button>
+            )}
+          </div>
+        )}
+
+        {selecting && (
+          <div className="paper-card mt-4 flex flex-wrap items-center gap-3 p-4">
+            <span className="text-sm font-extrabold">
+              {selected.length === 0
+                ? "Tick the books you want in one big book"
+                : `${selected.length} selected`}
+            </span>
+            <input
+              value={combineTitle}
+              onChange={(e) => setCombineTitle(e.target.value)}
+              aria-label="Combined book title"
+              className="min-w-[12rem] flex-1 rounded-full border-2 border-border bg-card px-4 py-2 text-base font-bold outline-none focus:border-primary"
+            />
+            <button
+              type="button"
+              className="btn-crayon disabled:opacity-50"
+              disabled={selected.length < 2 || combining}
+              onClick={() => void combineSelected()}
+            >
+              {combining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+              Combine {selected.length > 1 ? selected.length : ""} books
+            </button>
+          </div>
+        )}
         {message && <p className="mt-3 text-sm font-bold text-primary">{message}</p>}
       </header>
 
@@ -138,7 +224,7 @@ function BooksPage() {
         <div className="paper-card mt-10 p-8 text-center">
           <p className="text-lg font-extrabold">No saved books yet</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Make a book in the studio, then tap “Save book” to keep it here.
+            Say it or snap it in the studio — each picture saves itself here as its own book.
           </p>
           <Link to="/" className="btn-crayon mt-5 inline-flex">
             Go make one
@@ -174,7 +260,16 @@ function BooksPage() {
                   </button>
                 </div>
               ) : (
-                <h2 className="text-2xl font-extrabold capitalize">
+                <h2 className="flex items-center gap-3 text-2xl font-extrabold capitalize">
+                  {selecting && (
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(book.id)}
+                      onChange={() => toggleSelected(book.id)}
+                      aria-label={`Select ${book.title}`}
+                      className="h-5 w-5 accent-primary"
+                    />
+                  )}
                   {book.title}{" "}
                   <span className="text-base font-bold text-muted-foreground">
                     · {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
