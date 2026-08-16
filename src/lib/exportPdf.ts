@@ -11,9 +11,11 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Draws the image on a white canvas so transparent PNGs print cleanly. */
-async function toJpeg(src: string): Promise<{ data: string; width: number; height: number }> {
-  const img = await loadImage(src);
+export type PdfPage = { src: string; paint?: string | null };
+
+/** Flattens the paint layer under the line art on white, so pages print cleanly. */
+async function toJpeg(page: PdfPage): Promise<{ data: string; width: number; height: number }> {
+  const img = await loadImage(page.src);
   const canvas = document.createElement("canvas");
   canvas.width = img.naturalWidth || 1024;
   canvas.height = img.naturalHeight || 1024;
@@ -21,7 +23,17 @@ async function toJpeg(src: string): Promise<{ data: string; width: number; heigh
   if (!ctx) throw new Error("Canvas not available");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (page.paint) {
+    try {
+      const paint = await loadImage(page.paint);
+      ctx.drawImage(paint, 0, 0, canvas.width, canvas.height);
+    } catch {
+      /* skip an unreadable paint layer */
+    }
+  }
+  ctx.globalCompositeOperation = "multiply";
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = "source-over";
   return { data: canvas.toDataURL("image/jpeg", 0.92), width: canvas.width, height: canvas.height };
 }
 
@@ -31,7 +43,7 @@ export function pdfFileName(title: string) {
 }
 
 /** Builds a single letter-size PDF, one coloring page per sheet, and downloads it. */
-export async function exportPagesToPdf(title: string, sources: string[]) {
+export async function exportPagesToPdf(title: string, sources: PdfPage[]) {
   if (!sources.length) throw new Error("There are no finished pages to export yet.");
   const doc = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();
