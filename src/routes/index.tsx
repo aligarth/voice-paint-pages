@@ -972,6 +972,19 @@ function Index() {
               <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
                 <Sparkles className="h-4 w-4" /> Start a new book
               </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const text = transcript || bookTitle;
+                  setTranscript(text);
+                  setHeard(text);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="btn-crayon disabled:opacity-50"
+              >
+                <Pencil className="h-4 w-4" /> Edit request
+              </button>
               {saveMessage && (
                 <span className="text-xs font-semibold text-primary">{saveMessage}</span>
               )}
