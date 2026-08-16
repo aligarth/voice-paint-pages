@@ -72,6 +72,8 @@ function Index() {
   const photoInput = useRef<HTMLInputElement | null>(null);
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [keepIds, setKeepIds] = useState<number[]>([]);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
@@ -97,6 +99,22 @@ function Index() {
 
 
 
+  const startReview = useCallback(() => {
+    setPages((prev) => {
+      setKeepIds(prev.filter((page) => page.src).map((page) => page.id));
+      return prev;
+    });
+    setReviewing(true);
+  }, []);
+
+  const applyReview = () => {
+    setPages((prev) =>
+      prev.filter((page) => keepIds.includes(page.id)).map((page, i) => ({ ...page, id: i })),
+    );
+    setReviewing(false);
+    setKeepIds([]);
+  };
+
   const generate = useCallback(
     async (rawText: string) => {
       const { subject, pages: count } = parseRequest(rawText);
@@ -106,6 +124,7 @@ function Index() {
       }
       setGenError(null);
       setSaveMessage(null);
+      setReviewing(false);
       setBookTitle(subject);
       setBusy(true);
       const variations = [
@@ -162,8 +181,9 @@ function Index() {
         }
       }
       setBusy(false);
+      startReview();
     },
-    [],
+    [startReview],
   );
 
   const pickPhotos = useCallback(async (files: File[]) => {
@@ -178,6 +198,7 @@ function Index() {
       if (!photos.length) return;
       setGenError(null);
       setSaveMessage(null);
+      setReviewing(false);
       setBookTitle("My photo coloring book");
       setBusy(true);
       const variants = [
@@ -224,8 +245,9 @@ function Index() {
         }
       }
       setBusy(false);
+      startReview();
     },
-    [],
+    [startReview],
   );
 
 
