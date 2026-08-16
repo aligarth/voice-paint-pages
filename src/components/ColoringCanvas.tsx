@@ -406,7 +406,7 @@ export function ColoringCanvas({
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerLeave}
           className="absolute inset-0 h-full w-full touch-none"
-          style={{ cursor: tool === "bucket" ? "pointer" : "crosshair" }}
+          style={{ cursor: "crosshair" }}
         />
         <img
           ref={lineArtRef}
@@ -415,18 +415,7 @@ export function ColoringCanvas({
           className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain mix-blend-multiply"
           draggable={false}
         />
-        <canvas
-          ref={previewRef}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-10 h-full w-full"
-        />
 
-
-        {fillMessage && (
-          <div className="pointer-events-none absolute left-1/2 top-6 z-20 -translate-x-1/2 rounded-full bg-card/90 px-4 py-2 text-sm font-semibold text-foreground shadow-md backdrop-blur animate-in fade-in slide-in-from-top-2">
-            {fillMessage}
-          </div>
-        )}
 
         <button
           type="button"
