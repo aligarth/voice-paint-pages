@@ -4,9 +4,10 @@ export const Route = createFileRoute("/api/photo-to-lineart")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const { image, stream = true } = (await request.json()) as {
+        const { image, stream = true, variant } = (await request.json()) as {
           image?: string;
           stream?: boolean;
+          variant?: string;
         };
         const key = process.env["LOVABLE_API_KEY"];
         if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
