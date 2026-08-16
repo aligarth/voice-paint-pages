@@ -1183,7 +1183,7 @@ function Index() {
                 disabled={busy || !pages.some((page) => page.src)}
                 className="btn-crayon disabled:opacity-50"
               >
-                <BookmarkPlus className="h-4 w-4" /> Save book ({savedBooks.length}/{MAX_BOOKS})
+                <BookmarkPlus className="h-4 w-4" /> Save as one book
               </button>
               <button
                 type="button"
@@ -1426,7 +1426,9 @@ function Index() {
         <section className="mt-14">
           <h2 className="flex items-center gap-2 text-2xl font-extrabold">
             <BookOpen className="h-6 w-6" /> My bookshelf
-            <span className="text-base text-muted-foreground">· {savedBooks.length}/{MAX_BOOKS} saved</span>
+            <span className="text-base text-muted-foreground">
+              · {savedBooks.length} saved · every new page saves itself
+            </span>
             <Link to="/books" className="btn-crayon ml-auto text-sm">
               <Library className="h-4 w-4" /> My books
             </Link>
