@@ -158,7 +158,8 @@ function Index() {
     const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
     if (!sources.length) return;
     try {
-      setSavedBooks(await saveBook(bookTitle || "My coloring book", sources));
+      const paints = pages.map((page) => page.paint ?? null);
+      setSavedBooks(await saveBook(bookTitle || "My coloring book", sources, paints));
       setSaveMessage("Saved to your bookshelf!");
     } catch (err) {
       setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
@@ -175,7 +176,15 @@ function Index() {
 
   const openSavedBook = (book: SavedBook) => {
     setBookTitle(book.title);
-    setPages(book.pages.map((src, i) => ({ id: i, title: book.title, src, done: true })));
+    setPages(
+      book.pages.map((src, i) => ({
+        id: i,
+        title: book.title,
+        src,
+        done: true,
+        paint: book.paints?.[i] ?? null,
+      })),
+    );
     setOpenPage(null);
     setSaveMessage(null);
   };
