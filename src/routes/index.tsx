@@ -241,6 +241,18 @@ function Index() {
     }
   };
 
+  const cancelGeneration = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setBusy(false);
+    setPages((prev) =>
+      prev.map((page) =>
+        !page.done && !page.src ? { ...page, done: true, error: "Cancelled" } : page,
+      ),
+    );
+    setGenError("Generation cancelled.");
+  }, []);
+
   const generate = useCallback(
     async (rawText: string) => {
       const { subject, pages: count } = parseRequest(rawText);
@@ -253,6 +265,9 @@ function Index() {
       setReviewing(false);
       setBookTitle(subject);
       setBusy(true);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const variations = [
         "",
         " in a playful scene",
@@ -280,6 +295,7 @@ function Index() {
       setPages(initial);
 
       for (let i = 0; i < count; i++) {
+        if (controller.signal.aborted) break;
         try {
           await streamImage(
             "/api/generate-image",
@@ -291,8 +307,17 @@ function Index() {
                 ),
               );
             },
+            controller.signal,
           );
         } catch (err) {
+          if (isAbortError(err)) {
+            setPages((prev) =>
+              prev.map((page) =>
+                page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
+              ),
+            );
+            break;
+          }
           const message = err instanceof Error ? err.message : "Something went wrong";
           console.error("page generation failed", message);
           setPages((prev) =>
@@ -310,8 +335,13 @@ function Index() {
           );
         }
       }
-      setBusy(false);
-      startReview();
+      abortRef.current = null;
+      if (!controller.signal.aborted) {
+        setBusy(false);
+        startReview();
+      } else {
+        setBusy(false);
+      }
     },
     [startReview],
   );
