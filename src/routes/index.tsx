@@ -91,6 +91,8 @@ function Index() {
   const [restored, setRestored] = useState(false);
   const [keepIds, setKeepIds] = useState<number[]>([]);
   const [previewSnap, setPreviewSnap] = useState<string | null>(null);
+  const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   useEffect(() => {
     void listBooks().then(setSavedBooks);
@@ -401,9 +403,20 @@ function Index() {
   if (activePage?.src) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-8">
-        <button type="button" onClick={() => setOpenPage(null)} className="btn-crayon mb-6">
-          <ArrowLeft className="h-4 w-4" /> Back to my book
-        </button>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <button type="button" onClick={() => setOpenPage(null)} className="btn-crayon">
+            <ArrowLeft className="h-4 w-4" /> Back to my book
+          </button>
+          <button
+            type="button"
+            onClick={() => void exportPdf()}
+            disabled={exporting || !pages.some((page) => page.src)}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {exporting ? "Building PDF…" : "Export PDF"}
+          </button>
+        </div>
         <h1 className="mb-6 text-3xl font-extrabold capitalize">
           {activePage.title} <span className="text-muted-foreground">· page {activePage.id + 1}</span>
         </h1>
@@ -508,19 +521,44 @@ function Index() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setSnapShots([])}
-                  className="text-xs font-bold text-muted-foreground underline"
+                  onClick={() => setConfirmRemoveAll(true)}
+                  className="text-xs font-bold text-primary underline"
                 >
-                  Clear all
+                  Remove all
                 </button>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
                 {snapShots.map((src, i) => (
-                  <div key={`${i}-${src.slice(-12)}`} className="group relative aspect-square">
+                  <div
+                    key={`${i}-${src.slice(-12)}`}
+                    draggable
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const from = dragIndex;
+                      if (from === null || from === i) return;
+                      setSnapShots((prev) => {
+                        const next = [...prev];
+                        const [moved] = next.splice(from, 1);
+                        if (!moved) return prev;
+                        next.splice(i, 0, moved);
+                        return next;
+                      });
+                      setDragIndex(null);
+                    }}
+                    onDragEnd={() => setDragIndex(null)}
+                    className={cn(
+                      "group relative aspect-square cursor-move rounded-xl transition-opacity",
+                      dragIndex === i ? "opacity-40" : "opacity-100",
+                    )}
+                  >
                     <img
                       src={src}
                       alt={`Snapped photo ${i + 1}`}
-                      className="h-full w-full rounded-xl border-2 border-border object-cover"
+                      className="pointer-events-none h-full w-full rounded-xl border-2 border-border object-cover"
                     />
                     <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
@@ -596,6 +634,41 @@ function Index() {
             </div>
           )}
 
+          {confirmRemoveAll && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+              onClick={() => setConfirmRemoveAll(false)}
+            >
+              <div
+                className="w-full max-w-sm rounded-2xl border-4 border-border bg-card p-6 text-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="text-lg font-extrabold">Remove all photos?</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This will clear all {snapShots.length} snapped photos from this session.
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSnapShots([]);
+                      setConfirmRemoveAll(false);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-6 py-2.5 text-base font-extrabold text-primary-foreground transition-transform hover:-translate-y-0.5"
+                  >
+                    <Trash2 className="h-4 w-4" /> Yes, remove all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemoveAll(false)}
+                    className="btn-crayon"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {supported && (
             <button
@@ -809,6 +882,25 @@ function Index() {
               )}
             </div>
           </div>
+
+          {busy && pages.length > 0 && (
+            <div className="paper-card mt-5 p-4">
+              <div className="flex items-center justify-between text-sm font-bold">
+                <span>Generating your pages…</span>
+                <span className="text-primary">
+                  {pages.filter((page) => page.done).length} / {pages.length}
+                </span>
+              </div>
+              <div className="mt-2 h-4 w-full overflow-hidden rounded-full border-2 border-border bg-card">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{
+                    width: `${Math.round((pages.filter((page) => page.done).length / pages.length) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {reviewing && (
             <div className="paper-card mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
