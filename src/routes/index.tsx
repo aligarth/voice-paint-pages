@@ -567,6 +567,15 @@ function Index() {
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
             {exporting ? "Building ZIP…" : "Export ZIP"}
           </button>
+          <button
+            type="button"
+            onClick={() => void shareBook()}
+            disabled={sharing || !pages.some((page) => page.src)}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+            {sharing ? "Sharing…" : "Share gallery"}
+          </button>
         </div>
         <h1 className="mb-6 text-3xl font-extrabold capitalize">
           {activePage.title} <span className="text-muted-foreground">· page {activePage.id + 1}</span>
