@@ -315,6 +315,13 @@ function Index() {
     setPrepPhotos(urls);
   }, []);
 
+  const addSnaps = useCallback(async (files: File[]) => {
+    if (!files.length) return;
+    setGenError(null);
+    const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
+    setSnapShots((prev) => [...prev, ...urls].slice(0, 12));
+  }, []);
+
   const generateFromPhotos = useCallback(
     async (photos: string[], perPhoto: number) => {
       if (!photos.length) return;
