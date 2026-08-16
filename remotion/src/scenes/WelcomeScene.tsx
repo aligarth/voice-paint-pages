@@ -26,7 +26,7 @@ export const WelcomeScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <FootageLayer src="together.mp4" dim={0.34} zoom={0.1} startFrom={1.2} />
+      <FootageLayer src="together.webm" dim={0.34} zoom={0.1} startFrom={1.2} />
 
       {pencilColors.map((color, i) => {
         const angle = orbit + i * (360 / pencilColors.length);

@@ -27,7 +27,7 @@ export const BooksScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <FootageLayer src="together.mp4" dim={0.24} zoom={0.07} />
+      <FootageLayer src="together.webm" dim={0.24} zoom={0.07} />
 
       <div
         style={{

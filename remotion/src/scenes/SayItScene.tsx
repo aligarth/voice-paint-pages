@@ -31,7 +31,7 @@ export const SayItScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <FootageLayer src="say-it.mp4" dim={0.18} zoom={0.07} />
+      <FootageLayer src="say-it.webm" dim={0.18} zoom={0.07} />
 
       <div
         style={{

@@ -32,7 +32,7 @@ export const EndCardScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <FootageLayer src="together.mp4" dim={0.36} zoom={0.12} startFrom={0.4} />
+      <FootageLayer src="together.webm" dim={0.36} zoom={0.12} startFrom={0.4} />
 
       {pencilColors.map((color, i) => {
         const angle = orbit + i * (360 / pencilColors.length);

@@ -32,7 +32,7 @@ export const ColorItScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <FootageLayer src="color-it.mp4" dim={0.2} zoom={0.09} />
+      <FootageLayer src="color-it.webm" dim={0.2} zoom={0.09} />
 
       <div
         style={{

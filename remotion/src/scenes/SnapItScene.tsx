@@ -32,7 +32,7 @@ export const SnapItScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
-      <FootageLayer src="snap-it.mp4" dim={0.18} zoom={0.06} />
+      <FootageLayer src="snap-it.webm" dim={0.18} zoom={0.06} />
 
       {/* camera shutter flash across the whole frame */}
       <AbsoluteFill style={{ background: palette.white, opacity: flash * 0.75 }} />
