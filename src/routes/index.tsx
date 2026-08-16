@@ -82,6 +82,7 @@ function Index() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [heard, setHeard] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement | null>(null);
+  const snapInput = useRef<HTMLInputElement | null>(null);
   const [photoPageCount, setPhotoPageCount] = useState(1);
   const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -423,12 +424,12 @@ function Index() {
           <Palette className="h-4 w-4" /> On-demand coloring book
         </span>
         <h1 className="mt-5 text-5xl font-extrabold leading-tight sm:text-6xl">
-          Say it or choose it.
+          Say it or snap it.
           <br />
           <span className="text-primary">We draw it.</span> You color it.
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-          Describe your picture or choose photos from your gallery, then get clean line-art pages
+          Describe your picture or snap a photo with your camera, then get clean line-art pages
           ready to paint with brushes, crayons and every color there is.
         </p>
         <Link to="/books" className="btn-crayon mx-auto mt-5 text-sm">
@@ -472,6 +473,19 @@ function Index() {
                         ? "Tap and talk"
                         : "Or type below"}
               </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => snapInput.current?.click()}
+                disabled={busy}
+                className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-border bg-secondary text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
+                aria-label="Snap a photo"
+              >
+                <Camera className="h-10 w-10" />
+              </button>
+              <p className="text-sm font-bold">Snap it</p>
             </div>
           </div>
 
@@ -606,6 +620,18 @@ function Index() {
           type="file"
           accept="image/*"
           multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []).slice(0, 12);
+            e.target.value = "";
+            void pickPhotos(files);
+          }}
+        />
+        <input
+          ref={snapInput}
+          type="file"
+          accept="image/*"
+          capture="environment"
           className="hidden"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []).slice(0, 12);
