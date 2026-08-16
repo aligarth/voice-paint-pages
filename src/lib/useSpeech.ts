@@ -220,11 +220,6 @@ export function useSpeech() {
     setError(null);
     setTranscript("");
     setPendingCommand(null);
-    if (wakeEnabledRef.current) {
-      setWakeActive(true);
-      wakeEndIndexRef.current = 0;
-      if (listeningRef.current) return;
-    }
     try {
       if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
       recognitionRef.current?.start();
@@ -239,10 +234,6 @@ export function useSpeech() {
     autoStop();
   }, [autoStop]);
 
-  const toggleWake = useCallback(() => {
-    setWakeEnabled((prev) => !prev);
-  }, []);
-
   const clearPendingCommand = useCallback(() => {
     setPendingCommand(null);
   }, []);
@@ -255,14 +246,11 @@ export function useSpeech() {
     start,
     stop,
     setTranscript,
-    wakeEnabled,
-    wakeActive,
     pendingCommand,
     lang,
     setLang,
     detectedLang,
 
-    toggleWake,
     clearPendingCommand,
   };
 }
