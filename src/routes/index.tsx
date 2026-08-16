@@ -207,6 +207,33 @@ function Index() {
     }
   };
 
+  const shareBook = async () => {
+    const ready = pages
+      .filter((page) => page.src)
+      .map((page) => ({
+        src: page.src as string,
+        paint: page.paint ?? null,
+        title: page.title,
+      }));
+    if (!ready.length) return;
+    setSharing(true);
+    try {
+      const { url } = await createSharedGallery(bookTitle || "My coloring book", ready);
+      setShareUrl(url);
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: bookTitle || "My coloring book", url });
+        } catch {
+          // user cancelled
+        }
+      }
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not share this book.");
+    } finally {
+      setSharing(false);
+    }
+  };
+
   const handleSaveBook = async () => {
     const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
     if (!sources.length) return;
