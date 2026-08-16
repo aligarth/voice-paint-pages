@@ -44,5 +44,6 @@ export async function fetchSharedGallery(id: string): Promise<SharedGallery | nu
 }
 
 export async function incrementGalleryViews(id: string) {
-  await supabase.rpc("increment_shared_gallery_views", { gallery_id: id });
+  // Views are incremented server-side via a public API route to keep anon writes minimal.
+  await fetch(`/api/public/gallery/${id}/view`, { method: "POST" });
 }
