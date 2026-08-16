@@ -528,6 +528,15 @@ function Index() {
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
             {exporting ? "Building PDF…" : "Export PDF"}
           </button>
+          <button
+            type="button"
+            onClick={() => void exportZip()}
+            disabled={exporting || !pages.some((page) => page.src)}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {exporting ? "Building ZIP…" : "Export ZIP"}
+          </button>
         </div>
         <h1 className="mb-6 text-3xl font-extrabold capitalize">
           {activePage.title} <span className="text-muted-foreground">· page {activePage.id + 1}</span>
