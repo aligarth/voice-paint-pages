@@ -215,31 +215,6 @@ export function useSpeech() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!wakeEnabled) return;
-    if (listeningRef.current) return;
-    setError(null);
-    setTranscript("");
-    setWakeActive(false);
-    setPendingCommand(null);
-    wakeEndIndexRef.current = 0;
-    try {
-      if (recognitionRef.current) recognitionRef.current.lang = resolveLangRef.current();
-      recognitionRef.current?.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-    }
-    return () => {
-      try {
-        recognitionRef.current?.stop();
-      } catch {
-        /* noop */
-      }
-      setListening(false);
-      setWakeActive(false);
-    };
-  }, [wakeEnabled]);
 
   const start = useCallback(() => {
     setError(null);
