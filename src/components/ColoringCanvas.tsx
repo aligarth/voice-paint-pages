@@ -268,7 +268,7 @@ export function ColoringCanvas({
   };
 
   const getWallMap = async (width: number, height: number) => {
-    const key = `${src}|${size}`;
+    const key = `${src}|${size}|${fillTolerance}`;
     if (wallCache.current && wallCache.current.key === key) return wallCache.current.wall;
     const lineData = await getLineArtData();
     if (!lineData) return null;
