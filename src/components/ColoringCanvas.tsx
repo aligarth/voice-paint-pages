@@ -393,11 +393,58 @@ export function ColoringCanvas({
             </label>
           </div>
 
-          <div
-            className="mt-3 h-14 w-full rounded-xl border-2 border-border/70"
-            style={{ backgroundColor: color }}
-            aria-label={`Current color ${color}`}
-          />
+          <div className="mt-3 flex items-center gap-3">
+            <div
+              className="h-14 flex-1 rounded-xl border-2 border-border/70"
+              style={{ backgroundColor: color }}
+              aria-label={`Current color ${color}`}
+            />
+            <button
+              type="button"
+              onClick={() => setFavorites(addFavoriteColor(color))}
+              disabled={favorites.includes(color.toLowerCase())}
+              className="flex h-10 items-center gap-1 rounded-full border-2 border-border bg-card px-3 text-xs font-bold transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+              title="Save to favorites"
+              aria-label="Save current color to favorites"
+            >
+              <Heart className={cn("h-4 w-4", favorites.includes(color.toLowerCase()) && "fill-primary text-primary")} />
+              Save
+            </button>
+          </div>
+
+          {favorites.length > 0 && (
+            <>
+              <p className="mt-4 text-[0.7rem] font-bold tracking-wide text-muted-foreground">
+                MY FAVORITES
+              </p>
+              <div className="mt-2 grid grid-cols-9 gap-1.5">
+                {favorites.map((hex) => (
+                  <div key={hex} className="group relative aspect-square">
+                    <button
+                      type="button"
+                      title={hex}
+                      aria-label={hex}
+                      onClick={() => setColor(hex)}
+                      className={cn(
+                        "h-full w-full rounded-md border border-border/60 transition-transform hover:scale-110",
+                        color.toLowerCase() === hex && "ring-2 ring-foreground",
+                      )}
+                      style={{ backgroundColor: hex }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFavorites(removeFavoriteColor(hex))}
+                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-card text-[0.6rem] opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-label={`Remove ${hex} from favorites`}
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <p className="mt-4 text-[0.7rem] font-bold tracking-wide text-muted-foreground">
             CRAYON BOX
