@@ -995,6 +995,15 @@ function Index() {
                 {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
                 {exporting ? "Building PDF…" : "Export PDF"}
               </button>
+              <button
+                type="button"
+                onClick={() => void exportZip()}
+                disabled={exporting || !pages.some((page) => page.src)}
+                className="btn-crayon disabled:opacity-50"
+              >
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+                {exporting ? "Building ZIP…" : "Export ZIP"}
+              </button>
               <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
                 <Sparkles className="h-4 w-4" /> Start a new book
               </button>
