@@ -501,30 +501,52 @@ function Index() {
           </div>
 
           {snapShots.length > 0 && (
-            <div className="w-full rounded-2xl border-2 border-dashed border-border bg-card/60 p-4">
-              <p className="text-center text-sm font-bold">
-                {snapShots.length} photo{snapShots.length === 1 ? "" : "s"} in this session
-              </p>
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <div className="w-full rounded-2xl border-2 border-dashed border-border bg-card/60 p-4 sm:p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold">
+                  {snapShots.length} photo{snapShots.length === 1 ? "" : "s"} in this session
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSnapShots([])}
+                  className="text-xs font-bold text-muted-foreground underline"
+                >
+                  Clear all
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
                 {snapShots.map((src, i) => (
-                  <div key={`${i}-${src.slice(-12)}`} className="relative">
+                  <div key={`${i}-${src.slice(-12)}`} className="group relative aspect-square">
                     <img
                       src={src}
                       alt={`Snapped photo ${i + 1}`}
-                      className="h-20 w-20 rounded-xl border-2 border-border object-cover"
+                      className="h-full w-full rounded-xl border-2 border-border object-cover"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setSnapShots((prev) => prev.filter((_, j) => j !== i))}
-                      aria-label={`Remove photo ${i + 1}`}
-                      className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 border-border bg-card text-xs font-extrabold"
-                    >
-                      ×
-                    </button>
+                    <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewSnap(src)}
+                        aria-label={`Preview photo ${i + 1}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-border bg-card text-foreground"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSnapShots((prev) => prev.filter((_, j) => j !== i))}
+                        aria-label={`Remove photo ${i + 1}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-border bg-card text-primary"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <span className="absolute bottom-1 left-1 rounded-full border-2 border-border bg-card px-2 py-0.5 text-[10px] font-extrabold">
+                      {i + 1}
+                    </span>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => snapInput.current?.click()}
@@ -544,13 +566,32 @@ function Index() {
                 >
                   Use these {snapShots.length} photo{snapShots.length === 1 ? "" : "s"}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {previewSnap && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+              onClick={() => setPreviewSnap(null)}
+            >
+              <div
+                className="relative max-h-[90vh] max-w-3xl rounded-2xl border-4 border-border bg-card p-2"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   type="button"
-                  onClick={() => setSnapShots([])}
-                  className="text-sm font-bold text-muted-foreground underline"
+                  onClick={() => setPreviewSnap(null)}
+                  aria-label="Close preview"
+                  className="absolute -right-3 -top-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-card text-foreground"
                 >
-                  Clear
+                  <X className="h-5 w-5" />
                 </button>
+                <img
+                  src={previewSnap}
+                  alt="Preview of selected photo"
+                  className="max-h-[80vh] rounded-xl object-contain"
+                />
               </div>
             </div>
           )}
