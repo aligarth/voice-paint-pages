@@ -300,12 +300,19 @@ function Index() {
                 onChange={(e) => setLang(e.target.value)}
                 className="rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground outline-none focus:border-accent"
               >
+                <option value={AUTO_LANG}>Detect my language automatically</option>
                 {SPEECH_LANGUAGES.map((l) => (
                   <option key={l.code} value={l.code}>
                     {l.label}
                   </option>
                 ))}
               </select>
+              {lang === AUTO_LANG && (
+                <span className="font-semibold normal-case">
+                  Auto · listening in{" "}
+                  {SPEECH_LANGUAGES.find((l) => l.code === detectedLang)?.label ?? detectedLang}
+                </span>
+              )}
             </label>
           )}
 
