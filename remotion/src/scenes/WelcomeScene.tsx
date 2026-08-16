@@ -3,6 +3,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from "remo
 import { loadFont } from "@remotion/google-fonts/Fredoka";
 import { palette } from "../lib/colors";
 import { scaleIn } from "../lib/animations";
+import { FootageLayer, footageTextShadow } from "../components/FootageLayer";
 
 const { fontFamily } = loadFont("normal", { weights: ["600"], subsets: ["latin"] });
 
@@ -25,6 +26,8 @@ export const WelcomeScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <FootageLayer src="together.mp4" dim={0.34} zoom={0.1} startFrom={1.2} />
+
       {pencilColors.map((color, i) => {
         const angle = orbit + i * (360 / pencilColors.length);
         const radius = Math.min(width, height) * 0.22;
@@ -42,7 +45,8 @@ export const WelcomeScene: React.FC = () => {
               borderRadius: 10,
               background: `linear-gradient(180deg, ${color} 70%, ${palette.charcoal} 70%)`,
               transform: `rotate(${angle + 90}deg)`,
-              opacity: 0.9,
+              opacity: 0.95,
+              boxShadow: "0 8px 20px rgba(45,42,38,0.4)",
             }}
           />
         );
@@ -53,7 +57,8 @@ export const WelcomeScene: React.FC = () => {
           fontFamily,
           fontSize: Math.min(width, height) * 0.09,
           fontWeight: 600,
-          color: palette.charcoal,
+          color: palette.white,
+          textShadow: footageTextShadow,
           textAlign: "center",
           opacity: titleAnim.opacity,
           transform: `scale(${titleAnim.scale})`,
@@ -67,7 +72,8 @@ export const WelcomeScene: React.FC = () => {
           fontFamily,
           fontSize: Math.min(width, height) * 0.13,
           fontWeight: 600,
-          color: palette.primary,
+          color: palette.accent,
+          textShadow: footageTextShadow,
           textAlign: "center",
           opacity: subtitleAnim.opacity,
           transform: `scale(${subtitleAnim.scale})`,
