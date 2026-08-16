@@ -13,8 +13,8 @@ import {
   Heart,
   X,
   Clock,
-  PaintBucket,
 } from "lucide-react";
+
 import { BRUSH_SIZES, CRAYON_COLORS, SPECTRUM } from "@/lib/palette";
 import { addFavoriteColor, getFavoriteColors, removeFavoriteColor } from "@/lib/favoriteColors";
 import {
