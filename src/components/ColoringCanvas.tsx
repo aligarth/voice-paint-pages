@@ -244,7 +244,6 @@ export function ColoringCanvas({
   };
 
   const floodFill = async (startX: number, startY: number) => {
-    console.log("[floodFill] entered", startX, startY);
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
