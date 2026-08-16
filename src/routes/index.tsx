@@ -17,6 +17,7 @@ import { PhotoPrep } from "@/components/PhotoPrep";
 import { exportPagesToPdf } from "@/lib/exportPdf";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
+import { createSharedGallery } from "@/lib/share";
 import { cn } from "@/lib/utils";
 
 
