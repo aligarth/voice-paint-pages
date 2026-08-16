@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectLanguage } from "./languages";
+import { AUTO_LANG, candidateLocales, detectLocaleFromText } from "./languages";
 
 
 type SpeechResultEvent = {
