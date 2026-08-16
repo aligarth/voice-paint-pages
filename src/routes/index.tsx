@@ -424,12 +424,12 @@ function Index() {
           <Palette className="h-4 w-4" /> On-demand coloring book
         </span>
         <h1 className="mt-5 text-5xl font-extrabold leading-tight sm:text-6xl">
-          Say it or choose it.
+          Say it or snap it.
           <br />
           <span className="text-primary">We draw it.</span> You color it.
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-          Describe your picture or choose photos from your gallery, then get clean line-art pages
+          Describe your picture or snap a photo with your camera, then get clean line-art pages
           ready to paint with brushes, crayons and every color there is.
         </p>
         <Link to="/books" className="btn-crayon mx-auto mt-5 text-sm">
