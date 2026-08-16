@@ -952,6 +952,13 @@ function Index() {
                   }}
                 />
               </div>
+              <button
+                type="button"
+                onClick={cancelGeneration}
+                className="btn-crayon mt-4 w-full justify-center border-primary text-primary"
+              >
+                <X className="h-4 w-4" /> Cancel generation
+              </button>
             </div>
           )}
 
