@@ -250,38 +250,58 @@ function Index() {
 
       <section className="paper-card mx-auto mt-10 max-w-2xl p-6 sm:p-8">
         <div className="flex flex-col items-center gap-4">
-          <button
-            type="button"
-            onClick={() => {
-              const micActive = wakeActive || (!wakeEnabled && listening);
-              micActive ? stop() : start();
-            }}
-            disabled={!supported || busy}
-            className={cn(
-              "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border text-primary-foreground transition-transform disabled:opacity-50",
-              listening || wakeActive
-                ? "animate-pulse bg-primary"
-                : "bg-secondary text-secondary-foreground hover:-translate-y-1",
-            )}
-            aria-label={wakeActive ? "Stop listening" : wakeEnabled ? "Start speaking" : listening ? "Stop listening" : "Start speaking"}
-          >
-            {wakeActive || (!wakeEnabled && listening) ? (
-              <MicOff className="h-10 w-10" />
-            ) : (
-              <Mic className="h-10 w-10" />
-            )}
-          </button>
-          <p className="text-sm font-bold">
-            {wakeActive
-              ? "Say your request…"
-              : wakeEnabled
-                ? "Listening for 'Color my day'"
-                : listening
-                  ? "Listening… tap to stop"
-                  : supported
-                    ? "Tap and talk"
-                    : "Or type below"}
-          </p>
+          <div className="flex flex-wrap items-start justify-center gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const micActive = wakeActive || (!wakeEnabled && listening);
+                  micActive ? stop() : start();
+                }}
+                disabled={!supported || busy}
+                className={cn(
+                  "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border text-primary-foreground transition-transform disabled:opacity-50",
+                  listening || wakeActive
+                    ? "animate-pulse bg-primary"
+                    : "bg-secondary text-secondary-foreground hover:-translate-y-1",
+                )}
+                aria-label={wakeActive ? "Stop listening" : wakeEnabled ? "Start speaking" : listening ? "Stop listening" : "Start speaking"}
+              >
+                {wakeActive || (!wakeEnabled && listening) ? (
+                  <MicOff className="h-10 w-10" />
+                ) : (
+                  <Mic className="h-10 w-10" />
+                )}
+              </button>
+              <p className="text-sm font-bold">
+                {wakeActive
+                  ? "Say your request…"
+                  : wakeEnabled
+                    ? "Listening for 'Color my day'"
+                    : listening
+                      ? "Listening… tap to stop"
+                      : supported
+                        ? "Tap and talk"
+                        : "Or type below"}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => photoInput.current?.click()}
+                disabled={busy}
+                className={cn(
+                  "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border transition-transform disabled:opacity-50",
+                  "bg-secondary text-secondary-foreground hover:-translate-y-1",
+                )}
+                aria-label="Snap it"
+              >
+                {busy ? <Loader2 className="h-10 w-10 animate-spin" /> : <Camera className="h-10 w-10" />}
+              </button>
+              <p className="text-sm font-bold">Snap it</p>
+            </div>
+          </div>
 
           {supported && (
             <button
