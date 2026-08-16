@@ -35,12 +35,19 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+type PageSource =
+  | { kind: "text"; prompt: string }
+  | { kind: "photo"; image: string; variant?: string };
+
 type Page = {
   id: number;
   title: string;
   src: string | null;
   done: boolean;
   error?: string;
+  source?: PageSource;
+  /** True while this single page is being re-drawn. */
+  regenerating?: boolean;
 };
 
 function Index() {
@@ -115,6 +122,49 @@ function Index() {
     setKeepIds([]);
   };
 
+  const regeneratePage = async (id: number) => {
+    const page = pages.find((item) => item.id === id);
+    const source = page?.source;
+    if (!source) return;
+    setPages((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, src: null, done: false, error: undefined, regenerating: true } : item,
+      ),
+    );
+    const onFrame = (src: string, isFinal: boolean) =>
+      setPages((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, src, done: isFinal, regenerating: !isFinal } : item,
+        ),
+      );
+    try {
+      if (source.kind === "text") {
+        await streamImage("/api/generate-image", source.prompt, onFrame);
+      } else {
+        await streamImageFromPhoto("/api/photo-to-lineart", source.image, onFrame, source.variant);
+      }
+      setPages((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, done: true, regenerating: false } : item)),
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      setPages((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                done: true,
+                regenerating: false,
+                error: message.includes("402")
+                  ? "Out of AI credits — top up to keep drawing."
+                  : "This page didn't draw. Try again.",
+              }
+            : item,
+        ),
+      );
+    }
+  };
+
   const generate = useCallback(
     async (rawText: string) => {
       const { subject, pages: count } = parseRequest(rawText);
@@ -146,6 +196,10 @@ function Index() {
         title: subject,
         src: null,
         done: false,
+        source: {
+          kind: "text" as const,
+          prompt: `${subject}${variations[i % variations.length] ?? ""}`,
+        },
       }));
       setPages(initial);
 
@@ -211,7 +265,13 @@ function Index() {
         Array.from({ length: perPhoto }, (_, v) => ({ src, variant: variants[v % variants.length] ?? "" })),
       );
       setPages(
-        jobs.map((_, i) => ({ id: i, title: "My photo coloring book", src: null, done: false })),
+        jobs.map((job, i) => ({
+          id: i,
+          title: "My photo coloring book",
+          src: null,
+          done: false,
+          source: { kind: "photo" as const, image: job.src, variant: job.variant || undefined },
+        })),
       );
 
       for (let i = 0; i < jobs.length; i++) {
