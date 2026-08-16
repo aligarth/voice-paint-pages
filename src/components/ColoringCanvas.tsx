@@ -446,7 +446,7 @@ export function ColoringCanvas({
     clearPreview();
     if (!region) return;
 
-    if (region.touchesEdge) {
+    if (region.touchesEdge && fillMode === "closed") {
       setFillMessage("That area isn't closed — try a closed shape");
       window.setTimeout(() => setFillMessage(null), 2000);
       return;
