@@ -87,7 +87,18 @@ export function ColoringCanvas({
 
   useEffect(() => {
     setFavorites(getFavoriteColors());
-  }, []);
+    setCheckpoints(listCheckpoints(title, pageIndex));
+  }, [title, pageIndex]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const paint = canvas.toDataURL("image/png");
+      setCheckpoints(saveCheckpoint(title, pageIndex, paint));
+    }, 45_000);
+    return () => window.clearInterval(id);
+  }, [title, pageIndex]);
 
   const reportPaint = () => {
     const canvas = canvasRef.current;
