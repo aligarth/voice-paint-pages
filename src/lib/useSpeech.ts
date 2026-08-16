@@ -303,6 +303,7 @@ export function useSpeech() {
     pendingCommand,
     lang,
     setLang,
+    detectedLang,
 
     toggleWake,
     clearPendingCommand,
