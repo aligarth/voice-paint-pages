@@ -181,6 +181,7 @@ export function ColoringCanvas({
     future.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     if (future.current.length > 20) future.current.shift();
     ctx.putImageData(previous, 0, 0);
+    updateHistoryState();
     reportPaint();
   };
 
@@ -192,6 +193,7 @@ export function ColoringCanvas({
     history.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
     if (history.current.length > 20) history.current.shift();
     ctx.putImageData(next, 0, 0);
+    updateHistoryState();
     reportPaint();
   };
 
@@ -201,6 +203,7 @@ export function ColoringCanvas({
     if (!canvas || !ctx) return;
     pushHistory();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    updateHistoryState();
     onPaintChange?.(null);
   };
 
