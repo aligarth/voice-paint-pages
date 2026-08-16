@@ -4,6 +4,7 @@ import { loadFont } from "@remotion/google-fonts/Fredoka";
 import { loadFont as loadNunito } from "@remotion/google-fonts/Nunito";
 import { palette } from "../lib/colors";
 import { scaleIn, slideUp } from "../lib/animations";
+import { FootageLayer, footageTextShadow } from "../components/FootageLayer";
 
 const { fontFamily: displayFont } = loadFont("normal", { weights: ["600"], subsets: ["latin"] });
 const { fontFamily: bodyFont } = loadNunito("normal", { weights: ["700"], subsets: ["latin"] });
@@ -31,6 +32,8 @@ export const EndCardScene: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+      <FootageLayer src="together.mp4" dim={0.36} zoom={0.12} startFrom={0.4} />
+
       {pencilColors.map((color, i) => {
         const angle = orbit + i * (360 / pencilColors.length);
         const radius = Math.min(width, height) * 0.18;
@@ -59,7 +62,8 @@ export const EndCardScene: React.FC = () => {
           fontFamily: displayFont,
           fontSize: titleSize,
           fontWeight: 600,
-          color: palette.primary,
+          color: palette.accent,
+          textShadow: footageTextShadow,
           textAlign: "center",
           opacity: logoAnim.opacity,
           transform: `scale(${logoAnim.scale})`,
@@ -74,7 +78,8 @@ export const EndCardScene: React.FC = () => {
           fontFamily: bodyFont,
           fontSize: sloganSize,
           fontWeight: 700,
-          color: palette.charcoal,
+          color: palette.white,
+          textShadow: footageTextShadow,
           textAlign: "center",
           marginTop: 16,
           opacity: sloganAnim.opacity,
