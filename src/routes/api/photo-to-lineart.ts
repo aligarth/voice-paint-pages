@@ -17,8 +17,13 @@ export const Route = createFileRoute("/api/photo-to-lineart")({
 
         const instruction =
           "Turn this photo into a coloring book page: clean bold black outline line art of the " +
-          "same subject and composition, pure white background, no shading, no grey, no color, " +
-          "no text, large simple enclosed areas that are easy to color in, printable coloring page.";
+          "same subject and composition. CRITICAL: every outline must be one continuous unbroken " +
+          "loop - all shapes fully closed, every line meets another line, absolutely no gaps, no " +
+          "breaks, no open ends, no sketchy or dashed strokes, so each area is completely sealed " +
+          "and can be filled with color without leaking into neighboring areas. " +
+          "Uniform line thickness, pure white background, no shading, no hatching, no grey, no " +
+          "color, no text, large simple enclosed areas that are easy to color in, printable " +
+          "coloring page.";
 
         const upstream = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
           method: "POST",
