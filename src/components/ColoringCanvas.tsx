@@ -238,7 +238,7 @@ export function ColoringCanvas({
         const lg = lineData.data[idx + 1] ?? 0;
         const lb = lineData.data[idx + 2] ?? 0;
         const la = lineData.data[idx + 3] ?? 0;
-        if (la >= 30 && (lr + lg + lb) / 3 < 120) {
+        if (la >= 30 && (lr + lg + lb) / 3 < 90 + fillTolerance) {
           wall[y * width + x] = 1;
         }
       }
