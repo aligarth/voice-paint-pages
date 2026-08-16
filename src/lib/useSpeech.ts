@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { detectLanguage } from "./languages";
+
 
 type SpeechResultEvent = {
   resultIndex: number;
@@ -27,6 +29,7 @@ export function useSpeech() {
   const [wakeEnabled, setWakeEnabled] = useState(false);
   const [wakeActive, setWakeActive] = useState(false);
   const [pendingCommand, setPendingCommand] = useState<string | null>(null);
+  const [lang, setLang] = useState("en-US");
 
   const wakeEnabledRef = useRef(wakeEnabled);
   const wakeActiveRef = useRef(wakeActive);
@@ -35,11 +38,33 @@ export function useSpeech() {
   const wakeEndIndexRef = useRef(0);
   const silenceTimerRef = useRef<number | null>(null);
   const manualStopRef = useRef(false);
+  const langRef = useRef(lang);
 
   useEffect(() => { wakeEnabledRef.current = wakeEnabled; }, [wakeEnabled]);
   useEffect(() => { wakeActiveRef.current = wakeActive; }, [wakeActive]);
   useEffect(() => { listeningRef.current = listening; }, [listening]);
   useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
+
+  // Start from the visitor's own device language.
+  useEffect(() => {
+    setLang(detectLanguage(navigator.language));
+  }, []);
+
+  // Apply the chosen language, restarting recognition if it is already running.
+  useEffect(() => {
+    langRef.current = lang;
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    rec.lang = lang;
+    if (listeningRef.current) {
+      try {
+        rec.stop();
+      } catch {
+        /* noop */
+      }
+    }
+  }, [lang]);
+
 
   const autoStop = useCallback(() => {
     try {
@@ -62,7 +87,7 @@ export function useSpeech() {
     if (!Ctor) return;
     setSupported(true);
     const rec = new Ctor();
-    rec.lang = "en-US";
+    rec.lang = langRef.current;
     rec.continuous = true;
     rec.interimResults = true;
     rec.onresult = (event) => {
@@ -125,6 +150,7 @@ export function useSpeech() {
       if (wakeEnabledRef.current) {
         window.setTimeout(() => {
           try {
+            if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
             recognitionRef.current?.start();
             setListening(true);
           } catch {
@@ -155,6 +181,7 @@ export function useSpeech() {
     setPendingCommand(null);
     wakeEndIndexRef.current = 0;
     try {
+      if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
       recognitionRef.current?.start();
       setListening(true);
     } catch {
@@ -181,6 +208,7 @@ export function useSpeech() {
       if (listeningRef.current) return;
     }
     try {
+      if (recognitionRef.current) recognitionRef.current.lang = langRef.current;
       recognitionRef.current?.start();
       setListening(true);
     } catch {
@@ -212,6 +240,9 @@ export function useSpeech() {
     wakeEnabled,
     wakeActive,
     pendingCommand,
+    lang,
+    setLang,
+
     toggleWake,
     clearPendingCommand,
   };
