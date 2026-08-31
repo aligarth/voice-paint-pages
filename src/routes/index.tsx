@@ -1015,7 +1015,7 @@ function Index() {
                   <X className="h-4 w-4" /> Cancel
                 </button>
               ) : (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className={cn("mt-3 flex flex-wrap gap-2", selecting && "pointer-events-none opacity-50")}>
                   <button
                     type="button"
                     onClick={() => openSpeak(page.id)}
