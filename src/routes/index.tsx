@@ -926,16 +926,33 @@ function Index() {
 
       <MusicPlayer />
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={cn("mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3", selecting && "pb-32")}>
         {pages.map((page) => {
           const working = page.regenerating || busyPage === page.id;
+          const selectable = selecting && page.src && page.done;
+          const isSelected = selectedPages.includes(page.id);
           return (
             <div key={page.id} className="paper-card p-3">
               <button
                 type="button"
-                disabled={!page.src || !page.done}
-                onClick={() => setOpenPage(page.id)}
-                className="relative block aspect-square w-full overflow-hidden rounded-xl border-2 border-dashed border-border bg-background transition-transform enabled:hover:-translate-y-1"
+                disabled={(!page.src || !page.done) && !selectable}
+                onClick={() => {
+                  if (selectable) {
+                    setSelectedPages((prev) =>
+                      isSelected ? prev.filter((id) => id !== page.id) : [...prev, page.id],
+                    );
+                  } else {
+                    setOpenPage(page.id);
+                  }
+                }}
+                aria-pressed={selectable ? isSelected : undefined}
+                className={cn(
+                  "relative block aspect-square w-full overflow-hidden rounded-xl border-2 bg-background transition-transform",
+                  selectable ? "cursor-pointer" : "enabled:hover:-translate-y-1",
+                  selectable && isSelected
+                    ? "border-primary"
+                    : "border-dashed border-border",
+                )}
               >
                 {page.src ? (
                   <div className="relative h-full w-full">
