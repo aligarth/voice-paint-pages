@@ -615,20 +615,27 @@ function Index() {
     );
   }
 
+  const savedPageRecords = savedBooks.filter(isSavedPage);
+
   const bookshelf =
-    savedBooks.length > 0 ? (
+    savedPageRecords.length > 0 ? (
       <section className="mt-14">
         <h2 className="flex flex-wrap items-center gap-2 text-2xl font-extrabold">
-          <BookOpen className="h-6 w-6" /> My bookshelf
+          <BookOpen className="h-6 w-6" /> My Pages
           <span className="text-base text-muted-foreground">
-            · {savedBooks.length} saved · every new page saves itself
+            · {savedPageRecords.length} saved · every new page saves itself
           </span>
-          <Link to="/books" className="btn-crayon ml-auto text-sm">
-            <Library className="h-4 w-4" /> My books
-          </Link>
+          <span className="ml-auto flex flex-wrap gap-2">
+            <Link to="/books" search={{ view: "pages" }} className="btn-crayon text-sm">
+              <Library className="h-4 w-4" /> My Pages
+            </Link>
+            <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon text-sm">
+              <BookOpen className="h-4 w-4" /> My Bookshelf
+            </Link>
+          </span>
         </h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {savedBooks.map((book) => (
+          {savedPageRecords.map((book) => (
             <div key={book.id} className="paper-card p-3">
               <button
                 type="button"
@@ -637,7 +644,7 @@ function Index() {
               >
                 <img
                   src={book.pages[0]}
-                  alt={`Saved book: ${book.title}`}
+                  alt={`Saved page: ${book.title}`}
                   loading="lazy"
                   className="aspect-square w-full rounded-xl object-contain"
                 />
