@@ -687,7 +687,7 @@ function Index() {
             onClick={() => setStep("count")}
             className="mt-5 inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-7 py-3 text-lg font-extrabold text-primary-foreground transition-transform hover:-translate-y-1"
           >
-            <BookOpen className="h-5 w-5" /> Open my book
+            <BookOpen className="h-5 w-5" /> Start my book
           </button>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link to="/books" search={{ view: "pages" }} className="btn-crayon text-sm">
