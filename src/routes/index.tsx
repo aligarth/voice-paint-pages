@@ -1,20 +1,34 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicOff, Sparkles, ArrowLeft, Loader2, Palette, BookmarkPlus, Trash2, BookOpen, Camera, Check, RefreshCw, FileDown, FileArchive, ImageDown, Library, Eye, X, Pencil, Share2, RotateCcw } from "lucide-react";
-
-function isAbortError(err: unknown): boolean {
-  return err instanceof DOMException && err.name === "AbortError";
-}
-import { Link } from "@tanstack/react-router";
+import {
+  Mic,
+  MicOff,
+  Sparkles,
+  ArrowLeft,
+  Loader2,
+  Trash2,
+  BookOpen,
+  Camera,
+  Check,
+  RefreshCw,
+  FileDown,
+  FileArchive,
+  ImageDown,
+  Library,
+  X,
+  Share2,
+  RotateCcw,
+  Upload,
+  ArrowRight,
+} from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
-import { parseRequest, useSpeech } from "@/lib/useSpeech";
+import { useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import {
   deleteBook,
   listBooks,
   makeBookId,
-  saveBook,
   saveBookRecord,
   type SavedBook,
 } from "@/lib/savedBooks";
@@ -25,27 +39,29 @@ import { CameraCapture } from "@/components/CameraCapture";
 import { exportPagesToPdf } from "@/lib/exportPdf";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
-
 import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { createSharedGallery } from "@/lib/share";
 import { cn } from "@/lib/utils";
+import coverArt from "@/assets/book-cover.jpg";
 
-
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === "AbortError";
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Say & Color — Voice-Made Coloring Books" },
+      { title: "Color My World — Make Your Own Coloring Book" },
       {
         name: "description",
         content:
-          "Speak or snap a photo to create a custom coloring book, then color the pages in your browser with brushes, crayons and every color.",
+          "Open your book, choose how many pages, then say it or snap it for each page and color it in with brushes, crayons and every color.",
       },
-      { property: "og:title", content: "Say & Color — Voice-Made Coloring Books" },
+      { property: "og:title", content: "Color My World — Make Your Own Coloring Book" },
       {
         property: "og:description",
         content:
-          "Talk or snap a photo to get instant line-art coloring pages, then paint them with brushes, crayons and endless colors.",
+          "Say it or snap it. We draw it. You color it. Build a coloring book one page at a time.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -54,22 +70,37 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+type PageMode = "say" | "snap";
+
 type PageSource =
   | { kind: "text"; prompt: string }
   | { kind: "photo"; image: string; variant?: string | undefined };
 
 type Page = {
   id: number;
+  mode: PageMode;
   title: string;
   src: string | null;
   done: boolean;
   error?: string | undefined;
   source?: PageSource | undefined;
-  /** True while this single page is being re-drawn. */
   regenerating?: boolean | undefined;
-  /** Transparent layer holding the user's colouring for this page. */
   paint?: string | null;
 };
+
+type Step = "cover" | "count" | "modes" | "book";
+
+const PAGE_OPTIONS = [1, 2, 3, 4, 5, 6, 8, 10, 12];
+
+function blankPages(count: number, mode: PageMode): Page[] {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i,
+    mode,
+    title: "",
+    src: null,
+    done: false,
+  }));
+}
 
 function Index() {
   const {
@@ -86,30 +117,29 @@ function Index() {
     setLang,
     detectedLang,
   } = useSpeech();
+
+  const [step, setStep] = useState<Step>("cover");
+  const [pageCount, setPageCount] = useState(4);
+  const [bookTitle, setBookTitle] = useState("My coloring book");
   const [pages, setPages] = useState<Page[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [bookTitle, setBookTitle] = useState("");
   const [openPage, setOpenPage] = useState<number | null>(null);
+  const [busyPage, setBusyPage] = useState<number | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
-  const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [heard, setHeard] = useState<string | null>(null);
-  const photoInput = useRef<HTMLInputElement | null>(null);
-  const snapInput = useRef<HTMLInputElement | null>(null);
-  const [cameraOpen, setCameraOpen] = useState(false);
-  const [textPageCount, setTextPageCount] = useState(1);
-  const [photoPageCount, setPhotoPageCount] = useState(1);
-  const [prepPhotos, setPrepPhotos] = useState<string[] | null>(null);
-  const [snapShots, setSnapShots] = useState<string[]>([]);
-  const [reviewing, setReviewing] = useState(false);
+  const [savedBooks, setSavedBooks] = useState<SavedBook[]>([]);
   const [exporting, setExporting] = useState(false);
-  const [restored, setRestored] = useState(false);
-  const [keepIds, setKeepIds] = useState<number[]>([]);
-  const [previewSnap, setPreviewSnap] = useState<string | null>(null);
-  const [confirmRemoveAll, setConfirmRemoveAll] = useState(false);
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
+
+  /** Which page is currently being filled, and how. */
+  const [speakFor, setSpeakFor] = useState<number | null>(null);
+  const [photoFor, setPhotoFor] = useState<number | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [prepPhoto, setPrepPhoto] = useState<string | null>(null);
+
+  const uploadInput = useRef<HTMLInputElement | null>(null);
+  const snapInput = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   /** Page id -> the one-page book it was auto-saved into, so redraws replace instead of duplicate. */
   const autoSavedRef = useRef<Map<number, { bookId: string; src: string }>>(new Map());
@@ -118,128 +148,48 @@ function Index() {
     void listBooks().then(setSavedBooks);
   }, []);
 
-  // Restore the last in-progress book (and page) on first load.
+  // Restore the last in-progress book on first load.
   useEffect(() => {
     void loadSession().then((session) => {
       setRestored(true);
       if (!session?.pages.length) return;
-      setBookTitle(session.title);
+      setBookTitle(session.title || "My coloring book");
+      setPageCount(session.pages.length);
       setPages(
         session.pages.map((page, i) => ({
           id: i,
+          mode: (page.mode as PageMode) ?? "say",
           title: session.title,
-          src: page.src,
-          done: true,
+          src: page.src ?? null,
+          done: Boolean(page.src),
           paint: page.paint ?? null,
         })),
       );
       setOpenPage(session.openPage);
+      setStep("book");
       setSaveMessage("Picked up where you left off.");
     });
   }, []);
 
   // Auto-save progress so it survives a refresh or a closed tab.
   useEffect(() => {
-    if (!restored || busy) return;
-    const ready = pages.filter((page): page is Page & { src: string } => Boolean(page.src) && page.done);
-    if (!ready.length) return;
+    if (!restored || step !== "book" || busyPage !== null) return;
+    if (!pages.length) return;
     const timer = window.setTimeout(() => {
       void saveSession({
         title: bookTitle,
-        pages: ready.map((page) => ({ src: page.src, paint: page.paint ?? null })),
+        pages: pages.map((page) => ({
+          src: page.done ? page.src : null,
+          paint: page.paint ?? null,
+          mode: page.mode,
+        })),
         openPage,
       });
     }, 600);
     return () => window.clearTimeout(timer);
-  }, [pages, bookTitle, openPage, busy, restored]);
+  }, [pages, bookTitle, openPage, busyPage, restored, step]);
 
-  const exportPdf = async () => {
-    const ready = pages
-      .filter((page) => page.src)
-      .map((page) => ({ src: page.src as string, paint: page.paint ?? null }));
-    if (!ready.length) return;
-    setExporting(true);
-    try {
-      await exportPagesToPdf(bookTitle || "My coloring book", ready);
-      setSaveMessage("PDF downloaded!");
-    } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Could not build the PDF.");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const exportPagePng = async (page: Page & { src: string }) => {
-    try {
-      await downloadFlattenedPage(
-        { src: page.src, paint: page.paint ?? null },
-        `${(bookTitle || "page").replace(/\s+/g, "-").toLowerCase()}-${page.id + 1}.png`,
-      );
-    } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Could not export this page.");
-    }
-  };
-
-
-  const exportZip = async () => {
-    const ready = pages
-      .filter((page) => page.src)
-      .map((page) => ({ src: page.src as string, paint: page.paint ?? null }));
-    if (!ready.length) return;
-    setExporting(true);
-    try {
-      await exportPagesToZip(bookTitle || "My coloring book", ready);
-      setSaveMessage("ZIP downloaded!");
-    } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Could not build the ZIP.");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const shareBook = async () => {
-    const ready = pages
-      .filter((page) => page.src)
-      .map((page) => ({
-        src: page.src as string,
-        paint: page.paint ?? null,
-        title: page.title,
-      }));
-    if (!ready.length) return;
-    setSharing(true);
-    try {
-      const { url } = await createSharedGallery(bookTitle || "My coloring book", ready);
-      setShareUrl(url);
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: bookTitle || "My coloring book", url });
-        } catch {
-          // user cancelled
-        }
-      }
-    } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Could not share this book.");
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const handleSaveBook = async () => {
-    const sources = pages.map((page) => page.src).filter((src): src is string => Boolean(src));
-    if (!sources.length) return;
-    try {
-      const paints = pages.map((page) => page.paint ?? null);
-      setSavedBooks(await saveBook(bookTitle || "My coloring book", sources, paints));
-      setSaveMessage("Saved to your bookshelf as one book!");
-    } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Could not save this book.");
-    }
-  };
-
-  /**
-   * Every freshly drawn page becomes its own little book. Pages restored from a session or
-   * an opened book carry no `source`, so they are never re-saved.
-   */
+  // Every freshly drawn page becomes its own little book.
   useEffect(() => {
     if (!restored) return;
     const fresh = pages.filter(
@@ -253,13 +203,7 @@ function Index() {
         const src = page.src!;
         const existing = autoSavedRef.current.get(page.id);
         if (existing?.src === src) continue;
-        const total = pages.filter((item) => item.source).length;
-        const label =
-          page.source?.kind === "photo"
-            ? `${page.title || "Photo page"} — photo ${page.id + 1}`
-            : total > 1
-              ? `${page.title || "Coloring page"} ${page.id + 1}`
-              : page.title || "Coloring page";
+        const label = page.title || `Coloring page ${page.id + 1}`;
         const bookId = existing?.bookId ?? makeBookId();
         autoSavedRef.current.set(page.id, { bookId, src });
         try {
@@ -281,101 +225,101 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, restored]);
 
+  const readyPages = pages.filter((page) => page.src);
+
+  const exportPdf = async () => {
+    if (!readyPages.length) return;
+    setExporting(true);
+    try {
+      await exportPagesToPdf(
+        bookTitle || "My coloring book",
+        readyPages.map((page) => ({ src: page.src as string, paint: page.paint ?? null })),
+      );
+      setSaveMessage("PDF downloaded!");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not build the PDF.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportZip = async () => {
+    if (!readyPages.length) return;
+    setExporting(true);
+    try {
+      await exportPagesToZip(
+        bookTitle || "My coloring book",
+        readyPages.map((page) => ({ src: page.src as string, paint: page.paint ?? null })),
+      );
+      setSaveMessage("ZIP downloaded!");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not build the ZIP.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportPagePng = async (page: Page & { src: string }) => {
+    try {
+      await downloadFlattenedPage(
+        { src: page.src, paint: page.paint ?? null },
+        `${(bookTitle || "page").replace(/\s+/g, "-").toLowerCase()}-${page.id + 1}.png`,
+      );
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not export this page.");
+    }
+  };
+
+  const shareBook = async () => {
+    if (!readyPages.length) return;
+    setSharing(true);
+    try {
+      const { url } = await createSharedGallery(
+        bookTitle || "My coloring book",
+        readyPages.map((page) => ({
+          src: page.src as string,
+          paint: page.paint ?? null,
+          title: page.title || bookTitle,
+        })),
+      );
+      setShareUrl(url);
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: bookTitle || "My coloring book", url });
+        } catch {
+          /* user cancelled */
+        }
+      }
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not share this book.");
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const startFresh = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    autoSavedRef.current.clear();
     setPages([]);
-    setBookTitle("");
     setOpenPage(null);
+    setBusyPage(null);
     setSaveMessage(null);
     setShareUrl(null);
+    setGenError(null);
+    setBookTitle("My coloring book");
+    setStep("cover");
     void clearSession();
   };
 
-  const regenerateAll = useCallback(async () => {
-    if (!bookTitle) return;
-    setSaveMessage(null);
-    setShareUrl(null);
-    setReviewing(false);
-    setBusy(true);
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const count = pages.length || textPageCount;
-    const variations = [
-      "",
-      " in a playful scene",
-      " with a big smile, close up",
-      " surrounded by flowers and stars",
-      " having an adventure outdoors",
-      " with a friend",
-      " under a bright sun",
-      " with patterns and swirls in the background",
-      " celebrating with balloons",
-      " resting peacefully",
-      " in a busy landscape",
-      " with decorative border details",
-    ];
-    setPages((prev) =>
-      prev.map((page, i) => ({
-        ...page,
-        src: null,
-        done: false,
-        source: {
-          kind: "text" as const,
-          prompt: `${bookTitle}${variations[i % variations.length] ?? ""}`,
-        },
-      })),
-    );
-
-    for (let i = 0; i < count; i++) {
-      if (controller.signal.aborted) break;
-      try {
-        await streamImage(
-          "/api/generate-image",
-          `${bookTitle}${variations[i % variations.length] ?? ""}`,
-          (dataUrl, isFinal) => {
-            setPages((prev) =>
-              prev.map((page) =>
-                page.id === i ? { ...page, src: dataUrl, done: isFinal } : page,
-              ),
-            );
-          },
-          controller.signal,
-        );
-      } catch (err) {
-        if (isAbortError(err)) {
-          setPages((prev) =>
-            prev.map((page) =>
-              page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
-            ),
-          );
-          break;
-        }
-        const message = err instanceof Error ? err.message : "Something went wrong";
-        console.error("page regeneration failed", message);
-        setPages((prev) =>
-          prev.map((page) =>
-            page.id === i
-              ? {
-                  ...page,
-                  done: true,
-                  error: message.includes("402")
-                    ? "Out of AI credits — top up to keep drawing."
-                    : "This page didn't redraw. Try again.",
-                }
-              : page,
-          ),
-        );
-      }
-    }
-    setBusy(false);
-  }, [bookTitle, pages.length, textPageCount]);
-
   const openSavedBook = (book: SavedBook) => {
+    autoSavedRef.current.clear();
     setBookTitle(book.title);
+    setPageCount(book.pages.length);
     setPages(
       book.pages.map((src, i) => ({
         id: i,
+        mode: "say" as PageMode,
         title: book.title,
         src,
         done: true,
@@ -384,291 +328,150 @@ function Index() {
     );
     setOpenPage(null);
     setSaveMessage(null);
+    setStep("book");
   };
 
-
-
-  const startReview = useCallback(() => {
-    setPages((prev) => {
-      setKeepIds(prev.filter((page) => page.src).map((page) => page.id));
-      return prev;
-    });
-    setReviewing(true);
-  }, []);
-
-  const applyReview = () => {
-    setPages((prev) =>
-      prev.filter((page) => keepIds.includes(page.id)).map((page, i) => ({ ...page, id: i })),
-    );
-    setReviewing(false);
-    setKeepIds([]);
-  };
-
-  const regeneratePage = async (id: number) => {
-    const page = pages.find((item) => item.id === id);
-    const source = page?.source;
-    if (!source) return;
-    setPages((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, src: null, done: false, error: undefined, regenerating: true } : item,
-      ),
-    );
-    const onFrame = (src: string, isFinal: boolean) =>
-      setPages((prev) =>
-        prev.map((item) =>
-          item.id === id ? { ...item, src, done: isFinal, regenerating: !isFinal } : item,
-        ),
-      );
-    try {
-      if (source.kind === "text") {
-        await streamImage("/api/generate-image", source.prompt, onFrame);
-      } else {
-        await streamImageFromPhoto("/api/photo-to-lineart", source.image, onFrame, source.variant);
-      }
-      setPages((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, done: true, regenerating: false } : item)),
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Something went wrong";
-      setPages((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                done: true,
-                regenerating: false,
-                error: message.includes("402")
-                  ? "Out of AI credits — top up to keep drawing."
-                  : "This page didn't draw. Try again.",
-              }
-            : item,
-        ),
-      );
-    }
-  };
-
-  const cancelGeneration = useCallback(() => {
+  const runForPage = useCallback(async (id: number, source: PageSource, title: string) => {
+    setGenError(null);
+    setSaveMessage(null);
+    setBusyPage(id);
     abortRef.current?.abort();
-    abortRef.current = null;
-    setBusy(false);
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setPages((prev) =>
       prev.map((page) =>
-        !page.done && !page.src ? { ...page, done: true, error: "Cancelled" } : page,
+        page.id === id
+          ? { ...page, title, src: null, paint: null, done: false, error: undefined, source, regenerating: true }
+          : page,
       ),
     );
-    setGenError("Generation cancelled.");
-  }, []);
 
-  const generate = useCallback(
-    async (rawText: string) => {
-      const { subject, pages: parsedCount } = parseRequest(rawText);
-      if (!subject) {
-        setGenError('Tell me what to draw, like "five pages of friendly dinosaurs".');
-        return;
-      }
-      const count = Math.max(1, Math.min(8, textPageCount || parsedCount || 1));
-      setGenError(null);
-      setSaveMessage(null);
-      setReviewing(false);
-      setBookTitle(subject);
-      setBusy(true);
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      const variations = [
-        "",
-        " in a playful scene",
-        " with a big smile, close up",
-        " surrounded by flowers and stars",
-        " having an adventure outdoors",
-        " with a friend",
-        " under a bright sun",
-        " with patterns and swirls in the background",
-        " celebrating with balloons",
-        " resting peacefully",
-        " in a busy landscape",
-        " with decorative border details",
-      ];
-      const initial: Page[] = Array.from({ length: count }, (_, i) => ({
-        id: i,
-        title: subject,
-        src: null,
-        done: false,
-        source: {
-          kind: "text" as const,
-          prompt: `${subject}${variations[i % variations.length] ?? ""}`,
-        },
-      }));
-      setPages(initial);
+    const onFrame = (src: string, isFinal: boolean) =>
+      setPages((prev) =>
+        prev.map((page) =>
+          page.id === id ? { ...page, src, done: isFinal, regenerating: !isFinal } : page,
+        ),
+      );
 
-      for (let i = 0; i < count; i++) {
-        if (controller.signal.aborted) break;
-        try {
-          await streamImage(
-            "/api/generate-image",
-            `${subject}${variations[i % variations.length] ?? ""}`,
-            (dataUrl, isFinal) => {
-              setPages((prev) =>
-                prev.map((page) =>
-                  page.id === i ? { ...page, src: dataUrl, done: isFinal } : page,
-                ),
-              );
-            },
-            controller.signal,
-          );
-        } catch (err) {
-          if (isAbortError(err)) {
-            setPages((prev) =>
-              prev.map((page) =>
-                page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
-              ),
-            );
-            break;
-          }
-          const message = err instanceof Error ? err.message : "Something went wrong";
-          console.error("page generation failed", message);
-          setPages((prev) =>
-            prev.map((page) =>
-              page.id === i
-                ? {
-                    ...page,
-                    done: true,
-                    error: message.includes("402")
-                      ? "Out of AI credits — top up to keep drawing."
-                      : "This page didn't draw. Try again.",
-                  }
-                : page,
-            ),
-          );
-        }
-      }
-      abortRef.current = null;
-      if (!controller.signal.aborted) {
-        setBusy(false);
-        startReview();
+    try {
+      if (source.kind === "text") {
+        await streamImage("/api/generate-image", source.prompt, onFrame, controller.signal);
       } else {
-        setBusy(false);
+        await streamImageFromPhoto(
+          "/api/photo-to-lineart",
+          source.image,
+          onFrame,
+          source.variant,
+          controller.signal,
+        );
       }
-    },
-    [startReview, textPageCount],
-  );
-
-  const pickPhotos = useCallback(async (files: File[]) => {
-    if (!files.length) return;
-    setGenError(null);
-    const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
-    setPrepPhotos(urls);
+      setPages((prev) =>
+        prev.map((page) =>
+          page.id === id ? { ...page, done: true, regenerating: false } : page,
+        ),
+      );
+    } catch (err) {
+      if (isAbortError(err)) {
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === id
+              ? { ...page, src: null, done: false, regenerating: false, error: "Cancelled" }
+              : page,
+          ),
+        );
+      } else {
+        const message = err instanceof Error ? err.message : "Something went wrong";
+        setPages((prev) =>
+          prev.map((page) =>
+            page.id === id
+              ? {
+                  ...page,
+                  done: false,
+                  regenerating: false,
+                  error: message.includes("402")
+                    ? "Out of AI credits — top up to keep drawing."
+                    : "This page didn't draw. Try again.",
+                }
+              : page,
+          ),
+        );
+      }
+    } finally {
+      abortRef.current = null;
+      setBusyPage(null);
+    }
   }, []);
 
-  const openCamera = useCallback(() => {
+  const regeneratePage = (id: number) => {
+    const page = pages.find((item) => item.id === id);
+    if (!page?.source) return;
+    void runForPage(id, page.source, page.title);
+  };
+
+  const cancelPage = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setBusyPage(null);
+  };
+
+  // Speech heard for a page: prefill the confirm box.
+  useEffect(() => {
+    if (pendingCommand && speakFor !== null) {
+      setTranscript(pendingCommand);
+      clearPendingCommand();
+    }
+  }, [pendingCommand, speakFor, clearPendingCommand, setTranscript]);
+
+  const openSpeak = (id: number) => {
     setGenError(null);
-    if (typeof navigator !== "undefined" && typeof navigator.mediaDevices?.getUserMedia === "function") {
+    setTranscript("");
+    setSpeakFor(id);
+  };
+
+  const closeSpeak = () => {
+    stop();
+    setSpeakFor(null);
+    setTranscript("");
+  };
+
+  const confirmSpeak = () => {
+    const text = transcript.trim();
+    if (speakFor === null || !text) return;
+    stop();
+    const id = speakFor;
+    setSpeakFor(null);
+    setTranscript("");
+    void runForPage(id, { kind: "text", prompt: text }, text);
+  };
+
+  const openCamera = (id: number) => {
+    setGenError(null);
+    setPhotoFor(id);
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.mediaDevices?.getUserMedia === "function"
+    ) {
       setCameraOpen(true);
       return;
     }
     snapInput.current?.click();
-  }, []);
+  };
 
-  const addSnaps = useCallback(async (files: File[]) => {
-    if (!files.length) return;
+  const openUpload = (id: number) => {
     setGenError(null);
-    const urls = await Promise.all(files.map((file) => fileToDataUrl(file)));
-    setSnapShots((prev) => [...prev, ...urls].slice(0, 12));
-  }, []);
+    setPhotoFor(id);
+    uploadInput.current?.click();
+  };
 
-  const generateFromPhotos = useCallback(
-    async (photos: string[], perPhoto: number) => {
-      if (!photos.length) return;
-      setGenError(null);
-      setSaveMessage(null);
-      setReviewing(false);
-      setBookTitle("My photo coloring book");
-      setBusy(true);
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      const variants = [
-        "",
-        "Zoom in a little closer on the main subject for this version.",
-        "Add a simple decorative background and border details for this version.",
-        "Make the outlines chunkier and the shapes simpler for this version.",
-      ];
-      const jobs = photos.flatMap((src) =>
-        Array.from({ length: perPhoto }, (_, v) => ({ src, variant: variants[v % variants.length] ?? "" })),
-      );
-      setPages(
-        jobs.map((job, i) => ({
-          id: i,
-          title: "My photo coloring book",
-          src: null,
-          done: false,
-          source: { kind: "photo" as const, image: job.src, variant: job.variant || undefined },
-        })),
-      );
-
-      for (let i = 0; i < jobs.length; i++) {
-        if (controller.signal.aborted) break;
-        const job = jobs[i]!;
-        try {
-          await streamImageFromPhoto(
-            "/api/photo-to-lineart",
-            job.src,
-            (src, isFinal) => {
-              setPages((prev) =>
-                prev.map((page) => (page.id === i ? { ...page, src, done: isFinal } : page)),
-              );
-            },
-            job.variant || undefined,
-            controller.signal,
-          );
-        } catch (err) {
-          if (isAbortError(err)) {
-            setPages((prev) =>
-              prev.map((page) =>
-                page.id === i ? { ...page, done: true, error: "Cancelled" } : page,
-              ),
-            );
-            break;
-          }
-          const message = err instanceof Error ? err.message : "Something went wrong";
-          setPages((prev) =>
-            prev.map((page) =>
-              page.id === i
-                ? {
-                    ...page,
-                    done: true,
-                    error: message.includes("402")
-                      ? "Out of AI credits — top up to keep drawing."
-                      : "This photo didn't turn into a page. Try another.",
-                  }
-                : page,
-            ),
-          );
-        }
-      }
-      abortRef.current = null;
-      if (!controller.signal.aborted) {
-        setBusy(false);
-        startReview();
-      } else {
-        setBusy(false);
-      }
-    },
-    [startReview],
-  );
-
-
-  // Heard speech waits for confirmation instead of generating straight away.
-  useEffect(() => {
-    if (pendingCommand && !busy) {
-      setHeard(pendingCommand);
-      setTranscript(pendingCommand);
-      clearPendingCommand();
-    }
-  }, [pendingCommand, busy, clearPendingCommand, setTranscript]);
+  const usePhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPrepPhoto(await fileToDataUrl(file));
+  };
 
   const activePage = pages.find((page) => page.id === openPage);
 
+  // ---------- Studio ----------
   if (activePage?.src) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-8">
@@ -679,7 +482,7 @@ function Index() {
           <button
             type="button"
             onClick={() => void exportPdf()}
-            disabled={exporting || !pages.some((page) => page.src)}
+            disabled={exporting || !readyPages.length}
             className="btn-crayon disabled:opacity-50"
           >
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
@@ -688,7 +491,7 @@ function Index() {
           <button
             type="button"
             onClick={() => void exportZip()}
-            disabled={exporting || !pages.some((page) => page.src)}
+            disabled={exporting || !readyPages.length}
             className="btn-crayon disabled:opacity-50"
           >
             {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
@@ -697,7 +500,7 @@ function Index() {
           <button
             type="button"
             onClick={() => void shareBook()}
-            disabled={sharing || !pages.some((page) => page.src)}
+            disabled={sharing || !readyPages.length}
             className="btn-crayon disabled:opacity-50"
           >
             {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
@@ -705,7 +508,8 @@ function Index() {
           </button>
         </div>
         <h1 className="mb-6 text-3xl font-extrabold capitalize">
-          {activePage.title} <span className="text-muted-foreground">· page {activePage.id + 1}</span>
+          {activePage.title || bookTitle}{" "}
+          <span className="text-muted-foreground">· page {activePage.id + 1}</span>
         </h1>
         <div className="mb-6">
           <MusicPlayer compact />
@@ -713,7 +517,7 @@ function Index() {
         <ColoringCanvas
           key={activePage.id}
           src={activePage.src}
-          title={activePage.title}
+          title={activePage.title || bookTitle}
           pageIndex={activePage.id}
           initialPaint={activePage.paint ?? null}
           onPaintChange={(paint) =>
@@ -722,345 +526,458 @@ function Index() {
             )
           }
         />
-
       </main>
     );
   }
 
-  return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <header className="text-center">
-        <span className="btn-crayon mx-auto text-[0.7rem] uppercase tracking-widest">
-          <Palette className="h-4 w-4" /> On-demand coloring book
-        </span>
-        <h1 className="mt-5 text-5xl font-extrabold leading-tight sm:text-6xl">
-          Say it or snap it.
-          <br />
-          <span className="text-primary">We draw it.</span> You color it.
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-          Describe your picture or snap a photo with your camera, then get clean line-art pages
-          ready to paint with brushes, crayons and every color there is.
-        </p>
-        <Link to="/books" className="btn-crayon mx-auto mt-5 text-sm">
-          <Library className="h-4 w-4" /> My books
-        </Link>
-      </header>
-
-      <section className="paper-card mx-auto mt-10 max-w-2xl p-6 sm:p-8">
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex flex-wrap items-start justify-center gap-6">
-            <div className="flex flex-col items-center gap-2">
+  const bookshelf =
+    savedBooks.length > 0 ? (
+      <section className="mt-14">
+        <h2 className="flex flex-wrap items-center gap-2 text-2xl font-extrabold">
+          <BookOpen className="h-6 w-6" /> My bookshelf
+          <span className="text-base text-muted-foreground">
+            · {savedBooks.length} saved · every new page saves itself
+          </span>
+          <Link to="/books" className="btn-crayon ml-auto text-sm">
+            <Library className="h-4 w-4" /> My books
+          </Link>
+        </h2>
+        <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {savedBooks.map((book) => (
+            <div key={book.id} className="paper-card p-3">
               <button
                 type="button"
-                onClick={() => (listening ? stop() : start())}
-                disabled={!supported || busy}
-                className={cn(
-                  "flex h-28 w-28 items-center justify-center rounded-full border-4 border-border text-primary-foreground transition-transform disabled:opacity-50",
-                  listening
-                    ? "animate-pulse bg-primary"
-                    : "bg-secondary text-secondary-foreground hover:-translate-y-1",
-                )}
-                aria-label={listening ? "Stop listening" : "Start speaking"}
+                onClick={() => openSavedBook(book)}
+                className="block w-full text-left"
               >
-                {listening ? <MicOff className="h-10 w-10" /> : <Mic className="h-10 w-10" />}
-              </button>
-              <p className="text-sm font-bold">
-                {listening
-                  ? "Listening… tap to stop"
-                  : supported
-                    ? "Tap and talk"
-                    : "Or type below"}
-              </p>
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <button
-                type="button"
-                onClick={openCamera}
-                disabled={busy}
-                className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-border bg-secondary text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
-                aria-label="Snap a photo"
-              >
-                <Camera className="h-10 w-10" />
-              </button>
-              <p className="text-sm font-bold">
-                {snapShots.length ? `Snap another (${snapShots.length})` : "Snap it"}
-              </p>
-            </div>
-          </div>
-
-          {snapShots.length > 0 && (
-            <div className="w-full rounded-2xl border-2 border-dashed border-border bg-card/60 p-4 sm:p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-bold">
-                  {snapShots.length} photo{snapShots.length === 1 ? "" : "s"} in this session
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setConfirmRemoveAll(true)}
-                  className="text-xs font-bold text-primary underline"
-                >
-                  Remove all
-                </button>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
-                {snapShots.map((src, i) => (
-                  <div
-                    key={`${i}-${src.slice(-12)}`}
-                    draggable
-                    onDragStart={() => setDragIndex(i)}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      const from = dragIndex;
-                      if (from === null || from === i) return;
-                      setSnapShots((prev) => {
-                        const next = [...prev];
-                        const [moved] = next.splice(from, 1);
-                        if (!moved) return prev;
-                        next.splice(i, 0, moved);
-                        return next;
-                      });
-                      setDragIndex(null);
-                    }}
-                    onDragEnd={() => setDragIndex(null)}
-                    className={cn(
-                      "group relative aspect-square cursor-move rounded-xl transition-opacity",
-                      dragIndex === i ? "opacity-40" : "opacity-100",
-                    )}
-                  >
-                    <img
-                      src={src}
-                      alt={`Snapped photo ${i + 1}`}
-                      className="pointer-events-none h-full w-full rounded-xl border-2 border-border object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewSnap(src)}
-                        aria-label={`Preview photo ${i + 1}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-border bg-card text-foreground"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSnapShots((prev) => prev.filter((_, j) => j !== i))}
-                        aria-label={`Remove photo ${i + 1}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-border bg-card text-primary"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <span className="absolute bottom-1 left-1 rounded-full border-2 border-border bg-card px-2 py-0.5 text-[10px] font-extrabold">
-                      {i + 1}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={openCamera}
-                  disabled={busy || snapShots.length >= 12}
-                  className="btn-crayon disabled:opacity-50"
-                >
-                  <Camera className="h-4 w-4" /> Snap another
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPrepPhotos(snapShots);
-                    setSnapShots([]);
-                  }}
-                  disabled={busy}
-                  className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-6 py-2.5 text-base font-extrabold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:opacity-50"
-                >
-                  Use these {snapShots.length} photo{snapShots.length === 1 ? "" : "s"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {previewSnap && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-              onClick={() => setPreviewSnap(null)}
-            >
-              <div
-                className="relative max-h-[90vh] max-w-3xl rounded-2xl border-4 border-border bg-card p-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  onClick={() => setPreviewSnap(null)}
-                  aria-label="Close preview"
-                  className="absolute -right-3 -top-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-border bg-card text-foreground"
-                >
-                  <X className="h-5 w-5" />
-                </button>
                 <img
-                  src={previewSnap}
-                  alt="Preview of selected photo"
-                  className="max-h-[80vh] rounded-xl object-contain"
+                  src={book.pages[0]}
+                  alt={`Saved book: ${book.title}`}
+                  loading="lazy"
+                  className="aspect-square w-full rounded-xl object-contain"
                 />
-              </div>
-            </div>
-          )}
-
-          {confirmRemoveAll && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-              onClick={() => setConfirmRemoveAll(false)}
-            >
-              <div
-                className="w-full max-w-sm rounded-2xl border-4 border-border bg-card p-6 text-center"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <p className="text-lg font-extrabold">Remove all photos?</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  This will clear all {snapShots.length} snapped photos from this session.
+                <p className="mt-2 truncate text-base font-extrabold capitalize">{book.title}</p>
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
                 </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSnapShots([]);
-                      setConfirmRemoveAll(false);
-                    }}
-                    className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-6 py-2.5 text-base font-extrabold text-primary-foreground transition-transform hover:-translate-y-0.5"
-                  >
-                    <Trash2 className="h-4 w-4" /> Yes, remove all
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmRemoveAll(false)}
-                    className="btn-crayon"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {supported && (
-            <label className="flex flex-col items-center gap-1 text-xs font-bold text-muted-foreground">
-              Speak in any language
-              <select
-                value={lang}
-                onChange={(e) => setLang(e.target.value)}
-                className="rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground outline-none focus:border-accent"
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setSavedBooks(await deleteBook(book.id));
+                  setSaveMessage(null);
+                }}
+                className="btn-crayon mt-3 w-full"
               >
-                <option value={AUTO_LANG}>Detect my language automatically</option>
-                {SPEECH_LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label}
-                  </option>
-                ))}
-              </select>
-              {lang === AUTO_LANG && (
-                <span className="font-semibold normal-case">
-                  Auto · listening in{" "}
-                  {SPEECH_LANGUAGES.find((l) => l.code === detectedLang)?.label ?? detectedLang}
-                </span>
-              )}
-            </label>
-          )}
-
-          {supported && (
-            <p className="max-w-md text-center text-xs text-muted-foreground">
-              Tap the mic or type your request below.
-            </p>
-          )}
-
-
-          {heard && !busy && (
-            <div className="w-full rounded-2xl border-2 border-accent bg-accent/10 p-4 text-center">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                I heard
-              </p>
-              <p className="mt-1 text-lg font-extrabold">“{heard}”</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Edit it below if that's not right, then confirm.
-              </p>
-              <label className="mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground">
-                Pages to create:
-                <select
-                  value={textPageCount}
-                  onChange={(e) => setTextPageCount(Number(e.target.value))}
-                  className="rounded-xl border-2 border-border bg-card px-2 py-1 text-foreground"
-                >
-                  {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHeard(null);
-                    stop();
-                    void generate(transcript);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-accent px-5 py-2 text-sm font-extrabold text-accent-foreground"
-                >
-                  <Check className="h-4 w-4" /> Yes, draw it
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHeard(null);
-                    setTranscript("");
-                    start();
-                  }}
-                  className="btn-crayon"
-                >
-                  <Mic className="h-4 w-4" /> Say it again
-                </button>
-              </div>
+                <Trash2 className="h-4 w-4" /> Delete
+              </button>
             </div>
-          )}
-
-          <textarea
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            rows={2}
-            placeholder="e.g. four pages of a dragon baking cupcakes"
-            className="w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-center text-lg font-semibold outline-none focus:border-accent"
-          />
-
-          <button
-            type="button"
-            onClick={() => {
-              clearPendingCommand();
-              setHeard(null);
-              stop();
-              void generate(transcript);
-            }}
-            disabled={busy || !transcript.trim()}
-            className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-accent px-7 py-3 text-lg font-extrabold text-accent-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
-          >
-            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-            {busy ? "Drawing your book…" : "Make my coloring book"}
-          </button>
-
-
-          {(micError || genError) && (
-            <p className="text-sm font-semibold text-primary">{micError ?? genError}</p>
-          )}
+          ))}
         </div>
       </section>
+    ) : null;
+
+  // ---------- Cover ----------
+  if (step === "cover") {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <div className="paper-card mx-auto max-w-md p-4 text-center sm:p-6">
+          <img
+            src={coverArt}
+            alt="Color My World coloring book cover"
+            width={1024}
+            height={1280}
+            className="mx-auto w-full rounded-xl border-2 border-border"
+          />
+          <p className="mt-4 text-lg font-extrabold">Say it or snap it. We draw it. You color it.</p>
+          <button
+            type="button"
+            onClick={() => setStep("count")}
+            className="mt-5 inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-7 py-3 text-lg font-extrabold text-primary-foreground transition-transform hover:-translate-y-1"
+          >
+            <BookOpen className="h-5 w-5" /> Open my book
+          </button>
+          <div className="mt-4">
+            <Link to="/books" className="btn-crayon text-sm">
+              <Library className="h-4 w-4" /> My books
+            </Link>
+          </div>
+        </div>
+        {bookshelf}
+        <MusicPlayer />
+      </main>
+    );
+  }
+
+  // ---------- Page count ----------
+  if (step === "count") {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-10">
+        <button type="button" onClick={() => setStep("cover")} className="btn-crayon">
+          <ArrowLeft className="h-4 w-4" /> Back to the cover
+        </button>
+        <section className="paper-card mt-6 p-6 text-center sm:p-8">
+          <h1 className="text-3xl font-extrabold">How many pages?</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Pick how big your coloring book should be. You can fill each page one at a time.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            {PAGE_OPTIONS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setPageCount(n)}
+                aria-pressed={pageCount === n}
+                className={cn(
+                  "h-14 w-14 rounded-full border-2 border-border text-xl font-extrabold transition-transform hover:-translate-y-0.5",
+                  pageCount === n ? "bg-primary text-primary-foreground" : "bg-card text-foreground",
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <label className="mt-6 block text-sm font-bold">
+            Name your book
+            <input
+              type="text"
+              value={bookTitle}
+              onChange={(e) => setBookTitle(e.target.value)}
+              className="mt-2 w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-center text-lg font-semibold outline-none focus:border-accent"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => setStep("modes")}
+            className="mt-6 inline-flex items-center gap-2 rounded-full border-2 border-border bg-accent px-7 py-3 text-lg font-extrabold text-accent-foreground transition-transform hover:-translate-y-1"
+          >
+            Next <ArrowRight className="h-5 w-5" />
+          </button>
+        </section>
+        <MusicPlayer />
+      </main>
+    );
+  }
+
+  // ---------- Choose how each page gets filled ----------
+  if (step === "modes") {
+    const draft = pages.length === pageCount ? pages : blankPages(pageCount, "say");
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-10">
+        <button type="button" onClick={() => setStep("count")} className="btn-crayon">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <section className="paper-card mt-6 p-6 sm:p-8">
+          <h1 className="text-center text-3xl font-extrabold">Say it or snap it?</h1>
+          <p className="mt-2 text-center text-sm text-muted-foreground">
+            Choose how you want to fill each page. You can change it later on the page itself.
+          </p>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPages(blankPages(pageCount, "say"))}
+              className="btn-crayon"
+            >
+              <Mic className="h-4 w-4" /> Say it for every page
+            </button>
+            <button
+              type="button"
+              onClick={() => setPages(blankPages(pageCount, "snap"))}
+              className="btn-crayon"
+            >
+              <Camera className="h-4 w-4" /> Snap it for every page
+            </button>
+          </div>
+
+          <ul className="mt-6 space-y-2">
+            {draft.map((page) => (
+              <li
+                key={page.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border-2 border-border bg-card px-4 py-3"
+              >
+                <span className="text-sm font-extrabold">Page {page.id + 1}</span>
+                <div className="flex gap-2">
+                  {(["say", "snap"] as PageMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-pressed={page.mode === mode}
+                      onClick={() =>
+                        setPages(
+                          draft.map((item) => (item.id === page.id ? { ...item, mode } : item)),
+                        )
+                      }
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full border-2 border-border px-4 py-1.5 text-sm font-extrabold",
+                        page.mode === mode
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background text-foreground",
+                      )}
+                    >
+                      {mode === "say" ? <Mic className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                      {mode === "say" ? "Say it" : "Snap it"}
+                    </button>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-7 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setPages(draft);
+                setStep("book");
+              }}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-7 py-3 text-lg font-extrabold text-primary-foreground transition-transform hover:-translate-y-1"
+            >
+              <Sparkles className="h-5 w-5" /> Start my book
+            </button>
+          </div>
+        </section>
+        <MusicPlayer />
+      </main>
+    );
+  }
+
+  // ---------- The book ----------
+  return (
+    <main className="mx-auto max-w-5xl px-4 py-10">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-extrabold capitalize sm:text-4xl">
+            {bookTitle || "My coloring book"}
+          </h1>
+          <p className="text-sm font-semibold text-muted-foreground">
+            {readyPages.length} of {pages.length} pages drawn
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={startFresh} className="btn-crayon">
+            <RotateCcw className="h-4 w-4" /> Start a new book
+          </button>
+          <Link to="/books" className="btn-crayon">
+            <Library className="h-4 w-4" /> My books
+          </Link>
+        </div>
+      </header>
+
+      {readyPages.length > 0 && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void exportPdf()}
+            disabled={exporting}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            {exporting ? "Building PDF…" : "Export PDF"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void exportZip()}
+            disabled={exporting}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
+            {exporting ? "Building ZIP…" : "Export ZIP"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void shareBook()}
+            disabled={sharing}
+            className="btn-crayon disabled:opacity-50"
+          >
+            {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+            {sharing ? "Sharing…" : "Share gallery"}
+          </button>
+        </div>
+      )}
+
+      {saveMessage && <p className="mt-3 text-sm font-semibold text-primary">{saveMessage}</p>}
+      {(genError || micError) && (
+        <p className="mt-3 text-sm font-semibold text-primary">{genError ?? micError}</p>
+      )}
+
+      {shareUrl && (
+        <div className="paper-card mt-5 p-4">
+          <p className="text-sm font-bold">Your gallery is live!</p>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={shareUrl}
+              className="flex-1 rounded-xl border-2 border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(shareUrl);
+                setSaveMessage("Link copied!");
+              }}
+              className="btn-crayon text-sm"
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              onClick={() => setShareUrl(null)}
+              className="rounded-full border-2 border-border p-2"
+              aria-label="Close share link"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <MusicPlayer />
+
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {pages.map((page) => {
+          const working = page.regenerating || busyPage === page.id;
+          return (
+            <div key={page.id} className="paper-card p-3">
+              <button
+                type="button"
+                disabled={!page.src || !page.done}
+                onClick={() => setOpenPage(page.id)}
+                className="relative block aspect-square w-full overflow-hidden rounded-xl border-2 border-dashed border-border bg-background transition-transform enabled:hover:-translate-y-1"
+              >
+                {page.src ? (
+                  <div className="relative h-full w-full">
+                    <img
+                      src={page.src}
+                      alt={`Coloring page ${page.id + 1}`}
+                      className={cn(
+                        "h-full w-full object-contain transition-[filter] duration-500",
+                        page.done ? "blur-0" : "blur-md",
+                      )}
+                    />
+                    {page.paint && (
+                      <img
+                        src={page.paint}
+                        alt=""
+                        className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+                      />
+                    )}
+                  </div>
+                ) : working ? (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="text-xs font-bold">Drawing page {page.id + 1}…</span>
+                  </div>
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <span className="text-4xl font-extrabold text-border">{page.id + 1}</span>
+                    <span className="text-xs font-bold">
+                      {page.error ? page.error : "Blank page — fill it below"}
+                    </span>
+                  </div>
+                )}
+                <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
+                  Page {page.id + 1}
+                </span>
+                {page.done && page.src && (
+                  <span className="absolute right-2 top-2 rounded-full border-2 border-border bg-primary p-1 text-primary-foreground">
+                    <Check className="h-4 w-4" />
+                  </span>
+                )}
+              </button>
+
+              {working ? (
+                <button
+                  type="button"
+                  onClick={cancelPage}
+                  className="btn-crayon mt-3 w-full justify-center border-primary text-primary"
+                >
+                  <X className="h-4 w-4" /> Cancel
+                </button>
+              ) : (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openSpeak(page.id)}
+                    disabled={busyPage !== null}
+                    className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                  >
+                    <Mic className="h-4 w-4" /> Speak
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openCamera(page.id)}
+                    disabled={busyPage !== null}
+                    className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                  >
+                    <Camera className="h-4 w-4" /> Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openUpload(page.id)}
+                    disabled={busyPage !== null}
+                    className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                  >
+                    <Upload className="h-4 w-4" /> Upload
+                  </button>
+                  {page.source && (
+                    <button
+                      type="button"
+                      onClick={() => regeneratePage(page.id)}
+                      disabled={busyPage !== null}
+                      className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                    >
+                      <RefreshCw className="h-4 w-4" /> Redraw
+                    </button>
+                  )}
+                  {page.src && page.done && (
+                    <button
+                      type="button"
+                      onClick={() => void exportPagePng(page as Page & { src: string })}
+                      className="btn-crayon flex-1 justify-center text-sm"
+                      aria-label={`Export page ${page.id + 1} as PNG`}
+                    >
+                      <ImageDown className="h-4 w-4" /> PNG
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {bookshelf}
+
+      {/* hidden inputs for photo pickers */}
+      <input
+        ref={uploadInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          void usePhoto(file);
+        }}
+      />
+      <input
+        ref={snapInput}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          void usePhoto(file);
+        }}
+      />
 
       {cameraOpen && (
         <CameraCapture
-          max={12}
+          max={1}
           onClose={() => setCameraOpen(false)}
           onFallback={() => {
             setCameraOpen(false);
@@ -1068,381 +985,103 @@ function Index() {
           }}
           onCapture={(urls) => {
             setCameraOpen(false);
-            setSnapShots((prev) => [...prev, ...urls].slice(0, 12));
+            if (urls[0]) setPrepPhoto(urls[0]);
           }}
         />
       )}
 
-      <MusicPlayer />
-
-      <section className="paper-card mx-auto mt-6 max-w-2xl p-6 text-center sm:p-8">
-        <h2 className="flex items-center justify-center gap-2 text-2xl font-extrabold">
-          <Camera className="h-6 w-6" /> Make a book from your photos
-        </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          Pick a few from your gallery and we'll turn each one into coloring pages. You'll get camera
-          tips plus a quick crop and brightness step first.
-        </p>
-        <input
-          ref={photoInput}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            const files = Array.from(e.target.files ?? []).slice(0, 12);
-            e.target.value = "";
-            void pickPhotos(files);
-          }}
-        />
-        <input
-          ref={snapInput}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={(e) => {
-            const files = Array.from(e.target.files ?? []).slice(0, 12);
-            e.target.value = "";
-            void addSnaps(files);
-          }}
-        />
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-sm font-bold">Pages per photo:</span>
-          {[1, 2, 3, 4].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setPhotoPageCount(n)}
-              aria-pressed={photoPageCount === n}
-              className={cn(
-                "h-10 w-10 rounded-full border-2 border-border text-base font-extrabold transition-transform hover:-translate-y-0.5",
-                photoPageCount === n
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground",
-              )}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => photoInput.current?.click()}
-          disabled={busy}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border-2 border-border bg-secondary px-7 py-3 text-lg font-extrabold text-secondary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
-          {busy ? "Turning photos into pages…" : "Choose photos"}
-        </button>
-      </section>
-
-      {pages.length > 0 && (
-        <section className="mt-12">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-2xl font-extrabold capitalize">
-              {bookTitle} <span className="text-muted-foreground">· {pages.length} {pages.length === 1 ? "page" : "pages"}</span>
-            </h2>
-            <div className="flex flex-col items-end gap-1">
-              <button
-                type="button"
-                onClick={() => void handleSaveBook()}
-                disabled={busy || !pages.some((page) => page.src)}
-                className="btn-crayon disabled:opacity-50"
-              >
-                <BookmarkPlus className="h-4 w-4" /> Save as one book
-              </button>
-              <button
-                type="button"
-                onClick={() => void exportPdf()}
-                disabled={exporting || !pages.some((page) => page.src)}
-                className="btn-crayon disabled:opacity-50"
-              >
-                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-                {exporting ? "Building PDF…" : "Export PDF"}
-              </button>
-              <button
-                type="button"
-                onClick={() => void exportZip()}
-                disabled={exporting || !pages.some((page) => page.src)}
-                className="btn-crayon disabled:opacity-50"
-              >
-                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileArchive className="h-4 w-4" />}
-                {exporting ? "Building ZIP…" : "Export ZIP"}
-              </button>
-              <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
-                <Sparkles className="h-4 w-4" /> Start a new book
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  const text = transcript || bookTitle;
-                  setTranscript(text);
-                  setHeard(text);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="btn-crayon disabled:opacity-50"
-              >
-                <Pencil className="h-4 w-4" /> Edit request
-              </button>
-              <button
-                type="button"
-                onClick={() => void regenerateAll()}
-                disabled={busy || !pages.some((page) => page.src)}
-                className="btn-crayon disabled:opacity-50"
-              >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                {busy ? "Redrawing…" : "Regenerate all"}
-              </button>
-              <button type="button" onClick={startFresh} disabled={busy} className="btn-crayon disabled:opacity-50">
-                <RotateCcw className="h-4 w-4" /> Start over
-              </button>
-              {saveMessage && (
-                <span className="text-xs font-semibold text-primary">{saveMessage}</span>
-              )}
-            </div>
-          </div>
-
-          {shareUrl && (
-            <div className="paper-card mt-5 p-4">
-              <p className="text-sm font-bold">Your gallery is live!</p>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={shareUrl}
-                  className="flex-1 rounded-xl border-2 border-border bg-card px-3 py-2 text-xs font-semibold text-foreground"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(shareUrl);
-                    setSaveMessage("Link copied!");
-                  }}
-                  className="btn-crayon text-sm"
-                >
-                  Copy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShareUrl(null)}
-                  className="rounded-full border-2 border-border p-2"
-                  aria-label="Close share link"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {busy && pages.length > 0 && (
-            <div className="paper-card mt-5 p-4">
-              <div className="flex items-center justify-between text-sm font-bold">
-                <span>Generating your pages…</span>
-                <span className="text-primary">
-                  {pages.filter((page) => page.done).length} / {pages.length}
-                </span>
-              </div>
-              <div className="mt-2 h-4 w-full overflow-hidden rounded-full border-2 border-border bg-card">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{
-                    width: `${Math.round((pages.filter((page) => page.done).length / pages.length) * 100)}%`,
-                  }}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={cancelGeneration}
-                className="btn-crayon mt-4 w-full justify-center border-primary text-primary"
-              >
-                <X className="h-4 w-4" /> Cancel generation
-              </button>
-            </div>
-          )}
-
-          {reviewing && (
-            <div className="paper-card mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
-              <p className="text-sm font-bold">
-                Review your variations — tap a thumbnail to keep or skip it.{" "}
-                <span className="text-muted-foreground">{keepIds.length} of {pages.length} kept</span>
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setKeepIds(pages.filter((page) => page.src).map((page) => page.id))}
-                  className="btn-crayon text-sm"
-                >
-                  Keep all
-                </button>
-                <button
-                  type="button"
-                  onClick={applyReview}
-                  disabled={!keepIds.length}
-                  className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:opacity-50"
-                >
-                  <Check className="h-4 w-4" /> Apply to my book
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {pages.map((page) => {
-              const kept = keepIds.includes(page.id);
-              return (
-                <div key={page.id} className="relative">
-                  <button
-                    type="button"
-                    disabled={!page.src}
-                    onClick={() =>
-                      reviewing
-                        ? setKeepIds((prev) =>
-                            prev.includes(page.id)
-                              ? prev.filter((id) => id !== page.id)
-                              : [...prev, page.id],
-                          )
-                        : setOpenPage(page.id)
-                    }
-                    className={cn(
-                      "paper-card group relative block aspect-square w-full overflow-hidden p-2 text-left transition-transform enabled:hover:-translate-y-1 disabled:cursor-wait",
-                      reviewing && !kept && "opacity-45",
-                      reviewing && kept && "ring-4 ring-primary",
-                    )}
-                  >
-                    {page.src ? (
-                      <div className="relative h-full w-full">
-                        <img
-                          src={page.src}
-                          alt={`Coloring page ${page.id + 1}: ${page.title}`}
-                          className={cn(
-                            "h-full w-full object-contain transition-[filter] duration-500",
-                            page.done ? "blur-0" : "blur-md",
-                          )}
-                        />
-                        {page.paint && (
-                          <img
-                            src={page.paint}
-                            alt=""
-                            className="pointer-events-none absolute inset-0 h-full w-full object-contain"
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                        {page.error ? (
-                          <span className="px-4 text-center text-sm font-semibold text-primary">
-                            {page.error}
-                          </span>
-                        ) : (
-                          <>
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                            <span className="text-xs font-bold">
-                              {page.regenerating ? "Re-drawing" : "Sketching"} page {page.id + 1}…
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
-                      Page {page.id + 1}
-                    </span>
-                    {reviewing && kept && (
-                      <span className="absolute right-2 top-2 rounded-full border-2 border-border bg-primary p-1 text-primary-foreground">
-                        <Check className="h-4 w-4" />
-                      </span>
-                    )}
-                  </button>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {page.source && (
-                      <button
-                        type="button"
-                        onClick={() => void regeneratePage(page.id)}
-                        disabled={busy || page.regenerating}
-                        className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
-                      >
-                        <RefreshCw
-                          className={cn("h-4 w-4", page.regenerating && "animate-spin")}
-                        />
-                        {page.regenerating ? "Re-drawing…" : "Regenerate"}
-                      </button>
-                    )}
-                    {page.src && page.done && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void exportPagePng(page as Page & { src: string; done: true })
-                        }
-                        className="btn-crayon flex-1 justify-center text-sm"
-                        aria-label={`Export page ${page.id + 1} as PNG`}
-                      >
-                        <ImageDown className="h-4 w-4" /> PNG
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-        </section>
-      )}
-
-      {savedBooks.length > 0 && (
-        <section className="mt-14">
-          <h2 className="flex items-center gap-2 text-2xl font-extrabold">
-            <BookOpen className="h-6 w-6" /> My bookshelf
-            <span className="text-base text-muted-foreground">
-              · {savedBooks.length} saved · every new page saves itself
-            </span>
-            <Link to="/books" className="btn-crayon ml-auto text-sm">
-              <Library className="h-4 w-4" /> My books
-            </Link>
-          </h2>
-          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {savedBooks.map((book) => (
-              <div key={book.id} className="paper-card p-3">
-                <button
-                  type="button"
-                  onClick={() => openSavedBook(book)}
-                  className="block w-full text-left"
-                >
-                  <img
-                    src={book.pages[0]}
-                    alt={`Saved book: ${book.title}`}
-                    className="aspect-square w-full rounded-xl object-contain"
-                  />
-                  <p className="mt-2 truncate text-base font-extrabold capitalize">{book.title}</p>
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setSavedBooks(await deleteBook(book.id));
-                    setSaveMessage(null);
-                  }}
-                  className="btn-crayon mt-3 w-full"
-                >
-                  <Trash2 className="h-4 w-4" /> Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {prepPhotos && (
+      {prepPhoto && (
         <PhotoPrep
-          photos={prepPhotos}
-          onCancel={() => setPrepPhotos(null)}
+          photos={[prepPhoto]}
+          onCancel={() => {
+            setPrepPhoto(null);
+            setPhotoFor(null);
+          }}
           onDone={(prepared) => {
-            setPrepPhotos(null);
-            void generateFromPhotos(prepared, photoPageCount);
+            const image = prepared[0];
+            const id = photoFor;
+            setPrepPhoto(null);
+            setPhotoFor(null);
+            if (!image || id === null) return;
+            void runForPage(id, { kind: "photo", image }, `Photo page ${id + 1}`);
           }}
         />
+      )}
+
+      {speakFor !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-3xl border-4 border-border bg-card p-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Page {speakFor + 1}
+            </p>
+            <h2 className="mt-1 text-2xl font-extrabold">Tell me what to draw</h2>
+
+            <button
+              type="button"
+              onClick={() => (listening ? stop() : start())}
+              disabled={!supported}
+              className={cn(
+                "mx-auto mt-5 flex h-24 w-24 items-center justify-center rounded-full border-4 border-border transition-transform disabled:opacity-50",
+                listening
+                  ? "animate-pulse bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:-translate-y-1",
+              )}
+              aria-label={listening ? "Stop listening" : "Start speaking"}
+            >
+              {listening ? <MicOff className="h-9 w-9" /> : <Mic className="h-9 w-9" />}
+            </button>
+            <p className="mt-2 text-sm font-bold">
+              {listening ? "Listening… tap to stop" : supported ? "Tap and talk" : "Type it below"}
+            </p>
+
+            {supported && (
+              <label className="mt-4 flex flex-col items-center gap-1 text-xs font-bold text-muted-foreground">
+                Speak in any language
+                <select
+                  value={lang}
+                  onChange={(e) => setLang(e.target.value)}
+                  className="rounded-full border-2 border-border bg-card px-4 py-2 text-sm font-bold text-foreground outline-none focus:border-accent"
+                >
+                  <option value={AUTO_LANG}>Detect my language automatically</option>
+                  {SPEECH_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+                {lang === AUTO_LANG && (
+                  <span className="font-semibold normal-case">
+                    Auto · listening in{" "}
+                    {SPEECH_LANGUAGES.find((l) => l.code === detectedLang)?.label ?? detectedLang}
+                  </span>
+                )}
+              </label>
+            )}
+
+            <textarea
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              rows={2}
+              placeholder="e.g. a dragon eating pizza"
+              className="mt-4 w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-center text-lg font-semibold outline-none focus:border-accent"
+            />
+
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={confirmSpeak}
+                disabled={!transcript.trim()}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-accent px-6 py-2.5 text-base font-extrabold text-accent-foreground disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" /> Yes, draw it
+              </button>
+              <button type="button" onClick={closeSpeak} className="btn-crayon">
+                Cancel
+              </button>
+            </div>
+            {micError && <p className="mt-3 text-sm font-semibold text-primary">{micError}</p>}
+          </div>
+        </div>
       )}
     </main>
   );
