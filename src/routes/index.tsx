@@ -29,7 +29,9 @@ import { useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import {
   deleteBook,
+  deletePageAndCascade,
   isSavedPage,
+
   listBooks,
   makeBookId,
   saveBookRecord,
@@ -134,6 +136,8 @@ function Index() {
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
+  const [deletePageId, setDeletePageId] = useState<number | null>(null);
+
 
   // Choose pages to build one book.
   const [selecting, setSelecting] = useState(false);
@@ -239,7 +243,49 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, restored]);
 
+  /** Deletes the page's drawing, resets the slot to blank, and removes the saved copy. */
+  const confirmDeletePage = async () => {
+    const id = deletePageId;
+    if (id === null) return;
+    const target = pages.find((page) => page.id === id);
+    setDeletePageId(null);
+    setPages((prev) =>
+      prev.map((page) =>
+        page.id === id
+          ? {
+              id: page.id,
+              mode: page.mode,
+              title: "",
+              src: null,
+              done: false,
+              paint: null,
+              error: undefined,
+              source: undefined,
+              regenerating: undefined,
+            }
+          : page,
+      ),
+    );
+    setSelectedPages((prev) => prev.filter((pid) => pid !== id));
+    setLastOpened((prev) => (prev === id ? null : prev));
+    if (openPage === id) setOpenPage(null);
+    try {
+      if (target?.src) {
+        const record = savedBooks
+          .filter(isSavedPage)
+          .find((book) => book.pages.some((src) => src === target.src));
+        if (record) {
+          setSavedBooks(await deletePageAndCascade(record.id));
+        }
+      }
+      setSaveMessage("Page deleted.");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not delete the saved page.");
+    }
+  };
+
   /** Opens choose-pages mode with one page (e.g. the page open in the canvas) pre-selected. */
+
   const startSelectingWith = (id: number) => {
     setOpenPage(null);
     setLastOpened(id);
@@ -549,6 +595,33 @@ function Index() {
 
   const activePage = pages.find((page) => page.id === openPage);
 
+  const deleteDialog =
+    deletePageId !== null ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
+        <div className="paper-card w-full max-w-sm p-6 text-center">
+          <h2 className="text-xl font-extrabold">Delete this page?</h2>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
+            Page {deletePageId + 1} goes back to a blank page. It will be removed from My Pages and
+            from any book that used it.
+          </p>
+          <div className="mt-5 flex justify-center gap-3">
+            <button type="button" onClick={() => setDeletePageId(null)} className="btn-crayon">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void confirmDeletePage()}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 font-extrabold text-primary-foreground"
+            >
+              <Trash2 className="h-4 w-4" /> Delete page
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
+
+
   // ---------- Studio ----------
   if (activePage?.src) {
     return (
@@ -564,6 +637,14 @@ function Index() {
           >
             <BookOpen className="h-4 w-4" /> Add this page to a book
           </button>
+          <button
+            type="button"
+            onClick={() => setDeletePageId(activePage.id)}
+            className="btn-crayon border-primary text-primary"
+          >
+            <Trash2 className="h-4 w-4" /> Delete page
+          </button>
+
           <button
             type="button"
             onClick={() => void exportPdf()}
@@ -611,7 +692,9 @@ function Index() {
             )
           }
         />
+        {deleteDialog}
       </main>
+
     );
   }
 
@@ -1113,6 +1196,17 @@ function Index() {
                       <ImageDown className="h-4 w-4" /> PNG
                     </button>
                   )}
+                  {page.src && (
+                    <button
+                      type="button"
+                      onClick={() => setDeletePageId(page.id)}
+                      className="btn-crayon flex-1 justify-center border-primary text-sm text-primary"
+                      aria-label={`Delete page ${page.id + 1}`}
+                    >
+                      <Trash2 className="h-4 w-4" /> Delete
+                    </button>
+                  )}
+
                 </div>
               )}
             </div>
@@ -1339,6 +1433,8 @@ function Index() {
         </div>
       )}
 
+      {deleteDialog}
     </main>
   );
+
 }
