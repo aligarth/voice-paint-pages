@@ -1433,6 +1433,8 @@ function Index() {
         </div>
       )}
 
+      {deleteDialog}
     </main>
   );
+
 }
