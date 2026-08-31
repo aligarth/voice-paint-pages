@@ -134,6 +134,11 @@ function Index() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
 
+  // Select pages to save as one book.
+  const [selecting, setSelecting] = useState(false);
+  const [selectedPages, setSelectedPages] = useState<number[]>([]);
+  const [combineTitle, setCombineTitle] = useState("");
+
   /** Which page is currently being filled, and how. */
   const [speakFor, setSpeakFor] = useState<number | null>(null);
   const [typeFor, setTypeFor] = useState<number | null>(null);
