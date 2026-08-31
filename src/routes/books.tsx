@@ -127,56 +127,11 @@ function BooksPage() {
           </span>
         </h1>
         <p className="mt-3 max-w-xl text-base text-muted-foreground">
-          Every picture you draw is saved here as its own little book. Combine any of them into one
-          big book, rename, remove pages, export a PDF, or reopen a book to keep coloring.
+          Every picture you draw is saved here as its own little book. Rename, remove pages, export a
+          PDF, or reopen a book to keep coloring.
         </p>
 
-        {((books && books.length > 1) || undoPayload) && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {books && books.length > 1 && (
-              <button
-                type="button"
-                className="btn-crayon"
-                onClick={() => {
-                  setSelecting((prev) => !prev);
-                  setSelected([]);
-                }}
-              >
-                <Layers className="h-4 w-4" /> {selecting ? "Cancel selecting" : "Combine books"}
-              </button>
-            )}
-            {undoPayload && (
-              <button type="button" className="btn-crayon" onClick={() => void revertCombine()}>
-                <Undo2 className="h-4 w-4" /> Undo combine
-              </button>
-            )}
-          </div>
-        )}
 
-        {selecting && (
-          <div className="paper-card mt-4 flex flex-wrap items-center gap-3 p-4">
-            <span className="text-sm font-extrabold">
-              {selected.length === 0
-                ? "Tick the books you want in one big book"
-                : `${selected.length} selected`}
-            </span>
-            <input
-              value={combineTitle}
-              onChange={(e) => setCombineTitle(e.target.value)}
-              aria-label="Combined book title"
-              className="min-w-[12rem] flex-1 rounded-full border-2 border-border bg-card px-4 py-2 text-base font-bold outline-none focus:border-primary"
-            />
-            <button
-              type="button"
-              className="btn-crayon disabled:opacity-50"
-              disabled={selected.length < 2 || combining}
-              onClick={() => void combineSelected()}
-            >
-              {combining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
-              Combine {selected.length > 1 ? selected.length : ""} books
-            </button>
-          </div>
-        )}
         {message && <p className="mt-3 text-sm font-bold text-primary">{message}</p>}
       </header>
 
