@@ -23,6 +23,7 @@ The app generates and saves individual coloring pages. A book is created only wh
 
 - Selection is available in both the current session and My Pages.
 - Generated-but-uncolored pages are selectable; completely blank placeholders are not.
+- The currently open coloring page is selectable from the choose-pages list, marked **Current page**, and saved with whatever coloring exists at that moment.
 - Require at least one page to create a book.
 - Preserve the order in which pages are selected. Provide **Select all**, **Clear**, a book-title field, and **Create book**.
 - Creating a book copies each page's line art and optional paint layer. It does not remove or convert the original page records.
