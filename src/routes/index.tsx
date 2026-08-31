@@ -20,6 +20,8 @@ import {
   RotateCcw,
   Upload,
   ArrowRight,
+  Keyboard,
+
 } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
@@ -70,7 +72,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type PageMode = "say" | "snap";
+type PageMode = "say" | "type" | "snap";
 
 type PageSource =
   | { kind: "text"; prompt: string }
@@ -134,6 +136,9 @@ function Index() {
 
   /** Which page is currently being filled, and how. */
   const [speakFor, setSpeakFor] = useState<number | null>(null);
+  const [typeFor, setTypeFor] = useState<number | null>(null);
+  const [typedPrompt, setTypedPrompt] = useState("");
+
   const [photoFor, setPhotoFor] = useState<number | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [prepPhoto, setPrepPhoto] = useState<string | null>(null);
@@ -445,6 +450,28 @@ function Index() {
     void runForPage(id, { kind: "text", prompt: text }, text);
   };
 
+  const openType = (id: number) => {
+    setGenError(null);
+    setTypedPrompt("");
+    setTypeFor(id);
+  };
+
+  const closeType = () => {
+    setTypeFor(null);
+    setTypedPrompt("");
+  };
+
+  const confirmType = () => {
+    const text = typedPrompt.trim();
+    if (typeFor === null || !text) return;
+    const id = typeFor;
+    setTypeFor(null);
+    setTypedPrompt("");
+    void runForPage(id, { kind: "text", prompt: text }, text);
+  };
+
+
+
   const openCamera = (id: number) => {
     setGenError(null);
     setPhotoFor(id);
@@ -668,7 +695,7 @@ function Index() {
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <section className="paper-card mt-6 p-6 sm:p-8">
-          <h1 className="text-center text-3xl font-extrabold">Say it or snap it?</h1>
+          <h1 className="text-center text-3xl font-extrabold">Say it, type it, or snap it?</h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Choose how you want to fill each page. You can change it later on the page itself.
           </p>
@@ -683,6 +710,13 @@ function Index() {
             </button>
             <button
               type="button"
+              onClick={() => setPages(blankPages(pageCount, "type"))}
+              className="btn-crayon"
+            >
+              <Keyboard className="h-4 w-4" /> Type it for every page
+            </button>
+            <button
+              type="button"
               onClick={() => setPages(blankPages(pageCount, "snap"))}
               className="btn-crayon"
             >
@@ -694,11 +728,11 @@ function Index() {
             {draft.map((page) => (
               <li
                 key={page.id}
-                className="flex items-center justify-between gap-3 rounded-2xl border-2 border-border bg-card px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-border bg-card px-4 py-3"
               >
                 <span className="text-sm font-extrabold">Page {page.id + 1}</span>
-                <div className="flex gap-2">
-                  {(["say", "snap"] as PageMode[]).map((mode) => (
+                <div className="flex flex-wrap gap-2">
+                  {(["say", "type", "snap"] as PageMode[]).map((mode) => (
                     <button
                       key={mode}
                       type="button"
@@ -715,8 +749,15 @@ function Index() {
                           : "bg-background text-foreground",
                       )}
                     >
-                      {mode === "say" ? <Mic className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-                      {mode === "say" ? "Say it" : "Snap it"}
+                      {mode === "say" ? (
+                        <Mic className="h-4 w-4" />
+                      ) : mode === "type" ? (
+                        <Keyboard className="h-4 w-4" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                      {mode === "say" ? "Say it" : mode === "type" ? "Type it" : "Snap it"}
+
                     </button>
                   ))}
                 </div>
@@ -907,6 +948,15 @@ function Index() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => openType(page.id)}
+                    disabled={busyPage !== null}
+                    className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                  >
+                    <Keyboard className="h-4 w-4" /> Type it
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => openCamera(page.id)}
                     disabled={busyPage !== null}
                     className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
@@ -1083,6 +1133,41 @@ function Index() {
           </div>
         </div>
       )}
+
+      {typeFor !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-3xl border-4 border-border bg-card p-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Page {typeFor + 1}
+            </p>
+            <h2 className="mt-1 text-2xl font-extrabold">Type what to draw</h2>
+
+            <textarea
+              value={typedPrompt}
+              onChange={(e) => setTypedPrompt(e.target.value)}
+              rows={3}
+              autoFocus
+              placeholder="e.g. a dragon eating pizza"
+              className="mt-4 w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-center text-lg font-semibold outline-none focus:border-accent"
+            />
+
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={confirmType}
+                disabled={!typedPrompt.trim()}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-accent px-6 py-2.5 text-base font-extrabold text-accent-foreground disabled:opacity-50"
+              >
+                <Sparkles className="h-4 w-4" /> Draw it
+              </button>
+              <button type="button" onClick={closeType} className="btn-crayon">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }

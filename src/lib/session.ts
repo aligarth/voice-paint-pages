@@ -5,7 +5,7 @@ export type SessionPage = {
   /** Transparent paint layer the user has coloured, if any. */
   paint?: string | null;
   /** How this page gets filled: spoken or snapped. */
-  mode?: "say" | "snap";
+  mode?: "say" | "type" | "snap";
 };
 
 export type ColoringSession = {
