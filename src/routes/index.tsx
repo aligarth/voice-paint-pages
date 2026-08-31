@@ -239,7 +239,49 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, restored]);
 
+  /** Deletes the page's drawing, resets the slot to blank, and removes the saved copy. */
+  const confirmDeletePage = async () => {
+    const id = deletePageId;
+    if (id === null) return;
+    const target = pages.find((page) => page.id === id);
+    setDeletePageId(null);
+    setPages((prev) =>
+      prev.map((page) =>
+        page.id === id
+          ? {
+              id: page.id,
+              mode: page.mode,
+              title: "",
+              src: null,
+              done: false,
+              paint: null,
+              error: undefined,
+              source: undefined,
+              regenerating: undefined,
+            }
+          : page,
+      ),
+    );
+    setSelectedPages((prev) => prev.filter((pid) => pid !== id));
+    setLastOpened((prev) => (prev === id ? null : prev));
+    if (openPage === id) setOpenPage(null);
+    try {
+      if (target?.src) {
+        const record = savedBooks
+          .filter(isSavedPage)
+          .find((book) => book.pages.some((src) => src === target.src));
+        if (record) {
+          setSavedBooks(await deletePageAndCascade(record.id));
+        }
+      }
+      setSaveMessage("Page deleted.");
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not delete the saved page.");
+    }
+  };
+
   /** Opens choose-pages mode with one page (e.g. the page open in the canvas) pre-selected. */
+
   const startSelectingWith = (id: number) => {
     setOpenPage(null);
     setLastOpened(id);
