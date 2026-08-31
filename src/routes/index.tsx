@@ -20,6 +20,8 @@ import {
   RotateCcw,
   Upload,
   ArrowRight,
+  Keyboard,
+
 } from "lucide-react";
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
@@ -70,7 +72,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type PageMode = "say" | "snap";
+type PageMode = "say" | "type" | "snap";
 
 type PageSource =
   | { kind: "text"; prompt: string }
@@ -134,6 +136,9 @@ function Index() {
 
   /** Which page is currently being filled, and how. */
   const [speakFor, setSpeakFor] = useState<number | null>(null);
+  const [typeFor, setTypeFor] = useState<number | null>(null);
+  const [typedPrompt, setTypedPrompt] = useState("");
+
   const [photoFor, setPhotoFor] = useState<number | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [prepPhoto, setPrepPhoto] = useState<string | null>(null);
