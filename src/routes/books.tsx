@@ -514,6 +514,27 @@ function BooksPage() {
         </div>
       )}
 
+      {deletingBookId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border-2 border-border bg-card p-6 shadow-xl">
+            <h3 className="text-xl font-extrabold">Delete this book?</h3>
+            <p className="mt-2 text-muted-foreground">You can undo right after.</p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button type="button" className="btn-crayon" onClick={() => setDeletingBookId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-crayon bg-primary text-primary-foreground"
+                onClick={() => void confirmDeleteBook()}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deletingId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-3xl border-2 border-border bg-card p-6 shadow-xl">
