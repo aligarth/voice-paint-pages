@@ -176,15 +176,6 @@ function BooksPage() {
                 </div>
               ) : (
                 <h2 className="flex items-center gap-3 text-2xl font-extrabold capitalize">
-                  {selecting && (
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(book.id)}
-                      onChange={() => toggleSelected(book.id)}
-                      aria-label={`Select ${book.title}`}
-                      className="h-5 w-5 accent-primary"
-                    />
-                  )}
                   {book.title}{" "}
                   <span className="text-base font-bold text-muted-foreground">
                     · {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
