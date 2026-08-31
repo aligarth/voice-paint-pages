@@ -377,7 +377,13 @@ function BooksPage() {
                   <button
                     type="button"
                     className="btn-crayon"
-                    onClick={async () => setBooks(await deleteBook(book.id))}
+                    onClick={() => {
+                      if (isPages) {
+                        setDeletingId(book.id);
+                      } else {
+                        void (async () => setBooks(await deleteBook(book.id)))();
+                      }
+                    }}
                   >
                     <Trash2 className="h-4 w-4" /> {isPages ? "Delete page" : "Delete book"}
                   </button>
