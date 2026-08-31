@@ -414,7 +414,7 @@ function BooksPage() {
                       if (isPages) {
                         setDeletingId(book.id);
                       } else {
-                        void (async () => setBooks(await deleteBook(book.id)))();
+                        setDeletingBookId(book.id);
                       }
                     }}
                   >
