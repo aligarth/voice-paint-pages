@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BookOpen,
   Check,
+  Download,
   FileDown,
   FileArchive,
   ImageDown,
