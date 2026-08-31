@@ -1076,6 +1076,55 @@ function Index() {
         })}
       </div>
 
+      {selecting && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-card p-4 shadow-lg">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
+              <span className="rounded-full bg-primary px-3 py-1 text-primary-foreground">
+                {selectedPages.length}
+              </span>
+              <span>
+                {selectedPages.length === 1 ? "page selected" : "pages selected"}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedPages(pages.filter((p) => p.src && p.done).map((p) => p.id))
+                }
+                className="ml-2 rounded-full border-2 border-border px-3 py-1 text-xs font-extrabold hover:bg-muted"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPages([])}
+                className="rounded-full border-2 border-border px-3 py-1 text-xs font-extrabold hover:bg-muted"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
+              <input
+                type="text"
+                value={combineTitle}
+                onChange={(e) => setCombineTitle(e.target.value)}
+                placeholder="Name your book"
+                className="min-w-[12rem] flex-1 rounded-full border-2 border-border bg-background px-4 py-2 text-sm font-bold outline-none focus:border-accent sm:flex-none"
+                aria-label="Book title"
+              />
+              <button
+                type="button"
+                onClick={() => void saveSelectedAsBook()}
+                disabled={selectedPages.length === 0}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
+              >
+                <BookOpen className="h-4 w-4" /> Save as one book
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {bookshelf}
 
       {/* hidden inputs for photo pickers */}
