@@ -180,6 +180,18 @@ function BooksPage() {
     }
   };
 
+  const confirmDeletePage = async () => {
+    if (!deletingId) return;
+    try {
+      setBooks(await deletePageAndCascade(deletingId));
+      setMessage("Page deleted and removed from any books that used it.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not delete the page.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const isPages = view === "pages";
 
   return (
