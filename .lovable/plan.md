@@ -5,7 +5,7 @@ The app generates and saves individual coloring pages. A book is created only wh
 ## Correct experience
 
 1. **Generate pages** — Say it, Type it, Snap it, or Upload creates individual coloring pages. Each finished result auto-saves to **My Pages**, whether it has been colored or not.
-2. **Choose pages** — users can enter selection mode either from the current page-making session or from **My Pages**, and select at least two generated pages.
+2. **Choose pages** — users can enter selection mode either from the current page-making session or from **My Pages**, and select at least one generated page. The page currently open in the coloring canvas is included in the choose-pages list and can be selected too, with its in-progress coloring captured as it stands.
 3. **Build one book** — the user names the selection and taps **Create book**. The selected pages are copied into one ordered, multi-page book without deleting the originals from My Pages.
 4. **My Bookshelf** — contains only the multi-page books users deliberately created from selected pages. No generated page appears here automatically.
 5. Opening a bookshelf book restores every selected page in order, including its saved coloring; uncolored pages reopen as clean line art ready to color.
