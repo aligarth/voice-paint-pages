@@ -392,6 +392,21 @@ function BooksPage() {
                   <button type="button" className="btn-crayon" onClick={() => void openBook(book)}>
                     Open & color
                   </button>
+                  {!isPages && (
+                    <button
+                      type="button"
+                      className="btn-crayon disabled:opacity-50"
+                      disabled={exportingId === `${book.id}-save`}
+                      onClick={() => void saveBookToDevice(book)}
+                    >
+                      {exportingId === `${book.id}-save` ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      {exportingId === `${book.id}-save` ? "Saving…" : "Save book"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn-crayon"
