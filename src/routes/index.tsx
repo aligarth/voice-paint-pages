@@ -365,6 +365,8 @@ function Index() {
     setOpenPage(null);
     setSaveMessage(null);
     setStep("book");
+    setSelecting(false);
+    setSelectedPages([]);
   };
 
   const runForPage = useCallback(async (id: number, source: PageSource, title: string) => {
