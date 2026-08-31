@@ -237,6 +237,16 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, restored]);
 
+  /** Opens choose-pages mode with one page (e.g. the page open in the canvas) pre-selected. */
+  const startSelectingWith = (id: number) => {
+    setOpenPage(null);
+    setLastOpened(id);
+    setCombineTitle((prev) => prev || bookTitle);
+    setSelectedPages((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setSelecting(true);
+    setSaveMessage(null);
+  };
+
   const saveSelectedAsBook = async () => {
     if (!selectedPages.length) return;
     // Keep the order the user tapped the pages in.
