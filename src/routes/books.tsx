@@ -7,21 +7,16 @@ import {
   FileDown,
   FileArchive,
   ImageDown,
-  Layers,
   Loader2,
   Pencil,
-  Undo2,
   Trash2,
   X,
 } from "lucide-react";
 import {
-  combineBooks,
   deleteBook,
   deleteBookPage,
   listBooks,
   renameBook,
-  undoCombine,
-  type CombineUndo,
   type SavedBook,
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
