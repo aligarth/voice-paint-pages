@@ -1,3 +1,5 @@
+export type SavedKind = "page" | "book";
+
 export type SavedBook = {
   id: string;
   title: string;
@@ -5,9 +7,25 @@ export type SavedBook = {
   pages: string[];
   /** Optional painted layers for each page, aligned by index. */
   paints?: (string | null)[] | undefined;
+  /** "page" = one generated coloring page, "book" = a collection the user built. */
+  kind?: SavedKind | undefined;
 };
 
 export const MAX_BOOKS = 100;
+
+/** Older records have no `kind`: multi-page records were combined books. */
+export function recordKind(record: SavedBook): SavedKind {
+  if (record.kind) return record.kind;
+  return record.pages.length > 1 ? "book" : "page";
+}
+
+export function isSavedPage(record: SavedBook) {
+  return recordKind(record) === "page";
+}
+
+export function isSavedBook(record: SavedBook) {
+  return recordKind(record) === "book";
+}
 
 const DB_NAME = "say-and-color";
 const STORE = "books";
