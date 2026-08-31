@@ -16,6 +16,7 @@ import {
 import {
   deleteBook,
   deleteBookPage,
+  deletePageAndCascade,
   isSavedBook,
   isSavedPage,
   listBooks,
