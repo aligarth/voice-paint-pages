@@ -136,6 +136,8 @@ function Index() {
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
+  const [deletePageId, setDeletePageId] = useState<number | null>(null);
+
 
   // Choose pages to build one book.
   const [selecting, setSelecting] = useState(false);
