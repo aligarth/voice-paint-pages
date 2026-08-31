@@ -29,7 +29,9 @@ import { useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import {
   deleteBook,
+  deletePageAndCascade,
   isSavedPage,
+
   listBooks,
   makeBookId,
   saveBookRecord,
