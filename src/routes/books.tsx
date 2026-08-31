@@ -67,6 +67,7 @@ function BooksPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Choose pages (My Pages view) to build one book.
   const [selecting, setSelecting] = useState(false);
