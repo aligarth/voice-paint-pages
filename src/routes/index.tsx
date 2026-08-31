@@ -1162,7 +1162,7 @@ function Index() {
                 disabled={selectedPages.length === 0}
                 className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
               >
-                <BookOpen className="h-4 w-4" /> Save as one book
+                <BookOpen className="h-4 w-4" /> Create book
               </button>
             </div>
           </div>
