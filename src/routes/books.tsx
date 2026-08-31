@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -11,6 +11,7 @@ import {
   Library,
   Loader2,
   Pencil,
+  RotateCcw,
   Trash2,
   X,
 } from "lucide-react";
