@@ -1027,6 +1027,11 @@ function Index() {
                 <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
                   Page {page.id + 1}
                 </span>
+                {selecting && lastOpened === page.id && page.src && (
+                  <span className="absolute bottom-2 right-2 rounded-full border-2 border-border bg-accent px-3 py-1 text-xs font-extrabold text-accent-foreground">
+                    Current page
+                  </span>
+                )}
                 {selectable ? (
                   <span
                     className={cn(
