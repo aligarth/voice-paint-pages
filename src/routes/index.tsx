@@ -948,6 +948,15 @@ function Index() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => openType(page.id)}
+                    disabled={busyPage !== null}
+                    className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
+                  >
+                    <Keyboard className="h-4 w-4" /> Type it
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => openCamera(page.id)}
                     disabled={busyPage !== null}
                     className="btn-crayon flex-1 justify-center text-sm disabled:opacity-50"
