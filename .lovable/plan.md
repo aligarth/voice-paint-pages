@@ -5,7 +5,7 @@ The app generates and saves individual coloring pages. A book is created only wh
 ## Correct experience
 
 1. **Generate pages** — Say it, Type it, Snap it, or Upload creates individual coloring pages. Each finished result auto-saves to **My Pages**, whether it has been colored or not.
-2. **Choose pages** — users can enter selection mode either from the current page-making session or from **My Pages**, and select at least two generated pages.
+2. **Choose pages** — users can enter selection mode either from the current page-making session or from **My Pages**, and select at least one generated page. The page currently open in the coloring canvas is included in the choose-pages list and can be selected too, with its in-progress coloring captured as it stands.
 3. **Build one book** — the user names the selection and taps **Create book**. The selected pages are copied into one ordered, multi-page book without deleting the originals from My Pages.
 4. **My Bookshelf** — contains only the multi-page books users deliberately created from selected pages. No generated page appears here automatically.
 5. Opening a bookshelf book restores every selected page in order, including its saved coloring; uncolored pages reopen as clean line art ready to color.
@@ -23,6 +23,7 @@ The app generates and saves individual coloring pages. A book is created only wh
 
 - Selection is available in both the current session and My Pages.
 - Generated-but-uncolored pages are selectable; completely blank placeholders are not.
+- The currently open coloring page is selectable from the choose-pages list, marked **Current page**, and saved with whatever coloring exists at that moment.
 - Require at least one page to create a book.
 - Preserve the order in which pages are selected. Provide **Select all**, **Clear**, a book-title field, and **Create book**.
 - Creating a book copies each page's line art and optional paint layer. It does not remove or convert the original page records.
@@ -38,7 +39,8 @@ The app generates and saves individual coloring pages. A book is created only wh
 `src/routes/index.tsx`
 - Filter the home strip to page records and label it **My Pages**.
 - Add separate **My Pages** and **My Bookshelf** navigation actions.
-- Keep current-session page selection, require two selections, write the result as `kind: "book"`, and use the wording **Create book**.
+- Keep current-session page selection, require at least one selection, write the result as `kind: "book"`, and use the wording **Create book**.
+- Before opening selection mode (and before creating the book), flush the open canvas's current paint layer into session state so the currently open page can be selected with its latest coloring.
 
 `src/routes/books.tsx`
 - Add **My Pages** and **My Bookshelf** views, addressable through the route search parameter.
