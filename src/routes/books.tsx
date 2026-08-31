@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -7,6 +7,7 @@ import {
   FileDown,
   FileArchive,
   ImageDown,
+  Library,
   Loader2,
   Pencil,
   Trash2,
@@ -15,29 +16,40 @@ import {
 import {
   deleteBook,
   deleteBookPage,
+  isSavedBook,
+  isSavedPage,
   listBooks,
+  makeBookId,
   renameBook,
+  saveBookRecord,
   type SavedBook,
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
+import { cn } from "@/lib/utils";
 
 import { saveSession } from "@/lib/session";
 
+type View = "pages" | "bookshelf";
+
 export const Route = createFileRoute("/books")({
+  validateSearch: (search: Record<string, unknown>): { view: View } => ({
+    view: search["view"] === "bookshelf" ? "bookshelf" : "pages",
+  }),
   head: () => ({
     meta: [
-      { title: "My Books — Say & Color Library" },
+      { title: "My Pages & My Bookshelf — Color My World" },
       {
         name: "description",
         content:
-          "View, rename, export and delete your saved coloring books and individual pages, then reopen any book to keep coloring.",
+          "Browse every coloring page you made in My Pages, choose the ones you love, and build them into a book that lives in My Bookshelf.",
       },
-      { property: "og:title", content: "My Books — Say & Color Library" },
+      { property: "og:title", content: "My Pages & My Bookshelf — Color My World" },
       {
         property: "og:description",
-        content: "Manage your saved coloring books: rename, delete pages, export a PDF or resume coloring.",
+        content:
+          "Manage your saved coloring pages and books: rename, delete, export a PDF, or reopen anything to keep coloring.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -48,15 +60,32 @@ export const Route = createFileRoute("/books")({
 
 function BooksPage() {
   const navigate = useNavigate();
+  const { view } = Route.useSearch();
   const [books, setBooks] = useState<SavedBook[] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftTitle, setDraftTitle] = useState("");
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  // Choose pages (My Pages view) to build one book.
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bookTitle, setBookTitle] = useState("My coloring book");
+
   useEffect(() => {
     void listBooks().then(setBooks);
   }, []);
+
+  const records = useMemo(
+    () => (books ?? []).filter(view === "pages" ? isSavedPage : isSavedBook),
+    [books, view],
+  );
+
+  const setView = (next: View) => {
+    setSelecting(false);
+    setSelectedIds([]);
+    void navigate({ to: "/books", search: { view: next } });
+  };
 
   const openBook = async (book: SavedBook) => {
     await saveSession({
@@ -112,6 +141,44 @@ function BooksPage() {
     }
   };
 
+  /** Copies the chosen pages into one new book without touching the originals. */
+  const createBook = async () => {
+    if (!selectedIds.length) return;
+    const chosen = selectedIds
+      .map((id) => records.find((record) => record.id === id))
+      .filter((record): record is SavedBook => Boolean(record));
+    if (!chosen.length) return;
+    const title = bookTitle.trim() || "My coloring book";
+    const pages: string[] = [];
+    const paints: (string | null)[] = [];
+    for (const record of chosen) {
+      record.pages.forEach((src, i) => {
+        pages.push(src);
+        paints.push(record.paints?.[i] ?? null);
+      });
+    }
+    try {
+      setBooks(
+        await saveBookRecord({
+          id: makeBookId(),
+          title,
+          savedAt: Date.now(),
+          pages,
+          paints,
+          kind: "book",
+        }),
+      );
+      setSelecting(false);
+      setSelectedIds([]);
+      setMessage(
+        `Created “${title}” with ${pages.length} ${pages.length === 1 ? "page" : "pages"} in My Bookshelf.`,
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not create the book.");
+    }
+  };
+
+  const isPages = view === "pages";
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
@@ -121,164 +188,278 @@ function BooksPage() {
 
       <header>
         <h1 className="flex flex-wrap items-center gap-3 text-4xl font-extrabold">
-          <BookOpen className="h-8 w-8" /> My books
+          {isPages ? <Library className="h-8 w-8" /> : <BookOpen className="h-8 w-8" />}
+          {isPages ? "My Pages" : "My Bookshelf"}
           <span className="text-base font-bold text-muted-foreground">
-            {books ? `${books.length} saved` : "loading…"}
+            {books ? `${records.length} saved` : "loading…"}
           </span>
         </h1>
-        <p className="mt-3 max-w-xl text-base text-muted-foreground">
-          Every picture you draw is saved here as its own little book. Rename, remove pages, export a
-          PDF, or reopen a book to keep coloring.
-        </p>
 
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setView("pages")}
+            aria-pressed={isPages}
+            className={cn("btn-crayon", isPages && "bg-primary text-primary-foreground")}
+          >
+            <Library className="h-4 w-4" /> My Pages
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("bookshelf")}
+            aria-pressed={!isPages}
+            className={cn("btn-crayon", !isPages && "bg-primary text-primary-foreground")}
+          >
+            <BookOpen className="h-4 w-4" /> My Bookshelf
+          </button>
+          {isPages && records.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelecting((prev) => {
+                  if (prev) setSelectedIds([]);
+                  return !prev;
+                });
+              }}
+              aria-pressed={selecting}
+              className={cn("btn-crayon", selecting && "bg-accent text-accent-foreground")}
+            >
+              <Check className="h-4 w-4" /> {selecting ? "Done choosing" : "Choose pages"}
+            </button>
+          )}
+        </div>
+
+        <p className="mt-3 max-w-xl text-base text-muted-foreground">
+          {isPages
+            ? "Every picture you draw saves itself here as its own page. Choose the pages you want and build them into one book."
+            : "Books you built from chosen pages live here. Rename, remove pages, export a PDF, or reopen a book to keep coloring."}
+        </p>
 
         {message && <p className="mt-3 text-sm font-bold text-primary">{message}</p>}
       </header>
 
-      {books && books.length === 0 && (
+      {books && records.length === 0 && (
         <div className="paper-card mt-10 p-8 text-center">
-          <p className="text-lg font-extrabold">No saved books yet</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Say it or snap it in the studio — each picture saves itself here as its own book.
+          <p className="text-lg font-extrabold">
+            {isPages ? "No saved pages yet" : "No books yet"}
           </p>
-          <Link to="/" className="btn-crayon mt-5 inline-flex">
-            Go make one
-          </Link>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {isPages
+              ? "Say it, type it or snap it in the studio — each picture saves itself here as its own page."
+              : "Go to My Pages, choose the pages you love, and create your first book."}
+          </p>
+          {isPages ? (
+            <Link to="/" className="btn-crayon mt-5 inline-flex">
+              Go make one
+            </Link>
+          ) : (
+            <button type="button" className="btn-crayon mt-5 inline-flex" onClick={() => setView("pages")}>
+              Open My Pages
+            </button>
+          )}
         </div>
       )}
 
-      <div className="mt-10 space-y-8">
-        {books?.map((book) => (
-          <section key={book.id} className="paper-card p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {editingId === book.id ? (
-                <div className="flex flex-1 flex-wrap items-center gap-2">
-                  <input
-                    value={draftTitle}
-                    onChange={(e) => setDraftTitle(e.target.value)}
-                    autoFocus
-                    className="min-w-[12rem] flex-1 rounded-full border-2 border-border bg-card px-4 py-2 text-base font-bold outline-none focus:border-primary"
-                    aria-label="Book title"
-                  />
+      <div className={cn("mt-10 space-y-8", selecting && "pb-32")}>
+        {records.map((book) => {
+          const isSelected = selectedIds.includes(book.id);
+          return (
+            <section
+              key={book.id}
+              className={cn("paper-card p-5", selecting && isSelected && "ring-4 ring-primary")}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {editingId === book.id ? (
+                  <div className="flex flex-1 flex-wrap items-center gap-2">
+                    <input
+                      value={draftTitle}
+                      onChange={(e) => setDraftTitle(e.target.value)}
+                      autoFocus
+                      className="min-w-[12rem] flex-1 rounded-full border-2 border-border bg-card px-4 py-2 text-base font-bold outline-none focus:border-primary"
+                      aria-label="Title"
+                    />
+                    <button
+                      type="button"
+                      className="btn-crayon"
+                      onClick={async () => {
+                        setBooks(await renameBook(book.id, draftTitle));
+                        setEditingId(null);
+                      }}
+                    >
+                      <Check className="h-4 w-4" /> Save
+                    </button>
+                    <button type="button" className="btn-crayon" onClick={() => setEditingId(null)}>
+                      <X className="h-4 w-4" /> Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <h2 className="flex items-center gap-3 text-2xl font-extrabold capitalize">
+                    {book.title}{" "}
+                    <span className="text-base font-bold text-muted-foreground">
+                      · {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
+                    </span>
+                  </h2>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {selecting && isPages && (
+                    <button
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() =>
+                        setSelectedIds((prev) =>
+                          isSelected ? prev.filter((id) => id !== book.id) : [...prev, book.id],
+                        )
+                      }
+                      className={cn(
+                        "btn-crayon",
+                        isSelected && "bg-primary text-primary-foreground",
+                      )}
+                    >
+                      <Check className="h-4 w-4" /> {isSelected ? "Chosen" : "Choose"}
+                    </button>
+                  )}
+                  {editingId !== book.id && (
+                    <button
+                      type="button"
+                      className="btn-crayon"
+                      onClick={() => {
+                        setEditingId(book.id);
+                        setDraftTitle(book.title);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" /> Rename
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn-crayon disabled:opacity-50"
+                    disabled={exportingId === book.id}
+                    onClick={() => void exportBook(book)}
+                  >
+                    {exportingId === book.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileDown className="h-4 w-4" />
+                    )}
+                    {exportingId === book.id ? "Building PDF…" : "Export PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-crayon disabled:opacity-50"
+                    disabled={exportingId === `${book.id}-zip`}
+                    onClick={() => void exportBookZip(book)}
+                  >
+                    {exportingId === `${book.id}-zip` ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileArchive className="h-4 w-4" />
+                    )}
+                    {exportingId === `${book.id}-zip` ? "Building ZIP…" : "Export ZIP"}
+                  </button>
+                  <button type="button" className="btn-crayon" onClick={() => void openBook(book)}>
+                    Open & color
+                  </button>
                   <button
                     type="button"
                     className="btn-crayon"
-                    onClick={async () => {
-                      setBooks(await renameBook(book.id, draftTitle));
-                      setEditingId(null);
-                    }}
+                    onClick={async () => setBooks(await deleteBook(book.id))}
                   >
-                    <Check className="h-4 w-4" /> Save
-                  </button>
-                  <button type="button" className="btn-crayon" onClick={() => setEditingId(null)}>
-                    <X className="h-4 w-4" /> Cancel
+                    <Trash2 className="h-4 w-4" /> {isPages ? "Delete page" : "Delete book"}
                   </button>
                 </div>
-              ) : (
-                <h2 className="flex items-center gap-3 text-2xl font-extrabold capitalize">
-                  {book.title}{" "}
-                  <span className="text-base font-bold text-muted-foreground">
-                    · {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
-                  </span>
-                </h2>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                {editingId !== book.id && (
-                  <button
-                    type="button"
-                    className="btn-crayon"
-                    onClick={() => {
-                      setEditingId(book.id);
-                      setDraftTitle(book.title);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" /> Rename
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="btn-crayon disabled:opacity-50"
-                  disabled={exportingId === book.id}
-                  onClick={() => void exportBook(book)}
-                >
-                  {exportingId === book.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileDown className="h-4 w-4" />
-                  )}
-                  {exportingId === book.id ? "Building PDF…" : "Export PDF"}
-                </button>
-                <button
-                  type="button"
-                  className="btn-crayon disabled:opacity-50"
-                  disabled={exportingId === `${book.id}-zip`}
-                  onClick={() => void exportBookZip(book)}
-                >
-                  {exportingId === `${book.id}-zip` ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileArchive className="h-4 w-4" />
-                  )}
-                  {exportingId === `${book.id}-zip` ? "Building ZIP…" : "Export ZIP"}
-                </button>
-                <button type="button" className="btn-crayon" onClick={() => void openBook(book)}>
-                  Open & color
-                </button>
-                <button
-                  type="button"
-                  className="btn-crayon"
-                  onClick={async () => setBooks(await deleteBook(book.id))}
-                >
-                  <Trash2 className="h-4 w-4" /> Delete book
-                </button>
               </div>
-            </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {book.pages.map((src, index) => (
-                <div key={index} className="rounded-2xl border-2 border-border p-2">
-                  <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-white">
-                    <img
-                      src={src}
-                      alt={`${book.title} page ${index + 1}`}
-                      className="absolute inset-0 h-full w-full object-contain"
-                    />
-                    {book.paints?.[index] && (
+              <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {book.pages.map((src, index) => (
+                  <div key={index} className="rounded-2xl border-2 border-border p-2">
+                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-white">
                       <img
-                        src={book.paints[index]!}
-                        alt=""
+                        src={src}
+                        alt={`${book.title} page ${index + 1}`}
                         className="absolute inset-0 h-full w-full object-contain"
                       />
-                    )}
-                  </div>
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <span className="text-xs font-extrabold">Page {index + 1}</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        aria-label={`Export page ${index + 1} as PNG`}
-                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                        onClick={() => void exportPagePng(book, index)}
-                      >
-                        <ImageDown className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Delete page ${index + 1}`}
-                        className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                        onClick={async () => setBooks(await deleteBookPage(book.id, index))}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {book.paints?.[index] && (
+                        <img
+                          src={book.paints[index]!}
+                          alt=""
+                          className="absolute inset-0 h-full w-full object-contain"
+                        />
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <span className="text-xs font-extrabold">Page {index + 1}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label={`Export page ${index + 1} as PNG`}
+                          className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                          onClick={() => void exportPagePng(book, index)}
+                        >
+                          <ImageDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete page ${index + 1}`}
+                          className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
+                          onClick={async () => setBooks(await deleteBookPage(book.id, index))}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
+
+      {selecting && isPages && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-card p-4 shadow-lg">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
+              <span className="rounded-full bg-primary px-3 py-1 text-primary-foreground">
+                {selectedIds.length}
+              </span>
+              <span>{selectedIds.length === 1 ? "page chosen" : "pages chosen"}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(records.map((record) => record.id))}
+                className="ml-2 rounded-full border-2 border-border px-3 py-1 text-xs font-extrabold hover:bg-muted"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedIds([])}
+                className="rounded-full border-2 border-border px-3 py-1 text-xs font-extrabold hover:bg-muted"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
+              <input
+                type="text"
+                value={bookTitle}
+                onChange={(e) => setBookTitle(e.target.value)}
+                placeholder="Name your book"
+                className="min-w-[12rem] flex-1 rounded-full border-2 border-border bg-background px-4 py-2 text-sm font-bold outline-none focus:border-accent sm:flex-none"
+                aria-label="Book title"
+              />
+              <button
+                type="button"
+                onClick={() => void createBook()}
+                disabled={selectedIds.length === 0}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
+              >
+                <BookOpen className="h-4 w-4" /> Create book
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

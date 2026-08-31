@@ -29,6 +29,7 @@ import { useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import {
   deleteBook,
+  isSavedPage,
   listBooks,
   makeBookId,
   saveBookRecord,
@@ -134,10 +135,12 @@ function Index() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
 
-  // Select pages to save as one book.
+  // Choose pages to build one book.
   const [selecting, setSelecting] = useState(false);
   const [selectedPages, setSelectedPages] = useState<number[]>([]);
   const [combineTitle, setCombineTitle] = useState("");
+  /** The page most recently open in the coloring canvas — flagged as "Current page". */
+  const [lastOpened, setLastOpened] = useState<number | null>(null);
 
   /** Which page is currently being filled, and how. */
   const [speakFor, setSpeakFor] = useState<number | null>(null);
@@ -223,6 +226,7 @@ function Index() {
             savedAt: Date.now(),
             pages: [src],
             paints: [page.paint ?? null],
+            kind: "page",
           });
           changed = true;
         } catch {
@@ -235,11 +239,22 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, restored]);
 
+  /** Opens choose-pages mode with one page (e.g. the page open in the canvas) pre-selected. */
+  const startSelectingWith = (id: number) => {
+    setOpenPage(null);
+    setLastOpened(id);
+    setCombineTitle((prev) => prev || bookTitle);
+    setSelectedPages((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setSelecting(true);
+    setSaveMessage(null);
+  };
+
   const saveSelectedAsBook = async () => {
     if (!selectedPages.length) return;
-    const chosen = pages
-      .filter((page) => selectedPages.includes(page.id) && page.src)
-      .sort((a, b) => a.id - b.id);
+    // Keep the order the user tapped the pages in.
+    const chosen = selectedPages
+      .map((id) => pages.find((page) => page.id === id))
+      .filter((page): page is Page => Boolean(page?.src));
     if (!chosen.length) return;
     const title = combineTitle.trim() || bookTitle || "My coloring book";
     try {
@@ -249,13 +264,16 @@ function Index() {
         savedAt: Date.now(),
         pages: chosen.map((page) => page.src!),
         paints: chosen.map((page) => page.paint ?? null),
+        kind: "book",
       });
       setSavedBooks(await listBooks());
-      setSaveMessage(`Saved “${title}” with ${chosen.length} pages to your bookshelf.`);
+      setSaveMessage(
+        `Created “${title}” with ${chosen.length} ${chosen.length === 1 ? "page" : "pages"} in My Bookshelf.`,
+      );
       setSelecting(false);
       setSelectedPages([]);
     } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Could not save the book.");
+      setSaveMessage(err instanceof Error ? err.message : "Could not create the book.");
     }
   };
 
@@ -541,6 +559,13 @@ function Index() {
           </button>
           <button
             type="button"
+            onClick={() => startSelectingWith(activePage.id)}
+            className="btn-crayon"
+          >
+            <BookOpen className="h-4 w-4" /> Add this page to a book
+          </button>
+          <button
+            type="button"
             onClick={() => void exportPdf()}
             disabled={exporting || !readyPages.length}
             className="btn-crayon disabled:opacity-50"
@@ -590,20 +615,27 @@ function Index() {
     );
   }
 
+  const savedPageRecords = savedBooks.filter(isSavedPage);
+
   const bookshelf =
-    savedBooks.length > 0 ? (
+    savedPageRecords.length > 0 ? (
       <section className="mt-14">
         <h2 className="flex flex-wrap items-center gap-2 text-2xl font-extrabold">
-          <BookOpen className="h-6 w-6" /> My bookshelf
+          <BookOpen className="h-6 w-6" /> My Pages
           <span className="text-base text-muted-foreground">
-            · {savedBooks.length} saved · every new page saves itself
+            · {savedPageRecords.length} saved · every new page saves itself
           </span>
-          <Link to="/books" className="btn-crayon ml-auto text-sm">
-            <Library className="h-4 w-4" /> My books
-          </Link>
+          <span className="ml-auto flex flex-wrap gap-2">
+            <Link to="/books" search={{ view: "pages" }} className="btn-crayon text-sm">
+              <Library className="h-4 w-4" /> My Pages
+            </Link>
+            <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon text-sm">
+              <BookOpen className="h-4 w-4" /> My Bookshelf
+            </Link>
+          </span>
         </h2>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {savedBooks.map((book) => (
+          {savedPageRecords.map((book) => (
             <div key={book.id} className="paper-card p-3">
               <button
                 type="button"
@@ -612,7 +644,7 @@ function Index() {
               >
                 <img
                   src={book.pages[0]}
-                  alt={`Saved book: ${book.title}`}
+                  alt={`Saved page: ${book.title}`}
                   loading="lazy"
                   className="aspect-square w-full rounded-xl object-contain"
                 />
@@ -657,9 +689,12 @@ function Index() {
           >
             <BookOpen className="h-5 w-5" /> Open my book
           </button>
-          <div className="mt-4">
-            <Link to="/books" className="btn-crayon text-sm">
-              <Library className="h-4 w-4" /> My books
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Link to="/books" search={{ view: "pages" }} className="btn-crayon text-sm">
+              <Library className="h-4 w-4" /> My Pages
+            </Link>
+            <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon text-sm">
+              <BookOpen className="h-4 w-4" /> My Bookshelf
             </Link>
           </div>
         </div>
@@ -843,14 +878,17 @@ function Index() {
               className={cn("btn-crayon", selecting && "bg-primary text-primary-foreground")}
               aria-pressed={selecting}
             >
-              <Check className="h-4 w-4" /> {selecting ? "Done selecting" : "Select pages"}
+              <Check className="h-4 w-4" /> {selecting ? "Done choosing" : "Choose pages"}
             </button>
           )}
           <button type="button" onClick={startFresh} className="btn-crayon">
             <RotateCcw className="h-4 w-4" /> Start a new book
           </button>
-          <Link to="/books" className="btn-crayon">
-            <Library className="h-4 w-4" /> My books
+          <Link to="/books" search={{ view: "pages" }} className="btn-crayon">
+            <Library className="h-4 w-4" /> My Pages
+          </Link>
+          <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon">
+            <BookOpen className="h-4 w-4" /> My Bookshelf
           </Link>
         </div>
       </header>
@@ -942,6 +980,7 @@ function Index() {
                       isSelected ? prev.filter((id) => id !== page.id) : [...prev, page.id],
                     );
                   } else {
+                    setLastOpened(page.id);
                     setOpenPage(page.id);
                   }
                 }}
@@ -988,6 +1027,11 @@ function Index() {
                 <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
                   Page {page.id + 1}
                 </span>
+                {selecting && lastOpened === page.id && page.src && (
+                  <span className="absolute bottom-2 right-2 rounded-full border-2 border-border bg-accent px-3 py-1 text-xs font-extrabold text-accent-foreground">
+                    Current page
+                  </span>
+                )}
                 {selectable ? (
                   <span
                     className={cn(
@@ -1118,7 +1162,7 @@ function Index() {
                 disabled={selectedPages.length === 0}
                 className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
               >
-                <BookOpen className="h-4 w-4" /> Save as one book
+                <BookOpen className="h-4 w-4" /> Create book
               </button>
             </div>
           </div>
