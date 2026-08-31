@@ -878,14 +878,17 @@ function Index() {
               className={cn("btn-crayon", selecting && "bg-primary text-primary-foreground")}
               aria-pressed={selecting}
             >
-              <Check className="h-4 w-4" /> {selecting ? "Done selecting" : "Select pages"}
+              <Check className="h-4 w-4" /> {selecting ? "Done choosing" : "Choose pages"}
             </button>
           )}
           <button type="button" onClick={startFresh} className="btn-crayon">
             <RotateCcw className="h-4 w-4" /> Start a new book
           </button>
-          <Link to="/books" className="btn-crayon">
-            <Library className="h-4 w-4" /> My books
+          <Link to="/books" search={{ view: "pages" }} className="btn-crayon">
+            <Library className="h-4 w-4" /> My Pages
+          </Link>
+          <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon">
+            <BookOpen className="h-4 w-4" /> My Bookshelf
           </Link>
         </div>
       </header>
