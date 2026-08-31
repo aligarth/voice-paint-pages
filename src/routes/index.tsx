@@ -1196,6 +1196,17 @@ function Index() {
                       <ImageDown className="h-4 w-4" /> PNG
                     </button>
                   )}
+                  {page.src && (
+                    <button
+                      type="button"
+                      onClick={() => setDeletePageId(page.id)}
+                      className="btn-crayon flex-1 justify-center border-primary text-sm text-primary"
+                      aria-label={`Delete page ${page.id + 1}`}
+                    >
+                      <Trash2 className="h-4 w-4" /> Delete
+                    </button>
+                  )}
+
                 </div>
               )}
             </div>
