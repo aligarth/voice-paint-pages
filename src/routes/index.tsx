@@ -343,6 +343,8 @@ function Index() {
     setGenError(null);
     setBookTitle("My coloring book");
     setStep("cover");
+    setSelecting(false);
+    setSelectedPages([]);
     void clearSession();
   };
 
