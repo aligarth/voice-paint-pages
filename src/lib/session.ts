@@ -1,9 +1,11 @@
 /** Auto-saved in-progress coloring session so users can pick up where they left off. */
 export type SessionPage = {
-  /** Line-art image (data URL). */
-  src: string;
+  /** Line-art image (data URL), or null for a page that hasn't been filled yet. */
+  src: string | null;
   /** Transparent paint layer the user has coloured, if any. */
   paint?: string | null;
+  /** How this page gets filled: spoken or snapped. */
+  mode?: "say" | "snap";
 };
 
 export type ColoringSession = {
