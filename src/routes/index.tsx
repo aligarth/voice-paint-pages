@@ -980,6 +980,7 @@ function Index() {
                       isSelected ? prev.filter((id) => id !== page.id) : [...prev, page.id],
                     );
                   } else {
+                    setLastOpened(page.id);
                     setOpenPage(page.id);
                   }
                 }}
