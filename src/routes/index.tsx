@@ -450,6 +450,28 @@ function Index() {
     void runForPage(id, { kind: "text", prompt: text }, text);
   };
 
+  const openType = (id: number) => {
+    setGenError(null);
+    setTypedPrompt("");
+    setTypeFor(id);
+  };
+
+  const closeType = () => {
+    setTypeFor(null);
+    setTypedPrompt("");
+  };
+
+  const confirmType = () => {
+    const text = typedPrompt.trim();
+    if (typeFor === null || !text) return;
+    const id = typeFor;
+    setTypeFor(null);
+    setTypedPrompt("");
+    void runForPage(id, { kind: "text", prompt: text }, text);
+  };
+
+
+
   const openCamera = (id: number) => {
     setGenError(null);
     setPhotoFor(id);
