@@ -239,9 +239,10 @@ function Index() {
 
   const saveSelectedAsBook = async () => {
     if (!selectedPages.length) return;
-    const chosen = pages
-      .filter((page) => selectedPages.includes(page.id) && page.src)
-      .sort((a, b) => a.id - b.id);
+    // Keep the order the user tapped the pages in.
+    const chosen = selectedPages
+      .map((id) => pages.find((page) => page.id === id))
+      .filter((page): page is Page => Boolean(page?.src));
     if (!chosen.length) return;
     const title = combineTitle.trim() || bookTitle || "My coloring book";
     try {
@@ -251,13 +252,16 @@ function Index() {
         savedAt: Date.now(),
         pages: chosen.map((page) => page.src!),
         paints: chosen.map((page) => page.paint ?? null),
+        kind: "book",
       });
       setSavedBooks(await listBooks());
-      setSaveMessage(`Saved “${title}” with ${chosen.length} pages to your bookshelf.`);
+      setSaveMessage(
+        `Created “${title}” with ${chosen.length} ${chosen.length === 1 ? "page" : "pages"} in My Bookshelf.`,
+      );
       setSelecting(false);
       setSelectedPages([]);
     } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Could not save the book.");
+      setSaveMessage(err instanceof Error ? err.message : "Could not create the book.");
     }
   };
 
