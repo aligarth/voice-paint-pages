@@ -988,11 +988,22 @@ function Index() {
                 <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
                   Page {page.id + 1}
                 </span>
-                {page.done && page.src && (
+                {selectable ? (
+                  <span
+                    className={cn(
+                      "absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border-2",
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-transparent",
+                    )}
+                  >
+                    <Check className="h-5 w-5" />
+                  </span>
+                ) : page.done && page.src ? (
                   <span className="absolute right-2 top-2 rounded-full border-2 border-border bg-primary p-1 text-primary-foreground">
                     <Check className="h-4 w-4" />
                   </span>
-                )}
+                ) : null}
               </button>
 
               {working ? (
