@@ -16,6 +16,7 @@ import {
 import {
   deleteBook,
   deleteBookPage,
+  deletePageAndCascade,
   isSavedBook,
   isSavedPage,
   listBooks,
@@ -66,6 +67,7 @@ function BooksPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Choose pages (My Pages view) to build one book.
   const [selecting, setSelecting] = useState(false);
@@ -175,6 +177,18 @@ function BooksPage() {
       );
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not create the book.");
+    }
+  };
+
+  const confirmDeletePage = async () => {
+    if (!deletingId) return;
+    try {
+      setBooks(await deletePageAndCascade(deletingId));
+      setMessage("Page deleted and removed from any books that used it.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not delete the page.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -363,7 +377,13 @@ function BooksPage() {
                   <button
                     type="button"
                     className="btn-crayon"
-                    onClick={async () => setBooks(await deleteBook(book.id))}
+                    onClick={() => {
+                      if (isPages) {
+                        setDeletingId(book.id);
+                      } else {
+                        void (async () => setBooks(await deleteBook(book.id)))();
+                      }
+                    }}
                   >
                     <Trash2 className="h-4 w-4" /> {isPages ? "Delete page" : "Delete book"}
                   </button>
@@ -455,6 +475,29 @@ function BooksPage() {
                 className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
               >
                 <BookOpen className="h-4 w-4" /> Create book
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border-2 border-border bg-card p-6 shadow-xl">
+            <h3 className="text-xl font-extrabold">Delete this page?</h3>
+            <p className="mt-2 text-muted-foreground">
+              This page will be removed from My Pages and from any books that use it.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button type="button" className="btn-crayon" onClick={() => setDeletingId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-crayon bg-primary text-primary-foreground"
+                onClick={() => void confirmDeletePage()}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
               </button>
             </div>
           </div>

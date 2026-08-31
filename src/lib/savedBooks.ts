@@ -112,6 +112,35 @@ export async function deleteBookPage(id: string, pageIndex: number): Promise<Sav
   return listBooks();
 }
 
+/** Deletes a standalone page and removes its image from every book that uses it. Empty books are deleted. */
+export async function deletePageAndCascade(id: string): Promise<SavedBook[]> {
+  const books = await listBooks();
+  const page = books.find((b) => b.id === id && isSavedPage(b));
+  if (!page) return books;
+
+  const srcsToRemove = new Set(page.pages);
+  await tx("readwrite", (store) => store.delete(id));
+
+  const remaining = await listBooks();
+  for (const book of remaining.filter(isSavedBook)) {
+    const indicesToRemove = book.pages
+      .map((src, i) => (srcsToRemove.has(src) ? i : -1))
+      .filter((i): i is number => i !== -1);
+    if (indicesToRemove.length === 0) continue;
+
+    const pages = book.pages.filter((_, i) => !indicesToRemove.includes(i));
+    const paints = book.paints?.filter((_, i) => !indicesToRemove.includes(i));
+
+    if (pages.length === 0) {
+      await tx("readwrite", (store) => store.delete(book.id));
+    } else {
+      await tx("readwrite", (store) => store.put({ ...book, pages, paints }));
+    }
+  }
+
+  return listBooks();
+}
+
 /** Writes a book record as-is (used by auto-save, combine and undo). */
 export async function saveBookRecord(book: SavedBook): Promise<SavedBook[]> {
   await tx("readwrite", (store) => store.put(book));
