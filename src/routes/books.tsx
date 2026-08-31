@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BookOpen,
   Check,
+  Download,
   FileDown,
   FileArchive,
   ImageDown,
@@ -125,6 +126,23 @@ function BooksPage() {
       setMessage(`Downloaded “${book.title}” as a ZIP.`);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not build the ZIP.");
+    } finally {
+      setExportingId(null);
+    }
+  };
+
+  /** One-tap save of the whole book (line art + coloring) to the device. */
+  const saveBookToDevice = async (book: SavedBook) => {
+    setExportingId(`${book.id}-save`);
+    setMessage(null);
+    try {
+      await exportPagesToPdf(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
+      setMessage(`Saved “${book.title}” to your device.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not save this book.");
     } finally {
       setExportingId(null);
     }
@@ -374,6 +392,21 @@ function BooksPage() {
                   <button type="button" className="btn-crayon" onClick={() => void openBook(book)}>
                     Open & color
                   </button>
+                  {!isPages && (
+                    <button
+                      type="button"
+                      className="btn-crayon disabled:opacity-50"
+                      disabled={exportingId === `${book.id}-save`}
+                      onClick={() => void saveBookToDevice(book)}
+                    >
+                      {exportingId === `${book.id}-save` ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      {exportingId === `${book.id}-save` ? "Saving…" : "Save book"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn-crayon"
