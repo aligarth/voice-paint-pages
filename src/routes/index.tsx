@@ -134,6 +134,11 @@ function Index() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
 
+  // Select pages to save as one book.
+  const [selecting, setSelecting] = useState(false);
+  const [selectedPages, setSelectedPages] = useState<number[]>([]);
+  const [combineTitle, setCombineTitle] = useState("");
+
   /** Which page is currently being filled, and how. */
   const [speakFor, setSpeakFor] = useState<number | null>(null);
   const [typeFor, setTypeFor] = useState<number | null>(null);
@@ -230,6 +235,30 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, restored]);
 
+  const saveSelectedAsBook = async () => {
+    if (!selectedPages.length) return;
+    const chosen = pages
+      .filter((page) => selectedPages.includes(page.id) && page.src)
+      .sort((a, b) => a.id - b.id);
+    if (!chosen.length) return;
+    const title = combineTitle.trim() || bookTitle || "My coloring book";
+    try {
+      await saveBookRecord({
+        id: makeBookId(),
+        title,
+        savedAt: Date.now(),
+        pages: chosen.map((page) => page.src!),
+        paints: chosen.map((page) => page.paint ?? null),
+      });
+      setSavedBooks(await listBooks());
+      setSaveMessage(`Saved “${title}” with ${chosen.length} pages to your bookshelf.`);
+      setSelecting(false);
+      setSelectedPages([]);
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not save the book.");
+    }
+  };
+
   const readyPages = pages.filter((page) => page.src);
 
   const exportPdf = async () => {
@@ -314,6 +343,8 @@ function Index() {
     setGenError(null);
     setBookTitle("My coloring book");
     setStep("cover");
+    setSelecting(false);
+    setSelectedPages([]);
     void clearSession();
   };
 
@@ -334,6 +365,8 @@ function Index() {
     setOpenPage(null);
     setSaveMessage(null);
     setStep("book");
+    setSelecting(false);
+    setSelectedPages([]);
   };
 
   const runForPage = useCallback(async (id: number, source: PageSource, title: string) => {
@@ -796,6 +829,23 @@ function Index() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {readyPages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelecting((prev) => {
+                  const next = !prev;
+                  if (!next) setSelectedPages([]);
+                  else setCombineTitle(bookTitle);
+                  return next;
+                });
+              }}
+              className={cn("btn-crayon", selecting && "bg-primary text-primary-foreground")}
+              aria-pressed={selecting}
+            >
+              <Check className="h-4 w-4" /> {selecting ? "Done selecting" : "Select pages"}
+            </button>
+          )}
           <button type="button" onClick={startFresh} className="btn-crayon">
             <RotateCcw className="h-4 w-4" /> Start a new book
           </button>
@@ -876,16 +926,33 @@ function Index() {
 
       <MusicPlayer />
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className={cn("mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3", selecting && "pb-32")}>
         {pages.map((page) => {
           const working = page.regenerating || busyPage === page.id;
+          const selectable = selecting && page.src && page.done;
+          const isSelected = selectedPages.includes(page.id);
           return (
             <div key={page.id} className="paper-card p-3">
               <button
                 type="button"
-                disabled={!page.src || !page.done}
-                onClick={() => setOpenPage(page.id)}
-                className="relative block aspect-square w-full overflow-hidden rounded-xl border-2 border-dashed border-border bg-background transition-transform enabled:hover:-translate-y-1"
+                disabled={(!page.src || !page.done) && !selectable}
+                onClick={() => {
+                  if (selectable) {
+                    setSelectedPages((prev) =>
+                      isSelected ? prev.filter((id) => id !== page.id) : [...prev, page.id],
+                    );
+                  } else {
+                    setOpenPage(page.id);
+                  }
+                }}
+                aria-pressed={selectable ? isSelected : undefined}
+                className={cn(
+                  "relative block aspect-square w-full overflow-hidden rounded-xl border-2 bg-background transition-transform",
+                  selectable ? "cursor-pointer" : "enabled:hover:-translate-y-1",
+                  selectable && isSelected
+                    ? "border-primary"
+                    : "border-dashed border-border",
+                )}
               >
                 {page.src ? (
                   <div className="relative h-full w-full">
@@ -921,11 +988,22 @@ function Index() {
                 <span className="absolute bottom-2 left-2 rounded-full border-2 border-border bg-card px-3 py-1 text-xs font-extrabold">
                   Page {page.id + 1}
                 </span>
-                {page.done && page.src && (
+                {selectable ? (
+                  <span
+                    className={cn(
+                      "absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full border-2",
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-transparent",
+                    )}
+                  >
+                    <Check className="h-5 w-5" />
+                  </span>
+                ) : page.done && page.src ? (
                   <span className="absolute right-2 top-2 rounded-full border-2 border-border bg-primary p-1 text-primary-foreground">
                     <Check className="h-4 w-4" />
                   </span>
-                )}
+                ) : null}
               </button>
 
               {working ? (
@@ -937,7 +1015,7 @@ function Index() {
                   <X className="h-4 w-4" /> Cancel
                 </button>
               ) : (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className={cn("mt-3 flex flex-wrap gap-2", selecting && "pointer-events-none opacity-50")}>
                   <button
                     type="button"
                     onClick={() => openSpeak(page.id)}
@@ -997,6 +1075,55 @@ function Index() {
           );
         })}
       </div>
+
+      {selecting && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-card p-4 shadow-lg">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
+              <span className="rounded-full bg-primary px-3 py-1 text-primary-foreground">
+                {selectedPages.length}
+              </span>
+              <span>
+                {selectedPages.length === 1 ? "page selected" : "pages selected"}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedPages(pages.filter((p) => p.src && p.done).map((p) => p.id))
+                }
+                className="ml-2 rounded-full border-2 border-border px-3 py-1 text-xs font-extrabold hover:bg-muted"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPages([])}
+                className="rounded-full border-2 border-border px-3 py-1 text-xs font-extrabold hover:bg-muted"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
+              <input
+                type="text"
+                value={combineTitle}
+                onChange={(e) => setCombineTitle(e.target.value)}
+                placeholder="Name your book"
+                className="min-w-[12rem] flex-1 rounded-full border-2 border-border bg-background px-4 py-2 text-sm font-bold outline-none focus:border-accent sm:flex-none"
+                aria-label="Book title"
+              />
+              <button
+                type="button"
+                onClick={() => void saveSelectedAsBook()}
+                disabled={selectedPages.length === 0}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
+              >
+                <BookOpen className="h-4 w-4" /> Save as one book
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {bookshelf}
 
