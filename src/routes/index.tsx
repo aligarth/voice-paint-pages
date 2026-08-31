@@ -595,6 +595,33 @@ function Index() {
 
   const activePage = pages.find((page) => page.id === openPage);
 
+  const deleteDialog =
+    deletePageId !== null ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4">
+        <div className="paper-card w-full max-w-sm p-6 text-center">
+          <h2 className="text-xl font-extrabold">Delete this page?</h2>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
+            Page {deletePageId + 1} goes back to a blank page. It will be removed from My Pages and
+            from any book that used it.
+          </p>
+          <div className="mt-5 flex justify-center gap-3">
+            <button type="button" onClick={() => setDeletePageId(null)} className="btn-crayon">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void confirmDeletePage()}
+              className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 font-extrabold text-primary-foreground"
+            >
+              <Trash2 className="h-4 w-4" /> Delete page
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
+
+
   // ---------- Studio ----------
   if (activePage?.src) {
     return (
