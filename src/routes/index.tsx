@@ -547,6 +547,13 @@ function Index() {
           </button>
           <button
             type="button"
+            onClick={() => startSelectingWith(activePage.id)}
+            className="btn-crayon"
+          >
+            <BookOpen className="h-4 w-4" /> Add this page to a book
+          </button>
+          <button
+            type="button"
             onClick={() => void exportPdf()}
             disabled={exporting || !readyPages.length}
             className="btn-crayon disabled:opacity-50"
