@@ -198,6 +198,38 @@ function BooksPage() {
     }
   };
 
+  /** Deletes a book but keeps the record around so it can be restored. */
+  const confirmDeleteBook = async () => {
+    const id = deletingBookId;
+    setDeletingBookId(null);
+    if (!id) return;
+    const target = (books ?? []).find((record) => record.id === id);
+    try {
+      setBooks(await deleteBook(id));
+      if (target) {
+        setUndoBook(target);
+        if (undoTimer.current) clearTimeout(undoTimer.current);
+        undoTimer.current = setTimeout(() => setUndoBook(null), 15000);
+      }
+      setMessage(`Deleted “${target?.title ?? "book"}”.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not delete the book.");
+    }
+  };
+
+  /** Puts the last deleted book back exactly as it was. */
+  const undoDeleteBook = async () => {
+    const target = undoBook;
+    if (!target) return;
+    clearUndo();
+    try {
+      setBooks(await saveBookRecord(target));
+      setMessage(`Restored “${target.title}”.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not restore the book.");
+    }
+  };
+
   const confirmDeletePage = async () => {
     if (!deletingId) return;
     try {
