@@ -692,7 +692,9 @@ function Index() {
             )
           }
         />
+        {deleteDialog}
       </main>
+
     );
   }
 
