@@ -53,43 +53,6 @@ function BooksPage() {
   const [draftTitle, setDraftTitle] = useState("");
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [selecting, setSelecting] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [combineTitle, setCombineTitle] = useState("My big coloring book");
-  const [combining, setCombining] = useState(false);
-  const [undoPayload, setUndoPayload] = useState<CombineUndo | null>(null);
-
-  const toggleSelected = (id: string) =>
-    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
-
-  const combineSelected = async () => {
-    if (selected.length < 2) return;
-    setCombining(true);
-    setMessage(null);
-    try {
-      const result = await combineBooks(selected, combineTitle);
-      setBooks(result.books);
-      setUndoPayload(result.undo);
-      setMessage(`Combined ${result.undo.removed.length} books into “${result.undo.created.title}”.`);
-      setSelected([]);
-      setSelecting(false);
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not combine those books.");
-    } finally {
-      setCombining(false);
-    }
-  };
-
-  const revertCombine = async () => {
-    if (!undoPayload) return;
-    try {
-      setBooks(await undoCombine(undoPayload));
-      setMessage("Put those books back the way they were.");
-      setUndoPayload(null);
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Could not undo the combine.");
-    }
-  };
 
   useEffect(() => {
     void listBooks().then(setBooks);
