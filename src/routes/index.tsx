@@ -1133,6 +1133,41 @@ function Index() {
           </div>
         </div>
       )}
+
+      {typeFor !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-3xl border-4 border-border bg-card p-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              Page {typeFor + 1}
+            </p>
+            <h2 className="mt-1 text-2xl font-extrabold">Type what to draw</h2>
+
+            <textarea
+              value={typedPrompt}
+              onChange={(e) => setTypedPrompt(e.target.value)}
+              rows={3}
+              autoFocus
+              placeholder="e.g. a dragon eating pizza"
+              className="mt-4 w-full rounded-2xl border-2 border-border bg-background px-4 py-3 text-center text-lg font-semibold outline-none focus:border-accent"
+            />
+
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={confirmType}
+                disabled={!typedPrompt.trim()}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-accent px-6 py-2.5 text-base font-extrabold text-accent-foreground disabled:opacity-50"
+              >
+                <Sparkles className="h-4 w-4" /> Draw it
+              </button>
+              <button type="button" onClick={closeType} className="btn-crayon">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
