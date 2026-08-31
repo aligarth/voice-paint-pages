@@ -131,6 +131,23 @@ function BooksPage() {
     }
   };
 
+  /** One-tap save of the whole book (line art + coloring) to the device. */
+  const saveBookToDevice = async (book: SavedBook) => {
+    setExportingId(`${book.id}-save`);
+    setMessage(null);
+    try {
+      await exportPagesToPdf(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
+      setMessage(`Saved “${book.title}” to your device.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not save this book.");
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   const exportPagePng = async (book: SavedBook, index: number) => {
     const src = book.pages[index];
     if (!src) return;
