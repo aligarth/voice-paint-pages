@@ -99,6 +99,7 @@ function BooksPage() {
   );
 
   const setView = (next: View) => {
+    clearUndo();
     setSelecting(false);
     setSelectedIds([]);
     void navigate({ to: "/books", search: { view: next } });
@@ -202,6 +203,7 @@ function BooksPage() {
           kind: "book",
         }),
       );
+      clearUndo();
       setSelecting(false);
       setSelectedIds([]);
       setMessage(
@@ -246,6 +248,7 @@ function BooksPage() {
 
   const confirmDeletePage = async () => {
     if (!deletingId) return;
+    clearUndo();
     try {
       setBooks(await deletePageAndCascade(deletingId));
       setMessage("Page deleted and removed from any books that used it.");
