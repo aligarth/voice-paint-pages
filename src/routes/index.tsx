@@ -639,6 +639,14 @@ function Index() {
           </button>
           <button
             type="button"
+            onClick={() => setDeletePageId(activePage.id)}
+            className="btn-crayon border-primary text-primary"
+          >
+            <Trash2 className="h-4 w-4" /> Delete page
+          </button>
+
+          <button
+            type="button"
             onClick={() => void exportPdf()}
             disabled={exporting || !readyPages.length}
             className="btn-crayon disabled:opacity-50"
