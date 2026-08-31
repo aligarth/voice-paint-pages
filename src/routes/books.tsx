@@ -267,7 +267,16 @@ function BooksPage() {
             : "Books you built from chosen pages live here. Rename, remove pages, export a PDF, or reopen a book to keep coloring."}
         </p>
 
-        {message && <p className="mt-3 text-sm font-bold text-primary">{message}</p>}
+        {(message || undoBook) && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {message && <p className="text-sm font-bold text-primary">{message}</p>}
+            {undoBook && (
+              <button type="button" className="btn-crayon" onClick={() => void undoDeleteBook()}>
+                <RotateCcw className="h-4 w-4" /> Undo delete
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {books && records.length === 0 && (
