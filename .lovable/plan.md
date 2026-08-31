@@ -18,6 +18,7 @@ Add a way to pick pages in the open book and save the selection to My Bookshelf 
 - New state: `selecting: boolean`, `selectedPages: number[]`, `combineTitle: string`.
 - Page card click handler: when `selecting`, toggle id (only for pages with `src`); otherwise keep the existing `setOpenPage` behaviour. Add a checkbox indicator overlay and `aria-pressed` for accessibility.
 - `saveSelectedAsBook()`: builds `pages`/`paints` arrays from `pages` filtered by `selectedPages` (ordered by page id), calls `saveBookRecord({ id: makeBookId(), title, savedAt: Date.now(), pages, paints })`, refreshes `savedBooks` via `listBooks()`, sets `saveMessage`, and exits select mode. Surfaces the `MAX_BOOKS` error message if storage is full.
+- Selectability keys off `page.src` only (never `page.paint`), and `paints` entries are `page.paint ?? null` so uncolored pages round-trip as a null paint layer. `books.tsx` `openBook` and `openSavedBook` already map `paints?.[i] ?? null`, so resuming an uncolored saved page opens a clean canvas over the line art.
 - Reset `selecting`/`selectedPages` in `startFresh` and `openSavedBook`.
 
 No changes to `src/lib/savedBooks.ts` (`saveBookRecord` + `makeBookId` already cover this), no changes to generation, coloring tools, or exports.
