@@ -10,7 +10,7 @@ Add a way to pick pages in the open book and save the selection to My Bookshelf 
 - A sticky bar at the bottom shows "3 pages selected", with **Select all**, **Clear**, a name field (prefilled with the book title), and **Save as one book**.
 - Saving writes one book with the selected pages, in page order, keeping whatever coloring exists and leaving uncolored pages clean, then confirms: "Saved 'My coloring book' with 3 pages to your bookshelf." Select mode closes.
 - The bookshelf strip on the home screen and My Bookshelf both show the new book right away; opening it reopens all its pages — colored and uncolored — so you can pick up coloring later.
-- Each page still auto-saves as its own little book as it finishes — the combined book is an addition, not a replacement.
+- Each page still auto-saves as its own page as it finishes — the combined book is an addition, not a replacement.
 
 ## Technical notes
 
