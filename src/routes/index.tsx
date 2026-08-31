@@ -235,6 +235,30 @@ function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, restored]);
 
+  const saveSelectedAsBook = async () => {
+    if (!selectedPages.length) return;
+    const chosen = pages
+      .filter((page) => selectedPages.includes(page.id) && page.src)
+      .sort((a, b) => a.id - b.id);
+    if (!chosen.length) return;
+    const title = combineTitle.trim() || bookTitle || "My coloring book";
+    try {
+      await saveBookRecord({
+        id: makeBookId(),
+        title,
+        savedAt: Date.now(),
+        pages: chosen.map((page) => page.src!),
+        paints: chosen.map((page) => page.paint ?? null),
+      });
+      setSavedBooks(await listBooks());
+      setSaveMessage(`Saved “${title}” with ${chosen.length} pages to your bookshelf.`);
+      setSelecting(false);
+      setSelectedPages([]);
+    } catch (err) {
+      setSaveMessage(err instanceof Error ? err.message : "Could not save the book.");
+    }
+  };
+
   const readyPages = pages.filter((page) => page.src);
 
   const exportPdf = async () => {
