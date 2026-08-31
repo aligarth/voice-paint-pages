@@ -23,7 +23,7 @@ The app generates and saves individual coloring pages. A book is created only wh
 
 - Selection is available in both the current session and My Pages.
 - Generated-but-uncolored pages are selectable; completely blank placeholders are not.
-- Require at least two pages to create a book.
+- Require at least one page to create a book.
 - Preserve the order in which pages are selected. Provide **Select all**, **Clear**, a book-title field, and **Create book**.
 - Creating a book copies each page's line art and optional paint layer. It does not remove or convert the original page records.
 - After creation, confirm the title and page count and provide a direct way to open My Bookshelf.
