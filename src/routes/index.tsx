@@ -224,6 +224,7 @@ function Index() {
             savedAt: Date.now(),
             pages: [src],
             paints: [page.paint ?? null],
+            kind: "page",
           });
           changed = true;
         } catch {
