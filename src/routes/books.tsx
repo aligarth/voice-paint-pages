@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -11,6 +11,7 @@ import {
   Library,
   Loader2,
   Pencil,
+  RotateCcw,
   Trash2,
   X,
 } from "lucide-react";
@@ -69,6 +70,19 @@ function BooksPage() {
   const [exportingId, setExportingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
+  const [undoBook, setUndoBook] = useState<SavedBook | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearUndo = () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = null;
+    setUndoBook(null);
+  };
+
+  useEffect(() => () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  }, []);
 
   // Choose pages (My Pages view) to build one book.
   const [selecting, setSelecting] = useState(false);
@@ -85,6 +99,7 @@ function BooksPage() {
   );
 
   const setView = (next: View) => {
+    clearUndo();
     setSelecting(false);
     setSelectedIds([]);
     void navigate({ to: "/books", search: { view: next } });
@@ -188,6 +203,7 @@ function BooksPage() {
           kind: "book",
         }),
       );
+      clearUndo();
       setSelecting(false);
       setSelectedIds([]);
       setMessage(
@@ -198,8 +214,41 @@ function BooksPage() {
     }
   };
 
+  /** Deletes a book but keeps the record around so it can be restored. */
+  const confirmDeleteBook = async () => {
+    const id = deletingBookId;
+    setDeletingBookId(null);
+    if (!id) return;
+    const target = (books ?? []).find((record) => record.id === id);
+    try {
+      setBooks(await deleteBook(id));
+      if (target) {
+        setUndoBook(target);
+        if (undoTimer.current) clearTimeout(undoTimer.current);
+        undoTimer.current = setTimeout(() => setUndoBook(null), 15000);
+      }
+      setMessage(`Deleted “${target?.title ?? "book"}”.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not delete the book.");
+    }
+  };
+
+  /** Puts the last deleted book back exactly as it was. */
+  const undoDeleteBook = async () => {
+    const target = undoBook;
+    if (!target) return;
+    clearUndo();
+    try {
+      setBooks(await saveBookRecord(target));
+      setMessage(`Restored “${target.title}”.`);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not restore the book.");
+    }
+  };
+
   const confirmDeletePage = async () => {
     if (!deletingId) return;
+    clearUndo();
     try {
       setBooks(await deletePageAndCascade(deletingId));
       setMessage("Page deleted and removed from any books that used it.");
@@ -267,7 +316,16 @@ function BooksPage() {
             : "Books you built from chosen pages live here. Rename, remove pages, export a PDF, or reopen a book to keep coloring."}
         </p>
 
-        {message && <p className="mt-3 text-sm font-bold text-primary">{message}</p>}
+        {(message || undoBook) && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {message && <p className="text-sm font-bold text-primary">{message}</p>}
+            {undoBook && (
+              <button type="button" className="btn-crayon" onClick={() => void undoDeleteBook()}>
+                <RotateCcw className="h-4 w-4" /> Undo delete
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {books && records.length === 0 && (
@@ -414,7 +472,7 @@ function BooksPage() {
                       if (isPages) {
                         setDeletingId(book.id);
                       } else {
-                        void (async () => setBooks(await deleteBook(book.id)))();
+                        setDeletingBookId(book.id);
                       }
                     }}
                   >
@@ -508,6 +566,27 @@ function BooksPage() {
                 className="inline-flex items-center gap-2 rounded-full border-2 border-border bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
               >
                 <BookOpen className="h-4 w-4" /> Create book
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingBookId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border-2 border-border bg-card p-6 shadow-xl">
+            <h3 className="text-xl font-extrabold">Delete this book?</h3>
+            <p className="mt-2 text-muted-foreground">You can undo right after.</p>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button type="button" className="btn-crayon" onClick={() => setDeletingBookId(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-crayon bg-primary text-primary-foreground"
+                onClick={() => void confirmDeleteBook()}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
               </button>
             </div>
           </div>
