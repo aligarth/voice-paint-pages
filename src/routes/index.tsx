@@ -829,6 +829,23 @@ function Index() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {readyPages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelecting((prev) => {
+                  const next = !prev;
+                  if (!next) setSelectedPages([]);
+                  else setCombineTitle(bookTitle);
+                  return next;
+                });
+              }}
+              className={cn("btn-crayon", selecting && "bg-primary text-primary-foreground")}
+              aria-pressed={selecting}
+            >
+              <Check className="h-4 w-4" /> {selecting ? "Done selecting" : "Select pages"}
+            </button>
+          )}
           <button type="button" onClick={startFresh} className="btn-crayon">
             <RotateCcw className="h-4 w-4" /> Start a new book
           </button>
