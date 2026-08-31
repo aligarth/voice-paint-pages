@@ -39,7 +39,8 @@ The app generates and saves individual coloring pages. A book is created only wh
 `src/routes/index.tsx`
 - Filter the home strip to page records and label it **My Pages**.
 - Add separate **My Pages** and **My Bookshelf** navigation actions.
-- Keep current-session page selection, require two selections, write the result as `kind: "book"`, and use the wording **Create book**.
+- Keep current-session page selection, require at least one selection, write the result as `kind: "book"`, and use the wording **Create book**.
+- Before opening selection mode (and before creating the book), flush the open canvas's current paint layer into session state so the currently open page can be selected with its latest coloring.
 
 `src/routes/books.tsx`
 - Add **My Pages** and **My Bookshelf** views, addressable through the route search parameter.
