@@ -723,7 +723,6 @@ function Index() {
             </Link>
           </div>
         </div>
-        {bookshelf}
         <MusicPlayer />
       </main>
     );
@@ -909,9 +908,6 @@ function Index() {
           <button type="button" onClick={startFresh} className="btn-crayon">
             <RotateCcw className="h-4 w-4" /> Start a new book
           </button>
-          <Link to="/books" search={{ view: "pages" }} className="btn-crayon">
-            <Library className="h-4 w-4" /> My Pages
-          </Link>
           <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon">
             <BookOpen className="h-4 w-4" /> My Bookshelf
           </Link>
@@ -1204,8 +1200,6 @@ function Index() {
           </div>
         </div>
       )}
-
-      {bookshelf}
 
       {/* hidden inputs for photo pickers */}
       <input
