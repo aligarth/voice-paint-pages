@@ -101,11 +101,12 @@ function blankPages(count: number, mode: PageMode): Page[] {
   return Array.from({ length: count }, (_, i) => ({
     id: i,
     mode,
-    title: "",
+    title: `Page ${i + 1}`,
     src: null,
     done: false,
   }));
 }
+
 
 function Index() {
   const {
