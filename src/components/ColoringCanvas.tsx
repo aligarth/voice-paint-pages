@@ -443,8 +443,8 @@ export function ColoringCanvas({
         // Never paint over the real outline itself.
         if (widened[i] && !walls[i]) mask[i] = 1;
       }
-      mask = widened.map((v, i) => (v && !walls[i] ? 1 : mask[i] ?? 0)) as unknown as Uint8Array;
     }
+
 
     pushHistory();
     const patch = ctx.createImageData(w, h);
