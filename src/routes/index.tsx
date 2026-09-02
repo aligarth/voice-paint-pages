@@ -234,12 +234,14 @@ function Index() {
             savedAt: Date.now(),
             pages: [src],
             paints: [page.paint ?? null],
+            pageTitles: [label],
             kind: "page",
           });
           changed = true;
         } catch {
           autoSavedRef.current.delete(page.id);
         }
+
       }
       if (changed) setSavedBooks(await listBooks());
     };
