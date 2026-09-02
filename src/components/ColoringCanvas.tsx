@@ -709,7 +709,29 @@ export function ColoringCanvas({
             ))}
           </div>
 
-
+          {tool === "fill" && (
+            <div className="mt-5">
+              <h3 className="label-chalk">Fill strength</h3>
+              <input
+                type="range"
+                min={0}
+                max={3}
+                step={1}
+                value={gapSeal}
+                onChange={(e) => setGapSeal(Number(e.target.value))}
+                aria-label="Fill strength"
+                className="mt-2 w-full accent-accent"
+              />
+              <p className="mt-1 text-xs font-semibold text-muted-foreground">
+                {gapSeal === 0
+                  ? "Off — fill follows the exact colours."
+                  : `Seals gaps up to ${gapSeal}px so colour stays inside the lines.`}
+              </p>
+              {fillMessage && (
+                <p className="mt-2 text-xs font-extrabold text-primary">{fillMessage}</p>
+              )}
+            </div>
+          )}
 
 
           <div className="mt-5 flex flex-wrap gap-2">
