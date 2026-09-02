@@ -11,7 +11,7 @@ const LINE_LUM = 200;
 /** Longest break (in px) the endpoint bridger will join. */
 const BRIDGE_MAX = 14;
 
-/** Grows a binary mask by `radius` px (4-neighbour, repeated). */
+/** Grows a binary mask by `radius` px (8-neighbour / square kernel). */
 function dilate(mask: Uint8Array, w: number, h: number, radius: number) {
   let current = mask;
   for (let step = 0; step < radius; step++) {
@@ -20,14 +20,19 @@ function dilate(mask: Uint8Array, w: number, h: number, radius: number) {
       for (let x = 0; x < w; x++) {
         const i = y * w + x;
         if (current[i]) continue;
-        if (
-          (x > 0 && current[i - 1]) ||
-          (x < w - 1 && current[i + 1]) ||
-          (y > 0 && current[i - w]) ||
-          (y < h - 1 && current[i + w])
-        ) {
-          next[i] = 1;
+        let hit = false;
+        for (let dy = -1; dy <= 1 && !hit; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            if (current[ny * w + nx]) {
+              hit = true;
+              break;
+            }
+          }
         }
+        if (hit) next[i] = 1;
       }
     }
     current = next;
@@ -35,7 +40,7 @@ function dilate(mask: Uint8Array, w: number, h: number, radius: number) {
   return current;
 }
 
-/** Shrinks a binary mask by `radius` px; the page edge counts as outside. */
+/** Shrinks a binary mask by `radius` px (8-neighbour); page edge counts as outside. */
 function erode(mask: Uint8Array, w: number, h: number, radius: number) {
   let current = mask;
   for (let step = 0; step < radius; step++) {
@@ -44,14 +49,18 @@ function erode(mask: Uint8Array, w: number, h: number, radius: number) {
       for (let x = 0; x < w; x++) {
         const i = y * w + x;
         if (!current[i]) continue;
-        if (
-          (x > 0 && !current[i - 1]) ||
-          (x < w - 1 && !current[i + 1]) ||
-          (y > 0 && !current[i - w]) ||
-          (y < h - 1 && !current[i + w])
-        ) {
-          next[i] = 0;
+        let keep = true;
+        for (let dy = -1; dy <= 1 && keep; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h || !current[ny * w + nx]) {
+              keep = false;
+              break;
+            }
+          }
         }
+        if (!keep) next[i] = 0;
       }
     }
     current = next;
@@ -217,9 +226,9 @@ function sealPass(px: Uint8ClampedArray, w: number, h: number, strength: number)
     if (lum < LINE_LUM) mask[i] = 1;
   }
 
-  // Morphological close: bridge gaps up to 2x strength, keeping lines close to
-  // their original weight (we shrink back one pixel less so bridges survive).
-  const closed = erode(dilate(mask, w, h, strength), w, h, Math.max(1, strength - 1));
+  // Morphological close with a square kernel: bridges gaps up to 2x strength
+  // while keeping the original line weight.
+  const closed = erode(dilate(mask, w, h, strength), w, h, strength);
   for (let i = 0; i < mask.length; i++) if (closed[i]) mask[i] = 1;
 
   bridgeEndpoints(mask, w, h, 1);
