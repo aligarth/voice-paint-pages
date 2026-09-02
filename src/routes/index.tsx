@@ -201,10 +201,12 @@ function Index() {
           src: page.done ? page.src : null,
           paint: page.paint ?? null,
           mode: page.mode,
+          title: page.title,
         })),
         openPage,
       });
     }, 600);
+
     return () => window.clearTimeout(timer);
   }, [pages, bookTitle, openPage, busyPage, restored, step]);
 
