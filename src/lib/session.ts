@@ -4,8 +4,10 @@ export type SessionPage = {
   src: string | null;
   /** Transparent paint layer the user has coloured, if any. */
   paint?: string | null;
-  /** How this page gets filled: spoken or snapped. */
+  /** How this page gets filled: spoken, typed, or snapped. */
   mode?: "say" | "type" | "snap";
+  /** Title the user gave this page, if any. */
+  title?: string;
 };
 
 export type ColoringSession = {
@@ -14,6 +16,7 @@ export type ColoringSession = {
   openPage: number | null;
   savedAt: number;
 };
+
 
 const DB_NAME = "say-and-color-session";
 const STORE = "session";
