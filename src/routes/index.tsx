@@ -60,8 +60,9 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Open your book, choose how many pages, then say it or snap it for each page and color it in with brushes, crayons and every color.",
+          "Open your book, choose how many pages, name your pages, then say it or snap it for each page and color it in with brushes, crayons and every color.",
       },
+
       { property: "og:title", content: "Color My World — Make Your Own Coloring Book" },
       {
         property: "og:description",
