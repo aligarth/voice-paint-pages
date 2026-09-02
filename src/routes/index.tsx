@@ -316,8 +316,10 @@ function Index() {
         savedAt: Date.now(),
         pages: chosen.map((page) => page.src!),
         paints: chosen.map((page) => page.paint ?? null),
+        pageTitles: chosen.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
         kind: "book",
       });
+
       setSavedBooks(await listBooks());
       setSaveMessage(
         `Created “${title}” with ${chosen.length} ${chosen.length === 1 ? "page" : "pages"} in My Bookshelf.`,
