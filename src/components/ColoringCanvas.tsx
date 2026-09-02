@@ -402,7 +402,7 @@ export function ColoringCanvas({
       );
     };
 
-    let mask = new Uint8Array(w * h);
+    const mask = new Uint8Array(w * h);
     const stack: number[] = [sx, sy];
     let filled = 0;
 
