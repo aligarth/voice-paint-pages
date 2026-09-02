@@ -94,6 +94,10 @@ export function ColoringCanvas({
   const [favorites, setFavorites] = useState<string[]>([]);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [showCheckpoints, setShowCheckpoints] = useState(false);
+  /** How aggressively hairline outlines and small gaps are sealed before filling (0-3). */
+  const [gapSeal, setGapSeal] = useState(1);
+  const [fillMessage, setFillMessage] = useState<string | null>(null);
+
 
 
 
