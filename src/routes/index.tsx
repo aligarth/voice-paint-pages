@@ -14,7 +14,6 @@ import {
   FileDown,
   FileArchive,
   ImageDown,
-  Library,
   X,
   Share2,
   RotateCcw,
