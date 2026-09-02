@@ -306,33 +306,3 @@ export async function sealLineArt(src: string): Promise<string> {
     return src;
   }
 }
-
-/** Debug helper: reports the sealing decisions for a given image. */
-export async function __debugSeal(src: string) {
-  const img = await loadImage(src);
-  const w = img.width;
-  const h = img.height;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, w, h);
-  ctx.drawImage(img, 0, 0);
-  const data = ctx.getImageData(0, 0, w, h);
-  const margin = frameInset(w, h) + 12;
-  const out: Array<{ strength: number; leak: boolean }> = [];
-  for (const strength of [2, 3, 4, 6, 8, 11]) {
-    const mask = sealPass(data.data, w, h, strength);
-    out.push({ strength, leak: leaksToCentre(mask, w, h, margin) });
-  }
-  const mask = sealPass(data.data, w, h, 8);
-  const img2 = ctx.createImageData(w, h);
-  for (let i = 0; i < mask.length; i++) {
-    const o = i * 4;
-    const v = mask[i] ? 0 : 255;
-    img2.data[o] = v; img2.data[o + 1] = v; img2.data[o + 2] = v; img2.data[o + 3] = 255;
-  }
-  ctx.putImageData(img2, 0, 0);
-  return { margin, out, png: canvas.toDataURL("image/png") };
-}
