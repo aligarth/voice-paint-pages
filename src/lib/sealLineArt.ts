@@ -9,7 +9,7 @@ const MAX_SIDE = 1400;
 const LINE_LUM = 200;
 
 /** Longest break (in px) the endpoint bridger will join. */
-const BRIDGE_MAX = 14;
+const BRIDGE_MAX = 26;
 
 /** Grows a binary mask by `radius` px (8-neighbour / square kernel). */
 function dilate(mask: Uint8Array, w: number, h: number, radius: number) {
@@ -283,7 +283,7 @@ export async function sealLineArt(src: string): Promise<string> {
     // longer reach the middle of the page.
     const margin = frameInset(w, h) + 12;
     let mask = sealPass(data.data, w, h, 2);
-    for (const strength of [3, 4, 6, 8, 11]) {
+    for (const strength of [3, 4, 6, 8, 11, 14, 18]) {
       if (!leaksToCentre(mask, w, h, margin)) break;
       mask = sealPass(data.data, w, h, strength);
     }
