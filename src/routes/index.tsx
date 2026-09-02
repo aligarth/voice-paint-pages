@@ -177,7 +177,7 @@ function Index() {
         session.pages.map((page, i) => ({
           id: i,
           mode: (page.mode as PageMode) ?? "say",
-          title: session.title,
+          title: page.title?.trim() || `Page ${i + 1}`,
           src: page.src ?? null,
           done: Boolean(page.src),
           paint: page.paint ?? null,
@@ -188,6 +188,7 @@ function Index() {
       setSaveMessage("Picked up where you left off.");
     });
   }, []);
+
 
   // Auto-save progress so it survives a refresh or a closed tab.
   useEffect(() => {
