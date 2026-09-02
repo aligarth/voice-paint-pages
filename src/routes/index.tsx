@@ -20,8 +20,9 @@ import {
   Upload,
   ArrowRight,
   Keyboard,
-
+  Pencil,
 } from "lucide-react";
+
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { useSpeech } from "@/lib/useSpeech";
