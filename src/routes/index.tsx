@@ -806,8 +806,9 @@ function Index() {
         <section className="paper-card mt-6 p-6 sm:p-8">
           <h1 className="text-center text-3xl font-extrabold">Name your pages</h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Give each page a title. You can change it later. Every page starts with "Say it" and you can switch to type or photo on the page itself.
+            Give each page a title. You can change it later.
           </p>
+
 
           <ul className="mt-6 space-y-3">
             {draft.map((page) => (
