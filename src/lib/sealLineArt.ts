@@ -317,5 +317,13 @@ export async function __debugSeal(src: string) {
     const mask = sealPass(data.data, w, h, strength);
     out.push({ strength, leak: leaksToCentre(mask, w, h, margin) });
   }
-  return { margin, out };
+  const mask = sealPass(data.data, w, h, 8);
+  const img2 = ctx.createImageData(w, h);
+  for (let i = 0; i < mask.length; i++) {
+    const o = i * 4;
+    const v = mask[i] ? 0 : 255;
+    img2.data[o] = v; img2.data[o + 1] = v; img2.data[o + 2] = v; img2.data[o + 3] = 255;
+  }
+  ctx.putImageData(img2, 0, 0);
+  return { margin, out, png: canvas.toDataURL("image/png") };
 }
