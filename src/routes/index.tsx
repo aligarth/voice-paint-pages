@@ -783,81 +783,54 @@ function Index() {
     );
   }
 
-  // ---------- Choose how each page gets filled ----------
+  // ---------- Name each page ----------
   if (step === "modes") {
     const draft = pages.length === pageCount ? pages : blankPages(pageCount, "say");
+    const updateTitle = (id: number, value: string) => {
+      setPages(
+        draft.map((item) =>
+          item.id === id ? { ...item, title: value.trim() || `Page ${id + 1}` } : item,
+        ),
+      );
+    };
     return (
       <main className="mx-auto max-w-2xl px-4 py-10">
         <button type="button" onClick={() => setStep("count")} className="btn-crayon">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <section className="paper-card mt-6 p-6 sm:p-8">
-          <h1 className="text-center text-3xl font-extrabold">Say it, type it, or snap it?</h1>
+          <h1 className="text-center text-3xl font-extrabold">Name your pages</h1>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Choose how you want to fill each page. You can change it later on the page itself.
+            Give each page a title. You can change it later. Every page starts with "Say it" and you can switch to type or photo on the page itself.
           </p>
 
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPages(blankPages(pageCount, "say"))}
-              className="btn-crayon"
-            >
-              <Mic className="h-4 w-4" /> Say it for every page
-            </button>
-            <button
-              type="button"
-              onClick={() => setPages(blankPages(pageCount, "type"))}
-              className="btn-crayon"
-            >
-              <Keyboard className="h-4 w-4" /> Type it for every page
-            </button>
-            <button
-              type="button"
-              onClick={() => setPages(blankPages(pageCount, "snap"))}
-              className="btn-crayon"
-            >
-              <Camera className="h-4 w-4" /> Snap it for every page
-            </button>
-          </div>
-
-          <ul className="mt-6 space-y-2">
+          <ul className="mt-6 space-y-3">
             {draft.map((page) => (
               <li
                 key={page.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-border bg-card px-4 py-3"
+                className="flex items-center gap-3 rounded-2xl border-2 border-border bg-card px-4 py-3"
               >
-                <span className="text-sm font-extrabold">Page {page.id + 1}</span>
-                <div className="flex flex-wrap gap-2">
-                  {(["say", "type", "snap"] as PageMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      aria-pressed={page.mode === mode}
-                      onClick={() =>
-                        setPages(
-                          draft.map((item) => (item.id === page.id ? { ...item, mode } : item)),
-                        )
-                      }
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full border-2 border-border px-4 py-1.5 text-sm font-extrabold",
-                        page.mode === mode
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-background text-foreground",
-                      )}
-                    >
-                      {mode === "say" ? (
-                        <Mic className="h-4 w-4" />
-                      ) : mode === "type" ? (
-                        <Keyboard className="h-4 w-4" />
-                      ) : (
-                        <Camera className="h-4 w-4" />
-                      )}
-                      {mode === "say" ? "Say it" : mode === "type" ? "Type it" : "Snap it"}
-
-                    </button>
-                  ))}
-                </div>
+                <span className="text-sm font-extrabold text-muted-foreground min-w-[4rem]">
+                  Page {page.id + 1}
+                </span>
+                <input
+                  type="text"
+                  value={page.title}
+                  onChange={(e) => updateTitle(page.id, e.target.value)}
+                  placeholder={`Page ${page.id + 1}`}
+                  className="flex-1 rounded-xl border-2 border-border bg-background px-3 py-2 text-sm font-semibold outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = window.prompt("Edit page title", page.title);
+                    if (next !== null) updateTitle(page.id, next);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border-2 border-border bg-background px-3 py-2 text-sm font-extrabold hover:bg-accent hover:text-accent-foreground"
+                  aria-label={`Edit title for page ${page.id + 1}`}
+                >
+                  <Pencil className="h-4 w-4" /> Edit
+                </button>
               </li>
             ))}
           </ul>
@@ -879,6 +852,7 @@ function Index() {
       </main>
     );
   }
+
 
   // ---------- The book ----------
   return (
