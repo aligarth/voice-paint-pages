@@ -39,6 +39,8 @@ import {
 } from "@/lib/savedBooks";
 import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
 import { fileToDataUrl } from "@/lib/photo";
+import { sealLineArt } from "@/lib/sealLineArt";
+
 import { PhotoPrep } from "@/components/PhotoPrep";
 import { CameraCapture } from "@/components/CameraCapture";
 import { exportPagesToPdf } from "@/lib/exportPdf";
@@ -458,12 +460,24 @@ function Index() {
       ),
     );
 
-    const onFrame = (src: string, isFinal: boolean) =>
+    const onFrame = (src: string, isFinal: boolean) => {
+      if (isFinal) {
+        // Seal the outlines before the page can be coloured, so paint can't leak.
+        void sealLineArt(src).then((sealed) =>
+          setPages((prev) =>
+            prev.map((page) =>
+              page.id === id
+                ? { ...page, src: sealed, done: true, regenerating: false }
+                : page,
+            ),
+          ),
+        );
+        return;
+      }
       setPages((prev) =>
-        prev.map((page) =>
-          page.id === id ? { ...page, src, done: isFinal, regenerating: !isFinal } : page,
-        ),
+        prev.map((page) => (page.id === id ? { ...page, src, regenerating: true } : page)),
       );
+    };
 
     try {
       if (source.kind === "text") {
@@ -477,11 +491,7 @@ function Index() {
           controller.signal,
         );
       }
-      setPages((prev) =>
-        prev.map((page) =>
-          page.id === id ? { ...page, done: true, regenerating: false } : page,
-        ),
-      );
+
     } catch (err) {
       if (isAbortError(err)) {
         setPages((prev) =>
