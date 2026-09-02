@@ -284,7 +284,76 @@ export function ColoringCanvas({
     }
   };
 
-  /** Microsoft Paint style bucket fill: spread across touching pixels of the tapped color. */
+  /** Grows a binary mask by `radius` pixels (4-neighbour, repeated). */
+  const dilate = (mask: Uint8Array, w: number, h: number, radius: number) => {
+    let current = mask;
+    for (let step = 0; step < radius; step++) {
+      const next = new Uint8Array(current);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = y * w + x;
+          if (current[i]) continue;
+          if (
+            (x > 0 && current[i - 1]) ||
+            (x < w - 1 && current[i + 1]) ||
+            (y > 0 && current[i - w]) ||
+            (y < h - 1 && current[i + w])
+          ) {
+            next[i] = 1;
+          }
+        }
+      }
+      current = next;
+    }
+    return current;
+  };
+
+  /** Shrinks a binary mask by `radius` pixels; edges of the page count as outside. */
+  const erode = (mask: Uint8Array, w: number, h: number, radius: number) => {
+    let current = mask;
+    for (let step = 0; step < radius; step++) {
+      const next = new Uint8Array(current);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = y * w + x;
+          if (!current[i]) continue;
+          if (
+            (x > 0 && !current[i - 1]) ||
+            (x < w - 1 && !current[i + 1]) ||
+            (y > 0 && !current[i - w]) ||
+            (y < h - 1 && !current[i + w])
+          ) {
+            next[i] = 0;
+          }
+        }
+      }
+      current = next;
+    }
+    return current;
+  };
+
+  /**
+   * Builds the barrier map the fill may never cross: every pixel that is not clean
+   * paper, thickened and gap-closed so hairline outlines and 1-3px breaks hold.
+   */
+  const buildWalls = (px: Uint8ClampedArray, w: number, h: number) => {
+    const walls = new Uint8Array(w * h);
+    for (let i = 0; i < walls.length; i++) {
+      const o = i * 4;
+      const r = px[o] ?? 255;
+      const g = px[o + 1] ?? 255;
+      const b = px[o + 2] ?? 255;
+      // Not clearly paper-white → treat as a wall (catches grey and soft edges).
+      if (r < PAPER_MIN || g < PAPER_MIN || b < PAPER_MIN) walls[i] = 1;
+    }
+    if (gapSeal <= 0) return { walls, grown: 0 };
+    // Morphological close: grow to seal gaps, then shrink back to the true line.
+    const grown = dilate(walls, w, h, gapSeal);
+    const closed = erode(grown, w, h, Math.max(0, gapSeal - 1));
+    return { walls: closed, grown: 1 };
+  };
+
+  /** Microsoft Paint style bucket fill, contained by the line art's sealed walls. */
   const fillAt = (point: { x: number; y: number }) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
@@ -298,6 +367,7 @@ export function ColoringCanvas({
     const visible = flattenVisible(canvas);
     if (!visible) return;
     const px = visible.data;
+    setFillMessage(null);
 
     const seed = (sy * w + sx) * 4;
     const sr = px[seed] ?? 255;
@@ -316,9 +386,15 @@ export function ColoringCanvas({
       0.299 * (px[i] ?? 255) + 0.587 * (px[i + 1] ?? 255) + 0.114 * (px[i + 2] ?? 255);
     const seedIsDark = lum(seed) < DARK_WALL;
 
-    const matches = (i: number) => {
-      // Outlines are hard walls unless the tap itself started on the outline.
-      if (!seedIsDark && lum(i) < DARK_WALL) return false;
+    const { walls, grown } = buildWalls(px, w, h);
+    const seedIdx = sy * w + sx;
+    // Tapping directly on an outline: fall back to plain colour matching.
+    const useWalls = !seedIsDark && !walls[seedIdx];
+
+    const matches = (idx: number) => {
+      if (useWalls && walls[idx]) return false;
+      if (!useWalls && !seedIsDark && lum(idx * 4) < DARK_WALL) return false;
+      const i = idx * 4;
       return (
         Math.abs((px[i] ?? 255) - sr) <= FILL_TOLERANCE &&
         Math.abs((px[i + 1] ?? 255) - sg) <= FILL_TOLERANCE &&
@@ -326,7 +402,7 @@ export function ColoringCanvas({
       );
     };
 
-    const mask = new Uint8Array(w * h);
+    let mask = new Uint8Array(w * h);
     const stack: number[] = [sx, sy];
     let filled = 0;
 
@@ -336,9 +412,9 @@ export function ColoringCanvas({
       if (y < 0 || y >= h) continue;
       let left = x0;
       // Walk the scanline out to both boundaries, then queue the rows above and below.
-      while (left > 0 && !mask[y * w + (left - 1)] && matches(((y * w) + left - 1) * 4)) left--;
+      while (left > 0 && !mask[y * w + (left - 1)] && matches(y * w + left - 1)) left--;
       let right = x0;
-      while (right < w - 1 && !mask[y * w + (right + 1)] && matches(((y * w) + right + 1) * 4)) right++;
+      while (right < w - 1 && !mask[y * w + (right + 1)] && matches(y * w + right + 1)) right++;
       for (let x = left; x <= right; x++) {
         const idx = y * w + x;
         if (mask[idx]) continue;
@@ -347,12 +423,28 @@ export function ColoringCanvas({
         for (const ny of [y - 1, y + 1]) {
           if (ny < 0 || ny >= h) continue;
           const nIdx = ny * w + x;
-          if (!mask[nIdx] && matches(nIdx * 4)) stack.push(x, ny);
+          if (!mask[nIdx] && matches(nIdx)) stack.push(x, ny);
         }
       }
     }
 
     if (!filled) return;
+
+    // A run that swallowed most of the page means the shape wasn't closed.
+    if (useWalls && filled / (w * h) > LEAK_LIMIT) {
+      setFillMessage("That area isn't closed — try tapping inside a smaller shape.");
+      return;
+    }
+
+    // Grow the fill back into the sealed pixels so colour meets the outline.
+    if (useWalls && grown > 0) {
+      const widened = dilate(mask, w, h, grown);
+      for (let i = 0; i < widened.length; i++) {
+        // Never paint over the real outline itself.
+        if (widened[i] && !walls[i]) mask[i] = 1;
+      }
+      mask = widened.map((v, i) => (v && !walls[i] ? 1 : mask[i] ?? 0)) as unknown as Uint8Array;
+    }
 
     pushHistory();
     const patch = ctx.createImageData(w, h);
@@ -375,6 +467,7 @@ export function ColoringCanvas({
     ctx.drawImage(layer, 0, 0);
     reportPaint();
   };
+
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
