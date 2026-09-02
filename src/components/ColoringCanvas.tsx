@@ -46,6 +46,13 @@ const FILL_TOLERANCE = 12;
 /** Anything darker than this counts as an outline wall the fill can never cross. */
 const DARK_WALL = 110;
 
+/** Pixels lighter than this on every channel count as clean paper. */
+const PAPER_MIN = 236;
+
+/** A fill covering more of the page than this almost certainly leaked. */
+const LEAK_LIMIT = 0.6;
+
+
 
 export function ColoringCanvas({
   src,
