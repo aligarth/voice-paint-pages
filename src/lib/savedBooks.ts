@@ -7,9 +7,12 @@ export type SavedBook = {
   pages: string[];
   /** Optional painted layers for each page, aligned by index. */
   paints?: (string | null)[] | undefined;
+  /** Titles for each page, aligned by index. */
+  pageTitles?: string[] | undefined;
   /** "page" = one generated coloring page, "book" = a collection the user built. */
   kind?: SavedKind | undefined;
 };
+
 
 export const MAX_BOOKS = 100;
 
