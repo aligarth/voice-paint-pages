@@ -211,6 +211,7 @@ function Index() {
     const timer = window.setTimeout(() => {
       void saveSession({
         bookId: shelfBookIdRef.current,
+        bookKind: shelfBookKindRef.current,
         title: bookTitle,
         pages: pages.map((page) => ({
           src: page.done ? page.src : null,
@@ -242,7 +243,7 @@ function Index() {
             pages: drawn.map((page) => page.src!),
             paints: drawn.map((page) => page.paint ?? null),
             pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
-            kind: "book",
+            kind: drawn.length > 1 ? "book" : shelfBookKindRef.current,
           });
           setSavedBooks(await listBooks());
         } catch (err) {
@@ -503,6 +504,7 @@ function Index() {
     autoSavedRef.current.clear();
     shelfBookIdRef.current = book.id;
     shelfBookSavedAtRef.current = book.savedAt;
+    shelfBookKindRef.current = book.pages.length > 1 ? "book" : "page";
     setBookTitle(book.title);
     setPageCount(book.pages.length);
     setPages(
