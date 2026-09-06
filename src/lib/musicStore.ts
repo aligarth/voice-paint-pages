@@ -52,11 +52,38 @@ function load(play: boolean) {
   if (play) void a.play().catch(() => undefined);
 }
 
+const STORAGE_KEY = "cmw-music-prompt";
+
+function persist() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ asked: state.asked, enabled: state.enabled }),
+    );
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function hydrate() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw) as { asked?: boolean; enabled?: boolean };
+    state.asked = Boolean(saved.asked);
+    state.enabled = Boolean(saved.enabled);
+  } catch {
+    /* ignore bad data */
+  }
+}
+
 export function useMusic() {
   const [, force] = useState(0);
   useEffect(() => {
     const l = () => force((n) => n + 1);
     listeners.add(l);
+    hydrate();
+    l();
     return () => {
       listeners.delete(l);
     };
@@ -67,12 +94,22 @@ export function useMusic() {
 export function dismissMusicPrompt() {
   state.asked = true;
   state.enabled = false;
+  persist();
   emit();
 }
 
 export function enableMusic() {
   state.asked = true;
   state.enabled = true;
+  persist();
+  emit();
+}
+
+/** Brings the music prompt back after it was dismissed. */
+export function resetMusicPrompt() {
+  state.asked = false;
+  state.enabled = false;
+  persist();
   emit();
 }
 
