@@ -1,13 +1,13 @@
 # Finish the book, then open it from the shelf
 
-Two changes: a clear finish button when every page is coloured, and a bookshelf that greets you with a closed book you tap to see the pictures inside.
+Two changes: a clear finish button once the last page has been drawn, and a bookshelf that greets you with a closed book you tap to see the pictures inside.
 
-## 1. "Generate book" at the end
+## 1. "Generate book" once the last page is drawn
 
-- Once every page in the current book has a drawing, a wide **Generate book** button appears at the bottom of the book view (and at the bottom of the coloring studio when you close the last page).
-- Tapping it saves the whole book — its name and all its pages, with the colours you have added — into My Bookshelf, then takes you straight to the bookshelf screen.
+- As soon as every page in the current book has a drawing, a wide **Generate book** button appears at the bottom of the book view. Colouring first is optional.
+- Tapping it saves the whole book — its name and all its pages, with any colours already added — into My Bookshelf, then takes you straight to the bookshelf screen.
 - No manual page-picking needed anymore for this path; the pages you just made are the pages of the book.
-- If some pages are still blank the button stays hidden, and a small line says how many pages still need a picture.
+- If some pages have no drawing yet the button stays hidden, and a small line says how many pages still need a picture.
 
 ## 2. Bookshelf opens like a real book
 
