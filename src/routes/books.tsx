@@ -13,6 +13,8 @@ import {
   Pencil,
   Plus,
   RotateCcw,
+  Share2,
+  Link2,
   Trash2,
   X,
 } from "lucide-react";
