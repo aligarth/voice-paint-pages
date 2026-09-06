@@ -109,6 +109,7 @@ function BooksPage() {
 
   const openBook = async (book: SavedBook, startPage?: number) => {
     await saveSession({
+      bookId: book.id,
       title: book.title,
       pages: book.pages.map((src, i) => ({
         src,

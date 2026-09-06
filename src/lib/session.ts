@@ -15,6 +15,8 @@ export type ColoringSession = {
   pages: SessionPage[];
   openPage: number | null;
   savedAt: number;
+  /** Shelf book this session belongs to, so coloring is written back into it. */
+  bookId?: string | null;
 };
 
 
