@@ -90,7 +90,7 @@ export async function createBookShareLink(book: SavedBook): Promise<string> {
     pages.push({ src: image, title: book.pageTitles?.[i] || `Page ${i + 1}` });
   }
 
-  const { id, url } = await createSharedGallery(book.title, pages, book.shareId);
+  const { id, url } = await createSharedGallery(book.title, pages);
   if (book.shareId !== id) {
     await saveBookRecord({ ...book, shareId: id });
   }
