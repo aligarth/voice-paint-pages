@@ -393,7 +393,8 @@ function Index() {
       setSavedBooks(await listBooks());
       await navigate({ to: "/books", search: { view: "bookshelf" } });
     } catch (err) {
-      generatedBookRef.current = null;
+      shelfBookIdRef.current = null;
+      shelfBookSavedAtRef.current = null;
       setSaveMessage(err instanceof Error ? err.message : "Could not create the book.");
     } finally {
       setGeneratingBook(false);
