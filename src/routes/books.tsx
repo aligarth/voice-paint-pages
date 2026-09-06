@@ -34,7 +34,7 @@ import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { cn } from "@/lib/utils";
 
-import { saveSession } from "@/lib/session";
+import { clearSession, saveSession } from "@/lib/session";
 
 type View = "pages" | "bookshelf";
 
@@ -107,6 +107,12 @@ function BooksPage() {
     setSelecting(false);
     setSelectedIds([]);
     void navigate({ to: "/books", search: { view: next } });
+  };
+
+  /** Leave the last book behind on the shelf and land on the studio's front cover. */
+  const startNewBook = async () => {
+    await clearSession();
+    void navigate({ to: "/" });
   };
 
   const openBook = async (book: SavedBook, startPage?: number) => {
@@ -309,9 +315,13 @@ function BooksPage() {
             <BookOpen className="h-4 w-4" /> My Bookshelf
           </button>
           {!isPages && (
-            <Link to="/" className="btn-crayon bg-primary text-primary-foreground">
+            <button
+              type="button"
+              onClick={() => void startNewBook()}
+              className="btn-crayon bg-primary text-primary-foreground"
+            >
               <Plus className="h-4 w-4" /> Start a new book
-            </Link>
+            </button>
           )}
           {isPages && records.length > 0 && (
             <button
@@ -375,9 +385,13 @@ function BooksPage() {
               Go make one
             </Link>
           ) : (
-            <Link to="/" className="btn-crayon mt-5 inline-flex">
+            <button
+              type="button"
+              onClick={() => void startNewBook()}
+              className="btn-crayon mt-5 inline-flex"
+            >
               <Plus className="h-4 w-4" /> Start a new book
-            </Link>
+            </button>
           )}
         </div>
       )}
