@@ -134,6 +134,8 @@ function Index() {
   const shelfBookIdRef = useRef<string | null>(null);
   /** Original save time of that shelf book, kept so it doesn't jump around the shelf. */
   const shelfBookSavedAtRef = useRef<number | null>(null);
+  /** Whether that record is a single page or a book, so write-back keeps its type. */
+  const shelfBookKindRef = useRef<"page" | "book">("book");
   const [pageCount, setPageCount] = useState(4);
   const [bookTitle, setBookTitle] = useState("My coloring book");
   const [pages, setPages] = useState<Page[]>([]);
@@ -182,6 +184,7 @@ function Index() {
       if (!session?.pages.length) return;
       shelfBookIdRef.current = session.bookId ?? null;
       shelfBookSavedAtRef.current = null;
+      shelfBookKindRef.current = session.bookKind ?? "book";
       setBookTitle(session.title || "My coloring book");
       setPageCount(session.pages.length);
       setPages(
