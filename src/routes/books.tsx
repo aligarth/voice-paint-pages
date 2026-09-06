@@ -266,6 +266,11 @@ function BooksPage() {
   };
 
   const isPages = view === "pages";
+  /** On the shelf we show closed books until one is tapped open. */
+  const shelfClosed = !isPages && openBookId === null;
+  const visibleRecords = isPages
+    ? records
+    : records.filter((book) => book.id === openBookId);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
