@@ -11,6 +11,7 @@ import {
   Library,
   Loader2,
   Pencil,
+  Plus,
   RotateCcw,
   Trash2,
   X,
@@ -307,6 +308,11 @@ function BooksPage() {
           >
             <BookOpen className="h-4 w-4" /> My Bookshelf
           </button>
+          {!isPages && (
+            <Link to="/" className="btn-crayon bg-primary text-primary-foreground">
+              <Plus className="h-4 w-4" /> Start a new book
+            </Link>
+          )}
           {isPages && records.length > 0 && (
             <button
               type="button"
@@ -369,9 +375,9 @@ function BooksPage() {
               Go make one
             </Link>
           ) : (
-            <button type="button" className="btn-crayon mt-5 inline-flex" onClick={() => setView("pages")}>
-              Open My Pages
-            </button>
+            <Link to="/" className="btn-crayon mt-5 inline-flex">
+              <Plus className="h-4 w-4" /> Start a new book
+            </Link>
           )}
         </div>
       )}
