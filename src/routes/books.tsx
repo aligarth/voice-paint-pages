@@ -88,6 +88,8 @@ function BooksPage() {
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bookTitle, setBookTitle] = useState("My coloring book");
+  /** Which book on the shelf is opened up to show its pictures. */
+  const [openBookId, setOpenBookId] = useState<string | null>(null);
 
   useEffect(() => {
     void listBooks().then(setBooks);
@@ -105,11 +107,15 @@ function BooksPage() {
     void navigate({ to: "/books", search: { view: next } });
   };
 
-  const openBook = async (book: SavedBook) => {
+  const openBook = async (book: SavedBook, startPage?: number) => {
     await saveSession({
       title: book.title,
-      pages: book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
-      openPage: null,
+      pages: book.pages.map((src, i) => ({
+        src,
+        paint: book.paints?.[i] ?? null,
+        ...(book.pageTitles?.[i] ? { title: book.pageTitles[i]! } : {}),
+      })),
+      openPage: startPage ?? null,
     });
     void navigate({ to: "/" });
   };
