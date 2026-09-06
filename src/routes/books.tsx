@@ -324,8 +324,20 @@ function BooksPage() {
         <p className="mt-3 max-w-xl text-base text-muted-foreground">
           {isPages
             ? "Every picture you draw saves itself here as its own page. Choose the pages you want and build them into one book."
-            : "Books you built from chosen pages live here. Rename, remove pages, export a PDF, or reopen a book to keep coloring."}
+            : shelfClosed
+              ? "Tap a book to open it and see every picture inside, then tap the picture you want to color."
+              : "Tap any picture to color it. Rename, remove pages, export a PDF, or close the book to go back to the shelf."}
         </p>
+
+        {!isPages && !shelfClosed && (
+          <button
+            type="button"
+            className="btn-crayon mt-4"
+            onClick={() => setOpenBookId(null)}
+          >
+            <ArrowLeft className="h-4 w-4" /> Close book
+          </button>
+        )}
 
         {(message || undoBook) && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
