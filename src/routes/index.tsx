@@ -56,9 +56,6 @@ function isAbortError(err: unknown): boolean {
 }
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    new: search["new"] ? 1 : undefined,
-  }),
   head: () => ({
     meta: [
       { title: "Color My World — Make Your Own Coloring Book" },
