@@ -13,6 +13,8 @@ import {
   Pencil,
   Plus,
   RotateCcw,
+  Share2,
+  Link2,
   Trash2,
   X,
 } from "lucide-react";
@@ -30,6 +32,7 @@ import {
   type SavedBook,
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
+import { createBookShareLink, shareBookFile } from "@/lib/shareBook";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { cn } from "@/lib/utils";
@@ -74,6 +77,12 @@ function BooksPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
   const [undoBook, setUndoBook] = useState<SavedBook | null>(null);
+  /** Which book's share card is open, plus its link state. */
+  const [sharePanelId, setSharePanelId] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState<"file" | "link" | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndo = () => {
@@ -176,6 +185,65 @@ function BooksPage() {
       setMessage(err instanceof Error ? err.message : "Could not save this book.");
     } finally {
       setExportingId(null);
+    }
+  };
+
+  const openSharePanel = (book: SavedBook) => {
+    setMessage(null);
+    setShareError(null);
+    setShareCopied(false);
+    setShareLink(null);
+    setSharePanelId((prev) => (prev === book.id ? null : book.id));
+  };
+
+  /** Hands the colored book to the device share sheet (or downloads it as a fallback). */
+  const sendBookFile = async (book: SavedBook) => {
+    setShareBusy("file");
+    setShareError(null);
+    try {
+      const result = await shareBookFile(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
+      if (result.downloaded) {
+        setMessage(`Saved “${book.title}” as a file you can attach to a message or email.`);
+      }
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Could not prepare the book file.");
+    } finally {
+      setShareBusy(null);
+    }
+  };
+
+  /** Publishes a view-only, fully coloured copy and shows the link. */
+  const makeShareLink = async (book: SavedBook) => {
+    setShareBusy("link");
+    setShareError(null);
+    setShareCopied(false);
+    try {
+      const url = await createBookShareLink(book);
+      setShareLink(url);
+      setBooks(await listBooks());
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+      } catch {
+        // Clipboard blocked — the link is shown so it can be copied by hand.
+      }
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Could not make a link for this book.");
+    } finally {
+      setShareBusy(null);
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShareCopied(true);
+    } catch {
+      setShareError("Copying didn't work here — press and hold the link to copy it.");
     }
   };
 
@@ -556,6 +624,19 @@ function BooksPage() {
                       {exportingId === `${book.id}-save` ? "Saving…" : "Save book"}
                     </button>
                   )}
+                  {!isPages && (
+                    <button
+                      type="button"
+                      aria-expanded={sharePanelId === book.id}
+                      className={cn(
+                        "btn-crayon",
+                        sharePanelId === book.id && "bg-primary text-primary-foreground",
+                      )}
+                      onClick={() => openSharePanel(book)}
+                    >
+                      <Share2 className="h-4 w-4" /> Share
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn-crayon"
@@ -571,6 +652,75 @@ function BooksPage() {
                   </button>
                 </div>
               </div>
+
+              {sharePanelId === book.id && (
+                <div className="mt-4 rounded-2xl border-2 border-border bg-secondary/40 p-4">
+                  <p className="text-base font-extrabold">Send this book to a friend</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Every page goes out exactly as you colored it.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-crayon bg-primary text-primary-foreground disabled:opacity-50"
+                      disabled={shareBusy !== null}
+                      onClick={() => void sendBookFile(book)}
+                    >
+                      {shareBusy === "file" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Share2 className="h-4 w-4" />
+                      )}
+                      {shareBusy === "file" ? "Getting it ready…" : "Send book"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-crayon disabled:opacity-50"
+                      disabled={shareBusy !== null}
+                      onClick={() => void makeShareLink(book)}
+                    >
+                      {shareBusy === "link" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Link2 className="h-4 w-4" />
+                      )}
+                      {shareBusy === "link" ? "Preparing your link…" : "Copy link"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-crayon"
+                      onClick={() => setSharePanelId(null)}
+                    >
+                      <X className="h-4 w-4" /> Close
+                    </button>
+                  </div>
+
+                  {shareLink && (
+                    <div className="mt-3 rounded-xl border-2 border-border bg-card p-3">
+                      <a
+                        href={shareLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block break-all text-sm font-bold text-primary underline underline-offset-4"
+                      >
+                        {shareLink}
+                      </a>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button type="button" className="btn-crayon" onClick={() => void copyShareLink()}>
+                          <Check className="h-4 w-4" /> {shareCopied ? "Copied!" : "Copy"}
+                        </button>
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          Anyone with this link can look at the book and print it. They can't change it.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {shareError && (
+                    <p className="mt-3 text-sm font-bold text-destructive">{shareError}</p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {book.pages.map((src, index) => (
