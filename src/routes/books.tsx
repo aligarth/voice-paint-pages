@@ -552,7 +552,12 @@ function BooksPage() {
               <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {book.pages.map((src, index) => (
                   <div key={index} className="rounded-2xl border-2 border-border p-2">
-                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-white">
+                    <button
+                      type="button"
+                      onClick={() => void openBook(book, index)}
+                      aria-label={`Color ${book.pageTitles?.[index] || `page ${index + 1}`}`}
+                      className="relative block aspect-square w-full overflow-hidden rounded-xl bg-white transition-transform hover:-translate-y-0.5"
+                    >
                       <img
                         src={src}
                         alt={`${book.title} page ${index + 1}`}
@@ -565,9 +570,14 @@ function BooksPage() {
                           className="absolute inset-0 h-full w-full object-contain"
                         />
                       )}
-                    </div>
+                      <span className="absolute bottom-1 left-1 rounded-full border-2 border-border bg-card px-2 py-0.5 text-[10px] font-extrabold">
+                        Tap to color
+                      </span>
+                    </button>
                     <div className="mt-2 flex items-center justify-between gap-2">
-                      <span className="text-xs font-extrabold">Page {index + 1}</span>
+                      <span className="text-xs font-extrabold">
+                        {book.pageTitles?.[index]?.trim() || `Page ${index + 1}`}
+                      </span>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
