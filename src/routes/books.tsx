@@ -185,6 +185,65 @@ function BooksPage() {
     }
   };
 
+  const openSharePanel = (book: SavedBook) => {
+    setMessage(null);
+    setShareError(null);
+    setShareCopied(false);
+    setShareLink(null);
+    setSharePanelId((prev) => (prev === book.id ? null : book.id));
+  };
+
+  /** Hands the coloured book to the device share sheet (or downloads it as a fallback). */
+  const sendBookFile = async (book: SavedBook) => {
+    setShareBusy("file");
+    setShareError(null);
+    try {
+      const result = await shareBookFile(
+        book.title,
+        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+      );
+      if (result.downloaded) {
+        setMessage(`Saved “${book.title}” as a file you can attach to a message or email.`);
+      }
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Could not prepare the book file.");
+    } finally {
+      setShareBusy(null);
+    }
+  };
+
+  /** Publishes a view-only, fully coloured copy and shows the link. */
+  const makeShareLink = async (book: SavedBook) => {
+    setShareBusy("link");
+    setShareError(null);
+    setShareCopied(false);
+    try {
+      const url = await createBookShareLink(book);
+      setShareLink(url);
+      setBooks(await listBooks());
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareCopied(true);
+      } catch {
+        // Clipboard blocked — the link is shown so it can be copied by hand.
+      }
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "Could not make a link for this book.");
+    } finally {
+      setShareBusy(null);
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!shareLink) return;
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      setShareCopied(true);
+    } catch {
+      setShareError("Copying didn't work here — press and hold the link to copy it.");
+    }
+  };
+
   const exportPagePng = async (book: SavedBook, index: number) => {
     const src = book.pages[index];
     if (!src) return;
