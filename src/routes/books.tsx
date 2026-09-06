@@ -315,9 +315,13 @@ function BooksPage() {
             <BookOpen className="h-4 w-4" /> My Bookshelf
           </button>
           {!isPages && (
-            <Link to="/" className="btn-crayon bg-primary text-primary-foreground">
+            <button
+              type="button"
+              onClick={() => void startNewBook()}
+              className="btn-crayon bg-primary text-primary-foreground"
+            >
               <Plus className="h-4 w-4" /> Start a new book
-            </Link>
+            </button>
           )}
           {isPages && records.length > 0 && (
             <button
