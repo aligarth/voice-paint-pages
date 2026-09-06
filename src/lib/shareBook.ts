@@ -70,8 +70,8 @@ async function flattenForWeb(page: FlattenSource): Promise<string> {
 }
 
 /**
- * Publishes a view-only copy of the book and returns a link anyone can open.
- * The same book keeps the same link: a second call refreshes the existing copy.
+ * Publishes a view-only copy of the book, exactly as it is coloured right now,
+ * and returns a link anyone can open. The newest link is remembered on the book.
  */
 export async function createBookShareLink(book: SavedBook): Promise<string> {
   if (!book.pages.length) throw new Error("This book has no pages to share yet.");
