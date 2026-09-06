@@ -109,6 +109,12 @@ function BooksPage() {
     void navigate({ to: "/books", search: { view: next } });
   };
 
+  /** Leave the last book behind on the shelf and land on the studio's front cover. */
+  const startNewBook = async () => {
+    await clearSession();
+    void navigate({ to: "/" });
+  };
+
   const openBook = async (book: SavedBook, startPage?: number) => {
     await saveSession({
       bookId: book.id,
