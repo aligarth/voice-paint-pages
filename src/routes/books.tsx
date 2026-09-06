@@ -622,6 +622,19 @@ function BooksPage() {
                       {exportingId === `${book.id}-save` ? "Saving…" : "Save book"}
                     </button>
                   )}
+                  {!isPages && (
+                    <button
+                      type="button"
+                      aria-expanded={sharePanelId === book.id}
+                      className={cn(
+                        "btn-crayon",
+                        sharePanelId === book.id && "bg-primary text-primary-foreground",
+                      )}
+                      onClick={() => openSharePanel(book)}
+                    >
+                      <Share2 className="h-4 w-4" /> Share
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn-crayon"
