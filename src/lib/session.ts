@@ -17,6 +17,8 @@ export type ColoringSession = {
   savedAt: number;
   /** Shelf book this session belongs to, so coloring is written back into it. */
   bookId?: string | null;
+  /** Whether that record is a single page or a multi-page book. */
+  bookKind?: "page" | "book" | null;
 };
 
 
