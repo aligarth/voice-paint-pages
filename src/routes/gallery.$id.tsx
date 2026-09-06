@@ -1,20 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { fetchSharedGallery, type SharedGallery } from "@/lib/share";
-import { ArrowLeft, BookOpen, Share2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Printer, Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/gallery/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: "Shared Coloring Book — Say it or snap it" },
+      { title: "A shared coloring book — Color My World" },
       {
         name: "description",
-        content: "A shared coloring book gallery created in Say it or snap it.",
+        content: "Flip through a finished coloring book, page by page, shared from Color My World.",
       },
-      { property: "og:title", content: "Shared Coloring Book — Say it or snap it" },
+      { property: "og:title", content: "A shared coloring book — Color My World" },
       {
         property: "og:description",
-        content: "A shared coloring book gallery created in Say it or snap it.",
+        content: "Flip through a finished coloring book, page by page, shared from Color My World.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -100,9 +100,14 @@ function GalleryPage() {
               {gallery.pages.length} page{gallery.pages.length === 1 ? "" : "s"}
             </p>
           </div>
-          <button type="button" onClick={handleShare} className="btn-crayon">
-            <Share2 className="h-4 w-4" /> Share link
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => window.print()} className="btn-crayon">
+              <Printer className="h-4 w-4" /> Print
+            </button>
+            <button type="button" onClick={handleShare} className="btn-crayon">
+              <Share2 className="h-4 w-4" /> Share link
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,7 +124,9 @@ function GalleryPage() {
                   loading="lazy"
                 />
               </div>
-              <p className="text-sm font-semibold text-muted-foreground">Page {index + 1}</p>
+              <p className="text-sm font-semibold text-muted-foreground">
+                {page.title || `Page ${index + 1}`}
+              </p>
             </div>
           ))}
         </div>
