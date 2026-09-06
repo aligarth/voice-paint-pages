@@ -58,5 +58,5 @@ async function buildPagesPdf(title: string, sources: PdfPage[]) {
     doc.addImage(image.data, "JPEG", x, y, w, h);
   }
 
-  doc.save(pdfFileName(title));
+  return doc;
 }
