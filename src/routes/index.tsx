@@ -180,6 +180,8 @@ function Index() {
     void loadSession().then((session) => {
       setRestored(true);
       if (!session?.pages.length) return;
+      shelfBookIdRef.current = session.bookId ?? null;
+      shelfBookSavedAtRef.current = null;
       setBookTitle(session.title || "My coloring book");
       setPageCount(session.pages.length);
       setPages(
@@ -479,6 +481,8 @@ function Index() {
     abortRef.current?.abort();
     abortRef.current = null;
     autoSavedRef.current.clear();
+    shelfBookIdRef.current = null;
+    shelfBookSavedAtRef.current = null;
     setPages([]);
     setOpenPage(null);
     setBusyPage(null);
@@ -494,6 +498,8 @@ function Index() {
 
   const openSavedBook = (book: SavedBook) => {
     autoSavedRef.current.clear();
+    shelfBookIdRef.current = book.id;
+    shelfBookSavedAtRef.current = book.savedAt;
     setBookTitle(book.title);
     setPageCount(book.pages.length);
     setPages(
