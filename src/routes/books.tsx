@@ -359,7 +359,7 @@ function BooksPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             {isPages
               ? "Say it, type it or snap it in the studio — each picture saves itself here as its own page."
-              : "Go to My Pages, choose the pages you love, and create your first book."}
+              : "Draw all the pages in the studio, then tap Generate book to put it on your shelf."}
           </p>
           {isPages ? (
             <Link to="/" className="btn-crayon mt-5 inline-flex">
@@ -373,8 +373,53 @@ function BooksPage() {
         </div>
       )}
 
+      {shelfClosed && records.length > 0 && (
+        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {records.map((book) => (
+            <button
+              key={book.id}
+              type="button"
+              onClick={() => setOpenBookId(book.id)}
+              className="group text-left transition-transform hover:-translate-y-1"
+              aria-label={`Open ${book.title}`}
+            >
+              <div className="relative">
+                {/* stacked page edges behind the cover */}
+                <span className="absolute inset-y-2 -right-1 w-3 rounded-r-xl border-2 border-border bg-card" />
+                <span className="absolute inset-y-1 -right-2 w-3 rounded-r-xl border-2 border-border bg-muted" />
+                <div className="relative overflow-hidden rounded-2xl rounded-l-md border-2 border-border bg-card shadow-lg">
+                  <span className="absolute inset-y-0 left-0 w-4 bg-primary/80" />
+                  <div className="relative ml-4 aspect-[3/4] w-[calc(100%-1rem)] bg-white">
+                    {book.pages[0] && (
+                      <img
+                        src={book.pages[0]}
+                        alt={`${book.title} cover`}
+                        className="absolute inset-0 h-full w-full object-contain"
+                      />
+                    )}
+                    {book.paints?.[0] && (
+                      <img
+                        src={book.paints[0]!}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-contain"
+                      />
+                    )}
+                  </div>
+                  <div className="ml-4 border-t-2 border-border px-3 py-3">
+                    <p className="text-lg font-extrabold capitalize">{book.title}</p>
+                    <p className="text-xs font-bold text-muted-foreground">
+                      {book.pages.length} {book.pages.length === 1 ? "page" : "pages"} · tap to open
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={cn("mt-10 space-y-8", selecting && "pb-32")}>
-        {records.map((book) => {
+        {visibleRecords.map((book) => {
           const isSelected = selectedIds.includes(book.id);
           return (
             <section
