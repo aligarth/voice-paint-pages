@@ -11,6 +11,8 @@ export type SavedBook = {
   pageTitles?: string[] | undefined;
   /** "page" = one generated coloring page, "book" = a collection the user built. */
   kind?: SavedKind | undefined;
+  /** Id of the shared, view-only copy of this book, once a link has been made. */
+  shareId?: string | undefined;
 };
 
 
