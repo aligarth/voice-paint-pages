@@ -653,6 +653,75 @@ function BooksPage() {
                 </div>
               </div>
 
+              {sharePanelId === book.id && (
+                <div className="mt-4 rounded-2xl border-2 border-border bg-secondary/40 p-4">
+                  <p className="text-base font-extrabold">Send this book to a friend</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Every page goes out exactly as you coloured it.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-crayon bg-primary text-primary-foreground disabled:opacity-50"
+                      disabled={shareBusy !== null}
+                      onClick={() => void sendBookFile(book)}
+                    >
+                      {shareBusy === "file" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Share2 className="h-4 w-4" />
+                      )}
+                      {shareBusy === "file" ? "Getting it ready…" : "Send book"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-crayon disabled:opacity-50"
+                      disabled={shareBusy !== null}
+                      onClick={() => void makeShareLink(book)}
+                    >
+                      {shareBusy === "link" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Link2 className="h-4 w-4" />
+                      )}
+                      {shareBusy === "link" ? "Preparing your link…" : "Copy link"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-crayon"
+                      onClick={() => setSharePanelId(null)}
+                    >
+                      <X className="h-4 w-4" /> Close
+                    </button>
+                  </div>
+
+                  {shareLink && (
+                    <div className="mt-3 rounded-xl border-2 border-border bg-card p-3">
+                      <a
+                        href={shareLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block break-all text-sm font-bold text-primary underline underline-offset-4"
+                      >
+                        {shareLink}
+                      </a>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button type="button" className="btn-crayon" onClick={() => void copyShareLink()}>
+                          <Check className="h-4 w-4" /> {shareCopied ? "Copied!" : "Copy"}
+                        </button>
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          Anyone with this link can look at the book and print it. They can't change it.
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {shareError && (
+                    <p className="mt-3 text-sm font-bold text-destructive">{shareError}</p>
+                  )}
+                </div>
+              )}
+
               <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {book.pages.map((src, index) => (
                   <div key={index} className="rounded-2xl border-2 border-border p-2">
