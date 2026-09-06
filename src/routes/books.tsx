@@ -23,6 +23,7 @@ import {
   isSavedPage,
   listBooks,
   makeBookId,
+  recordKind,
   renameBook,
   saveBookRecord,
   type SavedBook,
