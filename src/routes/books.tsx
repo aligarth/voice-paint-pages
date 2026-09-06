@@ -385,9 +385,13 @@ function BooksPage() {
               Go make one
             </Link>
           ) : (
-            <Link to="/" className="btn-crayon mt-5 inline-flex">
+            <button
+              type="button"
+              onClick={() => void startNewBook()}
+              className="btn-crayon mt-5 inline-flex"
+            >
               <Plus className="h-4 w-4" /> Start a new book
-            </Link>
+            </button>
           )}
         </div>
       )}
