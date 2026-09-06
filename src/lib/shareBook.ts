@@ -70,7 +70,7 @@ async function flattenForWeb(page: FlattenSource): Promise<string> {
 }
 
 /**
- * Publishes a view-only copy of the book, exactly as it is coloured right now,
+ * Publishes a view-only copy of the book, exactly as it is colored right now,
  * and returns a link anyone can open. The newest link is remembered on the book.
  */
 export async function createBookShareLink(book: SavedBook): Promise<string> {

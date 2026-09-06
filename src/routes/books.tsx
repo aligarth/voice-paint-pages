@@ -196,7 +196,7 @@ function BooksPage() {
     setSharePanelId((prev) => (prev === book.id ? null : book.id));
   };
 
-  /** Hands the coloured book to the device share sheet (or downloads it as a fallback). */
+  /** Hands the colored book to the device share sheet (or downloads it as a fallback). */
   const sendBookFile = async (book: SavedBook) => {
     setShareBusy("file");
     setShareError(null);
@@ -657,7 +657,7 @@ function BooksPage() {
                 <div className="mt-4 rounded-2xl border-2 border-border bg-secondary/40 p-4">
                   <p className="text-base font-extrabold">Send this book to a friend</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Every page goes out exactly as you coloured it.
+                    Every page goes out exactly as you colored it.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
