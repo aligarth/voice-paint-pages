@@ -8,6 +8,7 @@ import {
   playTrack,
   prev,
   removeTrack,
+  resetMusicPrompt,
   setVolume,
   toggleMusic,
   useMusic,

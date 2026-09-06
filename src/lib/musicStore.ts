@@ -124,6 +124,7 @@ export function addTracks(files: File[]) {
   state.tracks = [...state.tracks, ...added];
   state.asked = true;
   state.enabled = true;
+  persist();
   if (wasEmpty) {
     state.index = 0;
     load(true);
