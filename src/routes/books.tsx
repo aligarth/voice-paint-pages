@@ -34,7 +34,7 @@ import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { cn } from "@/lib/utils";
 
-import { saveSession } from "@/lib/session";
+import { clearSession, saveSession } from "@/lib/session";
 
 type View = "pages" | "bookshelf";
 
