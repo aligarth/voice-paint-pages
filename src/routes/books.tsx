@@ -30,6 +30,7 @@ import {
   type SavedBook,
 } from "@/lib/savedBooks";
 import { exportPagesToPdf } from "@/lib/exportPdf";
+import { createBookShareLink, shareBookFile } from "@/lib/shareBook";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { cn } from "@/lib/utils";
