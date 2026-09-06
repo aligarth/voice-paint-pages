@@ -377,13 +377,14 @@ function Index() {
     const drawn = pages.filter((page) => page.src && page.done);
     if (!drawn.length) return;
     setGeneratingBook(true);
-    const id = generatedBookRef.current ?? makeBookId();
-    generatedBookRef.current = id;
+    const id = shelfBookIdRef.current ?? makeBookId();
+    shelfBookIdRef.current = id;
+    shelfBookSavedAtRef.current = shelfBookSavedAtRef.current ?? Date.now();
     try {
       await saveBookRecord({
         id,
         title: bookTitle.trim() || "My coloring book",
-        savedAt: Date.now(),
+        savedAt: shelfBookSavedAtRef.current,
         pages: drawn.map((page) => page.src!),
         paints: drawn.map((page) => page.paint ?? null),
         pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
