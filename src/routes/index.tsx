@@ -386,6 +386,7 @@ function Index() {
     const id = shelfBookIdRef.current ?? makeBookId();
     shelfBookIdRef.current = id;
     shelfBookSavedAtRef.current = shelfBookSavedAtRef.current ?? Date.now();
+    shelfBookKindRef.current = "book";
     try {
       await saveBookRecord({
         id,
@@ -487,6 +488,7 @@ function Index() {
     autoSavedRef.current.clear();
     shelfBookIdRef.current = null;
     shelfBookSavedAtRef.current = null;
+    shelfBookKindRef.current = "book";
     setPages([]);
     setOpenPage(null);
     setBusyPage(null);
