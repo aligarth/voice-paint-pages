@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Mic,
@@ -127,7 +127,11 @@ function Index() {
     detectedLang,
   } = useSpeech();
 
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("cover");
+  const [generatingBook, setGeneratingBook] = useState(false);
+  /** The bookshelf record this session's book was generated into, so a second tap updates it. */
+  const generatedBookRef = useRef<string | null>(null);
   const [pageCount, setPageCount] = useState(4);
   const [bookTitle, setBookTitle] = useState("My coloring book");
   const [pages, setPages] = useState<Page[]>([]);
@@ -334,7 +338,36 @@ function Index() {
     }
   };
 
+  /** Saves every drawn page as one book in My Bookshelf and goes there. */
+  const generateBook = async () => {
+    const drawn = pages.filter((page) => page.src && page.done);
+    if (!drawn.length) return;
+    setGeneratingBook(true);
+    const id = generatedBookRef.current ?? makeBookId();
+    generatedBookRef.current = id;
+    try {
+      await saveBookRecord({
+        id,
+        title: bookTitle.trim() || "My coloring book",
+        savedAt: Date.now(),
+        pages: drawn.map((page) => page.src!),
+        paints: drawn.map((page) => page.paint ?? null),
+        pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
+        kind: "book",
+      });
+      setSavedBooks(await listBooks());
+      await navigate({ to: "/books", search: { view: "bookshelf" } });
+    } catch (err) {
+      generatedBookRef.current = null;
+      setSaveMessage(err instanceof Error ? err.message : "Could not create the book.");
+    } finally {
+      setGeneratingBook(false);
+    }
+  };
+
   const readyPages = pages.filter((page) => page.src);
+  const allPagesDrawn = pages.length > 0 && pages.every((page) => page.src && page.done);
+  const pagesLeft = pages.filter((page) => !(page.src && page.done)).length;
 
   const exportPdf = async () => {
     if (!readyPages.length) return;
@@ -1147,6 +1180,31 @@ function Index() {
           );
         })}
       </div>
+
+      {!selecting && (
+        <div className="mt-8 text-center">
+          {allPagesDrawn ? (
+            <button
+              type="button"
+              onClick={() => void generateBook()}
+              disabled={generatingBook}
+              className="inline-flex w-full max-w-md items-center justify-center gap-2 rounded-full border-2 border-border bg-primary px-7 py-4 text-lg font-extrabold text-primary-foreground transition-transform hover:-translate-y-1 disabled:opacity-50"
+            >
+              {generatingBook ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <BookOpen className="h-5 w-5" />
+              )}
+              {generatingBook ? "Making your book…" : "Generate book"}
+            </button>
+          ) : (
+            <p className="text-sm font-semibold text-muted-foreground">
+              {pagesLeft} {pagesLeft === 1 ? "page" : "pages"} still need a picture before you can
+              generate your book.
+            </p>
+          )}
+        </div>
+      )}
 
       {selecting && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-border bg-card p-4 shadow-lg">
