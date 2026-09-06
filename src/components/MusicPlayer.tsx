@@ -53,6 +53,22 @@ export function MusicPlayer({ compact = false }: { compact?: boolean }) {
     );
   }
 
+  if (music.asked && !music.enabled && !music.tracks.length) {
+    return (
+      <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-muted-foreground">
+        Changed your mind?{" "}
+        <button
+          type="button"
+          onClick={resetMusicPrompt}
+          className="font-extrabold text-primary underline underline-offset-4"
+        >
+          Play music
+        </button>{" "}
+        while you color.
+      </p>
+    );
+  }
+
   const services = [
     { name: "Apple Music", url: "https://music.apple.com/" },
     { name: "Spotify", url: "https://open.spotify.com/" },
