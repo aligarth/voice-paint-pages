@@ -74,6 +74,12 @@ function BooksPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
   const [undoBook, setUndoBook] = useState<SavedBook | null>(null);
+  /** Which book's share card is open, plus its link state. */
+  const [sharePanelId, setSharePanelId] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState<"file" | "link" | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndo = () => {
