@@ -130,8 +130,10 @@ function Index() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("cover");
   const [generatingBook, setGeneratingBook] = useState(false);
-  /** The bookshelf record this session's book was generated into, so a second tap updates it. */
-  const generatedBookRef = useRef<string | null>(null);
+  /** The bookshelf record this session belongs to, so coloring is written back into it. */
+  const shelfBookIdRef = useRef<string | null>(null);
+  /** Original save time of that shelf book, kept so it doesn't jump around the shelf. */
+  const shelfBookSavedAtRef = useRef<number | null>(null);
   const [pageCount, setPageCount] = useState(4);
   const [bookTitle, setBookTitle] = useState("My coloring book");
   const [pages, setPages] = useState<Page[]>([]);
@@ -203,6 +205,7 @@ function Index() {
     if (!pages.length) return;
     const timer = window.setTimeout(() => {
       void saveSession({
+        bookId: shelfBookIdRef.current,
         title: bookTitle,
         pages: pages.map((page) => ({
           src: page.done ? page.src : null,
@@ -216,6 +219,37 @@ function Index() {
 
     return () => window.clearTimeout(timer);
   }, [pages, bookTitle, openPage, busyPage, restored, step]);
+
+  // Write coloring back into the shelf book this session came from, so nothing is lost.
+  useEffect(() => {
+    if (!restored || step !== "book" || busyPage !== null) return;
+    const bookId = shelfBookIdRef.current;
+    if (!bookId) return;
+    const drawn = pages.filter((page) => page.src && page.done);
+    if (!drawn.length) return;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await saveBookRecord({
+            id: bookId,
+            title: bookTitle.trim() || "My coloring book",
+            savedAt: shelfBookSavedAtRef.current ?? Date.now(),
+            pages: drawn.map((page) => page.src!),
+            paints: drawn.map((page) => page.paint ?? null),
+            pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
+            kind: "book",
+          });
+          setSavedBooks(await listBooks());
+        } catch (err) {
+          setSaveMessage(
+            err instanceof Error ? err.message : "Could not save your coloring to the bookshelf.",
+          );
+        }
+      })();
+    }, 800);
+
+    return () => window.clearTimeout(timer);
+  }, [pages, bookTitle, busyPage, restored, step]);
 
   // Every freshly drawn page becomes its own little book.
   useEffect(() => {
