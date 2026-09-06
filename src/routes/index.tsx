@@ -130,8 +130,12 @@ function Index() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("cover");
   const [generatingBook, setGeneratingBook] = useState(false);
-  /** The bookshelf record this session's book was generated into, so a second tap updates it. */
-  const generatedBookRef = useRef<string | null>(null);
+  /** The bookshelf record this session belongs to, so coloring is written back into it. */
+  const shelfBookIdRef = useRef<string | null>(null);
+  /** Original save time of that shelf book, kept so it doesn't jump around the shelf. */
+  const shelfBookSavedAtRef = useRef<number | null>(null);
+  /** Whether that record is a single page or a book, so write-back keeps its type. */
+  const shelfBookKindRef = useRef<"page" | "book">("book");
   const [pageCount, setPageCount] = useState(4);
   const [bookTitle, setBookTitle] = useState("My coloring book");
   const [pages, setPages] = useState<Page[]>([]);
@@ -178,6 +182,9 @@ function Index() {
     void loadSession().then((session) => {
       setRestored(true);
       if (!session?.pages.length) return;
+      shelfBookIdRef.current = session.bookId ?? null;
+      shelfBookSavedAtRef.current = null;
+      shelfBookKindRef.current = session.bookKind ?? "book";
       setBookTitle(session.title || "My coloring book");
       setPageCount(session.pages.length);
       setPages(
@@ -203,6 +210,8 @@ function Index() {
     if (!pages.length) return;
     const timer = window.setTimeout(() => {
       void saveSession({
+        bookId: shelfBookIdRef.current,
+        bookKind: shelfBookKindRef.current,
         title: bookTitle,
         pages: pages.map((page) => ({
           src: page.done ? page.src : null,
@@ -216,6 +225,37 @@ function Index() {
 
     return () => window.clearTimeout(timer);
   }, [pages, bookTitle, openPage, busyPage, restored, step]);
+
+  // Write coloring back into the shelf book this session came from, so nothing is lost.
+  useEffect(() => {
+    if (!restored || step !== "book" || busyPage !== null) return;
+    const bookId = shelfBookIdRef.current;
+    if (!bookId) return;
+    const drawn = pages.filter((page) => page.src && page.done);
+    if (!drawn.length) return;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await saveBookRecord({
+            id: bookId,
+            title: bookTitle.trim() || "My coloring book",
+            savedAt: shelfBookSavedAtRef.current ?? Date.now(),
+            pages: drawn.map((page) => page.src!),
+            paints: drawn.map((page) => page.paint ?? null),
+            pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
+            kind: drawn.length > 1 ? "book" : shelfBookKindRef.current,
+          });
+          setSavedBooks(await listBooks());
+        } catch (err) {
+          setSaveMessage(
+            err instanceof Error ? err.message : "Could not save your coloring to the bookshelf.",
+          );
+        }
+      })();
+    }, 800);
+
+    return () => window.clearTimeout(timer);
+  }, [pages, bookTitle, busyPage, restored, step]);
 
   // Every freshly drawn page becomes its own little book.
   useEffect(() => {
@@ -343,13 +383,15 @@ function Index() {
     const drawn = pages.filter((page) => page.src && page.done);
     if (!drawn.length) return;
     setGeneratingBook(true);
-    const id = generatedBookRef.current ?? makeBookId();
-    generatedBookRef.current = id;
+    const id = shelfBookIdRef.current ?? makeBookId();
+    shelfBookIdRef.current = id;
+    shelfBookSavedAtRef.current = shelfBookSavedAtRef.current ?? Date.now();
+    shelfBookKindRef.current = "book";
     try {
       await saveBookRecord({
         id,
         title: bookTitle.trim() || "My coloring book",
-        savedAt: Date.now(),
+        savedAt: shelfBookSavedAtRef.current,
         pages: drawn.map((page) => page.src!),
         paints: drawn.map((page) => page.paint ?? null),
         pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
@@ -358,7 +400,8 @@ function Index() {
       setSavedBooks(await listBooks());
       await navigate({ to: "/books", search: { view: "bookshelf" } });
     } catch (err) {
-      generatedBookRef.current = null;
+      shelfBookIdRef.current = null;
+      shelfBookSavedAtRef.current = null;
       setSaveMessage(err instanceof Error ? err.message : "Could not create the book.");
     } finally {
       setGeneratingBook(false);
@@ -443,6 +486,9 @@ function Index() {
     abortRef.current?.abort();
     abortRef.current = null;
     autoSavedRef.current.clear();
+    shelfBookIdRef.current = null;
+    shelfBookSavedAtRef.current = null;
+    shelfBookKindRef.current = "book";
     setPages([]);
     setOpenPage(null);
     setBusyPage(null);
@@ -458,6 +504,9 @@ function Index() {
 
   const openSavedBook = (book: SavedBook) => {
     autoSavedRef.current.clear();
+    shelfBookIdRef.current = book.id;
+    shelfBookSavedAtRef.current = book.savedAt;
+    shelfBookKindRef.current = book.pages.length > 1 ? "book" : "page";
     setBookTitle(book.title);
     setPageCount(book.pages.length);
     setPages(

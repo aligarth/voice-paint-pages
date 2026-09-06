@@ -23,6 +23,7 @@ import {
   isSavedPage,
   listBooks,
   makeBookId,
+  recordKind,
   renameBook,
   saveBookRecord,
   type SavedBook,
@@ -109,6 +110,8 @@ function BooksPage() {
 
   const openBook = async (book: SavedBook, startPage?: number) => {
     await saveSession({
+      bookId: book.id,
+      bookKind: recordKind(book),
       title: book.title,
       pages: book.pages.map((src, i) => ({
         src,
