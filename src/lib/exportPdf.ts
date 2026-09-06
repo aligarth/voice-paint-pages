@@ -22,6 +22,17 @@ export function pdfFileName(title: string) {
 
 /** Builds a single letter-size PDF, one coloring page per sheet, and downloads it. */
 export async function exportPagesToPdf(title: string, sources: PdfPage[]) {
+  const doc = await buildPagesPdf(title, sources);
+  doc.save(pdfFileName(title));
+}
+
+/** Same sheets as the download, returned as a Blob so it can be shared as a file. */
+export async function buildPagesPdfBlob(title: string, sources: PdfPage[]): Promise<Blob> {
+  const doc = await buildPagesPdf(title, sources);
+  return doc.output("blob");
+}
+
+async function buildPagesPdf(title: string, sources: PdfPage[]) {
   if (!sources.length) throw new Error("There are no finished pages to export yet.");
   const doc = new jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
   const pageW = doc.internal.pageSize.getWidth();
