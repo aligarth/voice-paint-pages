@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BooksRouteImport } from './routes/books'
+import { Route as GithubRouteImport } from './routes/github'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiPhotoToLineartRouteImport } from './routes/api/photo-to-lineart'
 import { Route as GalleryIdRouteImport } from './routes/gallery.$id'
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
 const BooksRoute = BooksRouteImport.update({
   id: '/books',
   path: '/books',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GithubRoute = GithubRouteImport.update({
+  id: '/github',
+  path: '/github',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
@@ -44,6 +50,7 @@ const GalleryIdRoute = GalleryIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/books': typeof BooksRoute
+  '/github': typeof GithubRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/books': typeof BooksRoute
+  '/github': typeof GithubRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/books': typeof BooksRoute
+  '/github': typeof GithubRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/books'
+    | '/github'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/books'
+    | '/github'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/books'
+    | '/github'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BooksRoute: typeof BooksRoute
+  GithubRoute: typeof GithubRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiPhotoToLineartRoute: typeof ApiPhotoToLineartRoute
   GalleryIdRoute: typeof GalleryIdRoute
@@ -109,6 +122,13 @@ declare module '@tanstack/react-router' {
       path: '/books'
       fullPath: '/books'
       preLoaderRoute: typeof BooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/github': {
+      id: '/github'
+      path: '/github'
+      fullPath: '/github'
+      preLoaderRoute: typeof GithubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-image': {
@@ -138,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BooksRoute: BooksRoute,
+  GithubRoute: GithubRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiPhotoToLineartRoute: ApiPhotoToLineartRoute,
   GalleryIdRoute: GalleryIdRoute,
