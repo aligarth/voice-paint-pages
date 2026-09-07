@@ -21,6 +21,8 @@ import {
   ArrowRight,
   Keyboard,
   Pencil,
+  Github,
+
 } from "lucide-react";
 
 import { ColoringCanvas } from "@/components/ColoringCanvas";
@@ -819,11 +821,15 @@ function Index() {
           >
             <BookOpen className="h-5 w-5" /> Start my book
           </button>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon text-sm">
               <BookOpen className="h-4 w-4" /> My Bookshelf
             </Link>
+            <Link to="/github" className="btn-crayon text-sm">
+              <Github className="h-4 w-4" /> GitHub
+            </Link>
           </div>
+
         </div>
         <MusicPlayer />
       </main>
