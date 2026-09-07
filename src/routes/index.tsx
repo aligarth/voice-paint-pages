@@ -21,6 +21,8 @@ import {
   ArrowRight,
   Keyboard,
   Pencil,
+  Github,
+
 } from "lucide-react";
 
 import { ColoringCanvas } from "@/components/ColoringCanvas";
