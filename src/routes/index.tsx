@@ -56,13 +56,13 @@ import {
   allowanceLine,
   bookAllowance,
   booksThisMonth,
-  canCreatePage,
   canSaveBook,
   pageAllowance,
   pagesThisMonth,
-  recordBook,
-  recordPage,
 } from "@/lib/usage";
+import { rememberDestination, takeBook, takePage } from "@/lib/accountState";
+import { useAccount } from "@/lib/useAccount";
+import { AccountChip } from "@/components/AccountChip";
 import coverArt from "@/assets/book-cover.jpg";
 
 function isAbortError(err: unknown): boolean {
