@@ -28,21 +28,6 @@ export const Route = createFileRoute("/auth")({
 
 const AFTER_KEY = "cmw-after-auth";
 
-/** Remembers where the person was heading, so sign-in can put them back there. */
-export function rememberDestination(path: string) {
-  try {
-    sessionStorage.setItem(AFTER_KEY, path);
-  } catch {
-    /* storage blocked — they'll land on the cover instead */
-  }
-}
-
-/** Only ever a path on this app, never a link to somewhere else. */
-function safePath(raw: string | null): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
-  return raw;
-}
-
 function friendly(message: string): string {
   const text = message.toLowerCase();
   if (text.includes("invalid login credentials")) {
@@ -74,14 +59,8 @@ function AuthPage() {
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
 
   const finish = () => {
-    let dest = "/";
-    try {
-      dest = safePath(sessionStorage.getItem(AFTER_KEY));
-      sessionStorage.removeItem(AFTER_KEY);
-    } catch {
-      /* no destination kept */
-    }
-    void navigate({ to: dest });
+    const dest = takeDestination();
+    void navigate({ to: dest.startsWith("/books") ? "/books" : "/" });
   };
 
   const submit = async (event: FormEvent) => {

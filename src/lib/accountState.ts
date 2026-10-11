@@ -119,3 +119,26 @@ export function takePage() {
 export function takeBook() {
   return take("book");
 }
+
+const AFTER_KEY = "cmw-after-auth";
+
+/** Remembers where the person was heading, so sign-in can put them back there. */
+export function rememberDestination(path: string) {
+  try {
+    sessionStorage.setItem(AFTER_KEY, path);
+  } catch {
+    /* storage blocked — they'll land on the cover instead */
+  }
+}
+
+/** Reads and clears the kept destination, keeping only a path on this app. */
+export function takeDestination(): string {
+  try {
+    const raw = sessionStorage.getItem(AFTER_KEY);
+    sessionStorage.removeItem(AFTER_KEY);
+    if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  } catch {
+    /* no destination kept */
+  }
+  return "/";
+}
