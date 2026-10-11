@@ -220,6 +220,11 @@ function Index() {
     return () => window.clearInterval(timer);
   }, [keepUntil]);
 
+  /** Hours left before the free coloring is dropped. */
+  const hoursLeft =
+    keepUntil === null ? null : Math.max(0, Math.ceil((keepUntil - nowTick) / 3_600_000));
+
+
   // A free plan may only start with as many pages as it may draw.
   useEffect(() => {
     if (!isFreePlan()) return;
@@ -880,6 +885,21 @@ function Index() {
           {activePage.title || bookTitle}{" "}
           <span className="text-muted-foreground">· page {activePage.id + 1}</span>
         </h1>
+        {paywall && (
+          <div className="paper-card mb-6 flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm font-bold">{paywall}</p>
+            <Link to="/plans" className="btn-crayon text-sm">
+              See plans
+            </Link>
+          </div>
+        )}
+        {isFreePlan() && hoursLeft !== null && (
+          <p className="mb-4 text-sm font-bold text-muted-foreground">
+            {hoursLeft > 0
+              ? `Kept for ${hoursLeft} more ${hoursLeft === 1 ? "hour" : "hours"}.`
+              : "This coloring is about to be removed."}
+          </p>
+        )}
         <div className="mb-6">
           <MusicPlayer compact />
         </div>
@@ -914,6 +934,12 @@ function Index() {
             className="mx-auto w-full rounded-xl border-2 border-border"
           />
           <p className="mt-4 text-lg font-extrabold">Say it or snap it. We draw it. You color it.</p>
+          {expiredNote && (
+            <p className="mt-3 text-sm font-semibold text-primary">{expiredNote}</p>
+          )}
+          {isFreePlan() && allowanceLine() && (
+            <p className="mt-3 text-sm font-bold text-muted-foreground">{allowanceLine()}</p>
+          )}
           <button
             type="button"
             onClick={() => setStep("count")}
@@ -927,6 +953,9 @@ function Index() {
             </Link>
             <Link to="/github" className="btn-crayon text-sm">
               <Github className="h-4 w-4" /> GitHub
+            </Link>
+            <Link to="/plans" className="btn-crayon text-sm">
+              <Sparkles className="h-4 w-4" /> Plans
             </Link>
           </div>
 
@@ -948,8 +977,13 @@ function Index() {
           <p className="mt-2 text-sm text-muted-foreground">
             Pick how big your coloring book should be. You can fill each page one at a time.
           </p>
+          {isFreePlan() && allowanceLine() && (
+            <p className="mt-3 text-sm font-bold text-muted-foreground">
+              {allowanceLine()} — the free plan makes one page at a time.
+            </p>
+          )}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            {PAGE_OPTIONS.map((n) => (
+            {PAGE_OPTIONS.filter((n) => n <= pageAllowance()).map((n) => (
               <button
                 key={n}
                 type="button"
@@ -1006,6 +1040,11 @@ function Index() {
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Give each page a title. You can change it later.
           </p>
+          {isFreePlan() && allowanceLine() && (
+            <p className="mt-2 text-center text-sm font-bold text-muted-foreground">
+              {allowanceLine()}
+            </p>
+          )}
 
 
           <ul className="mt-6 space-y-3">
@@ -1132,6 +1171,21 @@ function Index() {
       {saveMessage && <p className="mt-3 text-sm font-semibold text-primary">{saveMessage}</p>}
       {(genError || micError) && (
         <p className="mt-3 text-sm font-semibold text-primary">{genError ?? micError}</p>
+      )}
+      {paywall && (
+        <div className="paper-card mt-3 flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="text-sm font-bold">{paywall}</p>
+          <Link to="/plans" className="btn-crayon text-sm">
+            See plans
+          </Link>
+        </div>
+      )}
+      {isFreePlan() && hoursLeft !== null && (
+        <p className="mt-3 text-sm font-bold text-muted-foreground">
+          {hoursLeft > 0
+            ? `Kept for ${hoursLeft} more ${hoursLeft === 1 ? "hour" : "hours"}.`
+            : "This coloring is about to be removed."}
+        </p>
       )}
 
       {shareUrl && (
