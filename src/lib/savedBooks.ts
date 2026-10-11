@@ -1,27 +1,51 @@
+/**
+ * The coloring library the app works with.
+ *
+ * Everything lives in the signed-in person's own space on the server, so pages
+ * and books are private to them and follow them to any device. What was saved
+ * on this device before sign-in exists stays put and is copied across the
+ * first time they sign in.
+ */
+import {
+  MAX_BOOKS,
+  deleteBookPageRecord,
+  deleteBookRecord,
+  deletePageAndCascadeRecord,
+  getBookRecord as fetchBookRecord,
+  importFromDevice as importDeviceRecords,
+  listBookRecords,
+  renameBookRecord,
+  saveBookRecord as writeBookRecord,
+  savePagePaint as writePagePaint,
+} from "./account.functions";
+
 export type SavedKind = "page" | "book";
 
 export type SavedBook = {
   id: string;
   title: string;
   savedAt: number;
+  /** In shelf listings this holds the cover picture only; openBook() returns every page. */
   pages: string[];
-  /** Optional painted layers for each page, aligned by index. */
+  /** Painted layers aligned with `pages`. */
   paints?: (string | null)[] | undefined;
-  /** Titles for each page, aligned by index. */
+  /** Titles aligned with `pages`. */
   pageTitles?: string[] | undefined;
   /** "page" = one generated coloring page, "book" = a collection the user built. */
   kind?: SavedKind | undefined;
+  /** How many pictures the book really holds, including the ones a listing leaves out. */
+  pageCount?: number | undefined;
   /** Id of the shared, view-only copy of this book, once a link has been made. */
   shareId?: string | undefined;
 };
 
-
-export const MAX_BOOKS = 100;
+export { MAX_BOOKS };
 
 /** Older records have no `kind`: multi-page records were combined books. */
 export function recordKind(record: SavedBook): SavedKind {
   if (record.kind) return record.kind;
-  return record.pages.length > 1 ? "book" : "page";
+  const total = record.pageCount ?? record.pages.length;
+  return total > 1 ? "book" : "page";
 }
 
 export function isSavedPage(record: SavedBook) {
@@ -31,6 +55,81 @@ export function isSavedPage(record: SavedBook) {
 export function isSavedBook(record: SavedBook) {
   return recordKind(record) === "book";
 }
+
+export function makeBookId() {
+  return crypto.randomUUID();
+}
+
+// ---------- The signed-in person's own space ----------
+
+export async function listBooks(): Promise<SavedBook[]> {
+  try {
+    return await listBookRecords();
+  } catch {
+    return [];
+  }
+}
+
+/** One book with every picture and painted layer. */
+export async function openBookRecord(id: string): Promise<SavedBook> {
+  return await fetchBookRecord({ data: { id } });
+}
+
+/** Stores one page's coloring without re-sending the whole book. */
+export async function savePagePaint(id: string, index: number, paint: string | null) {
+  await writePagePaint({ data: { id, index, paint } });
+}
+
+export async function saveBookRecord(book: SavedBook): Promise<SavedBook[]> {
+  return await writeBookRecord({ data: toInput(book) });
+}
+
+export async function deleteBook(id: string): Promise<SavedBook[]> {
+  const { books } = await deleteBookRecord({ data: { id } });
+  return books;
+}
+
+/** Deletes a book but hands back everything it held, so it can be put back. */
+export async function deleteBookKeepingCopy(
+  id: string,
+): Promise<{ books: SavedBook[]; removed: SavedBook | null }> {
+  return await deleteBookRecord({ data: { id } });
+}
+
+export async function renameBook(id: string, title: string): Promise<SavedBook[]> {
+  const clean = title.trim();
+  if (!clean) return await listBooks();
+  return await renameBookRecord({ data: { id, title: clean } });
+}
+
+/** Removes one page from a book; deletes the whole book when it was the last page. */
+export async function deleteBookPage(id: string, pageIndex: number): Promise<SavedBook[]> {
+  return await deleteBookPageRecord({ data: { id, index: pageIndex } });
+}
+
+/** Deletes a standalone page and removes its image from every book that used it. */
+export async function deletePageAndCascade(id: string): Promise<SavedBook[]> {
+  return await deletePageAndCascadeRecord({ data: { id } });
+}
+
+/** Keeps the shape the server accepts, and never trusts a device-made id. */
+function toInput(book: SavedBook) {
+  const pages = book.pages.filter(Boolean).slice(0, 60);
+  return {
+    id: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(book.id)
+      ? book.id
+      : null,
+    title: (book.title || "My coloring book").trim().slice(0, 200),
+    savedAt: Math.round(book.savedAt || Date.now()),
+    pages,
+    paints: book.paints?.slice(0, 60),
+    pageTitles: book.pageTitles?.slice(0, 60),
+    kind: recordKind(book),
+    shareId: book.shareId ?? null,
+  };
+}
+
+// ---------- What this device still holds from before sign-in ----------
 
 const DB_NAME = "say-and-color";
 const STORE = "books";
@@ -49,110 +148,33 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-function tx<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+function readDeviceBooks(): Promise<SavedBook[]> {
+  if (typeof indexedDB === "undefined") return Promise.resolve([]);
   return openDb().then(
     (db) =>
-      new Promise<T>((resolve, reject) => {
-        const transaction = db.transaction(STORE, mode);
-        const request = run(transaction.objectStore(STORE));
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error ?? new Error("Storage error"));
-        transaction.oncomplete = () => db.close();
+      new Promise<SavedBook[]>((resolve) => {
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.close();
+          resolve([]);
+          return;
+        }
+        const request = db.transaction(STORE, "readonly").objectStore(STORE).getAll();
+        request.onsuccess = () => resolve((request.result as SavedBook[]) ?? []);
+        request.onerror = () => resolve([]);
+        transactionDone();
+        function transactionDone() {
+          db.transaction(STORE, "readonly").oncomplete = () => db.close();
+        }
       }),
   );
 }
 
-export async function listBooks(): Promise<SavedBook[]> {
-  if (typeof indexedDB === "undefined") return [];
-  try {
-    const all = await tx<SavedBook[]>("readonly", (store) => store.getAll() as IDBRequest<SavedBook[]>);
-    return all.sort((a, b) => b.savedAt - a.savedAt);
-  } catch {
-    return [];
-  }
+/**
+ * Copies this device's pages and books into the signed-in person's space.
+ * Pictures already in the account are skipped, so running it again is harmless.
+ */
+export async function importDeviceLibrary(): Promise<{ imported: number; skipped: number }> {
+  const records = (await readDeviceBooks()).filter((record) => record.pages?.length);
+  if (!records.length) return { imported: 0, skipped: 0 };
+  return await importDeviceRecords({ data: { records: records.map(toInput) } });
 }
-
-export async function saveBook(
-  title: string,
-  pages: string[],
-  paints?: (string | null)[],
-): Promise<SavedBook[]> {
-  const existing = await listBooks();
-  if (existing.length >= MAX_BOOKS) {
-    throw new Error(`You can keep ${MAX_BOOKS} books. Delete one to save a new book.`);
-  }
-  const book: SavedBook = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    title,
-    savedAt: Date.now(),
-    pages,
-    paints,
-  };
-  await tx("readwrite", (store) => store.put(book));
-  return listBooks();
-}
-
-export async function deleteBook(id: string): Promise<SavedBook[]> {
-  await tx("readwrite", (store) => store.delete(id));
-  return listBooks();
-}
-
-export async function renameBook(id: string, title: string): Promise<SavedBook[]> {
-  const books = await listBooks();
-  const book = books.find((item) => item.id === id);
-  if (!book) return books;
-  await tx("readwrite", (store) => store.put({ ...book, title: title.trim() || book.title }));
-  return listBooks();
-}
-
-/** Removes one page from a book; deletes the whole book when it was the last page. */
-export async function deleteBookPage(id: string, pageIndex: number): Promise<SavedBook[]> {
-  const books = await listBooks();
-  const book = books.find((item) => item.id === id);
-  if (!book) return books;
-  const pages = book.pages.filter((_, i) => i !== pageIndex);
-  const paints = book.paints?.filter((_, i) => i !== pageIndex);
-  if (!pages.length) return deleteBook(id);
-  await tx("readwrite", (store) => store.put({ ...book, pages, paints }));
-  return listBooks();
-}
-
-/** Deletes a standalone page and removes its image from every book that uses it. Empty books are deleted. */
-export async function deletePageAndCascade(id: string): Promise<SavedBook[]> {
-  const books = await listBooks();
-  const page = books.find((b) => b.id === id && isSavedPage(b));
-  if (!page) return books;
-
-  const srcsToRemove = new Set(page.pages);
-  await tx("readwrite", (store) => store.delete(id));
-
-  const remaining = await listBooks();
-  for (const book of remaining.filter(isSavedBook)) {
-    const indicesToRemove = book.pages
-      .map((src, i) => (srcsToRemove.has(src) ? i : -1))
-      .filter((i): i is number => i !== -1);
-    if (indicesToRemove.length === 0) continue;
-
-    const pages = book.pages.filter((_, i) => !indicesToRemove.includes(i));
-    const paints = book.paints?.filter((_, i) => !indicesToRemove.includes(i));
-
-    if (pages.length === 0) {
-      await tx("readwrite", (store) => store.delete(book.id));
-    } else {
-      await tx("readwrite", (store) => store.put({ ...book, pages, paints }));
-    }
-  }
-
-  return listBooks();
-}
-
-/** Writes a book record as-is (used by auto-save, combine and undo). */
-export async function saveBookRecord(book: SavedBook): Promise<SavedBook[]> {
-  await tx("readwrite", (store) => store.put(book));
-  return listBooks();
-}
-
-export function makeBookId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-

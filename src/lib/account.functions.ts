@@ -14,12 +14,6 @@ import type { SavedBook, SavedKind } from "./savedBooks";
 export const MAX_BOOKS = 100;
 const MAX_PAGES_PER_BOOK = 60;
 
-type Ctx = {
-  supabase: Parameters<Parameters<typeof requireSupabaseAuth.server>[0]["next"]> extends never
-    ? never
-    : never;
-  userId: string;
-};
 
 /** Calendar month the counters belong to, e.g. "2026-10". */
 function monthKey(date = new Date()): string {
