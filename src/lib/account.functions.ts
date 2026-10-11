@@ -275,9 +275,37 @@ export const deleteBookRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
     const supabase = (context as any).supabase;
+
+    // Keep a copy of what was there so the app can offer to put it back.
+    const { data: bookRow } = await supabase
+      .from("books")
+      .select("id, title, kind, page_count, share_id, saved_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    const { data: pageRows } = await supabase
+      .from("book_pages")
+      .select("position, title, art, paint")
+      .eq("book_id", data.id)
+      .order("position", { ascending: true });
+
     const { error } = await supabase.from("books").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
-    return await loadSummaries(supabase);
+
+    const removed: SavedBook | null = bookRow
+      ? {
+          id: bookRow.id,
+          title: bookRow.title,
+          savedAt: new Date(bookRow.saved_at).getTime(),
+          pages: (pageRows ?? []).map((row: any) => row.art),
+          paints: (pageRows ?? []).map((row: any) => row.paint ?? null),
+          pageTitles: (pageRows ?? []).map((row: any) => row.title),
+          kind: bookRow.kind as SavedKind,
+          pageCount: bookRow.page_count,
+          shareId: bookRow.share_id ?? undefined,
+        }
+      : null;
+
+    return { books: await loadSummaries(supabase), removed };
   });
 
 export const renameBookRecord = createServerFn({ method: "POST" })

@@ -158,13 +158,11 @@ function readDeviceBooks(): Promise<SavedBook[]> {
           resolve([]);
           return;
         }
-        const request = db.transaction(STORE, "readonly").objectStore(STORE).getAll();
+        const transaction = db.transaction(STORE, "readonly");
+        const request = transaction.objectStore(STORE).getAll();
         request.onsuccess = () => resolve((request.result as SavedBook[]) ?? []);
         request.onerror = () => resolve([]);
-        transactionDone();
-        function transactionDone() {
-          db.transaction(STORE, "readonly").oncomplete = () => db.close();
-        }
+        transaction.oncomplete = () => db.close();
       }),
   );
 }
