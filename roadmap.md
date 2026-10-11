@@ -6,12 +6,15 @@
 - Backend tables for per-account storage: books, book_pages, usage counters, account plans — each row
   readable only by the person it belongs to.
 - Email/password sign-in turned on in the backend.
+- Sign-in screens: create account, sign in, forgot password, reset password, sign out, plus a
+  signed-in indicator on the cover and the bookshelf.
+- Pages, books, coloring and monthly limits now live in the signed-in person's own space; the
+  bookshelf and page creation ask for sign-in first.
+- Anything already drawn on this device is copied into the account the first time they sign in.
 
 ## Open
-- Sign-in screens and account handling: create account, sign in, sign out, and show who is signed in.
-- Move the coloring library from this device into the signed-in person's own space, and copy over
-  whatever is already saved on this device the first time they sign in.
-- Free monthly page limit counted against the account instead of the device.
-- Blocker: no email sender is configured for this project, so account-confirmation emails may not
-  arrive. Waiting on the user to choose between setting up their own email domain or allowing
-  sign-in without email confirmation.
+- Blocker: no email sender is configured for this project, so confirmation emails can't be delivered
+  and nobody can finish creating an account. Waiting on Ahmed to choose between connecting his own
+  email domain or letting sign-in start immediately without email confirmation.
+- Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
+  directly in the database for now.
