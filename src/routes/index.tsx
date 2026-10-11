@@ -447,7 +447,6 @@ function Index() {
         kind: "book",
       });
 
-      recordBook();
       setNowTick(Date.now());
       setSavedBooks(await listBooks());
       setSaveMessage(
@@ -480,7 +479,6 @@ function Index() {
         pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
         kind: "book",
       });
-      recordBook();
       setNowTick(Date.now());
       setSavedBooks(await listBooks());
       await navigate({ to: "/books", search: { view: "bookshelf" } });
