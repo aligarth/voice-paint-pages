@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_plans: {
+        Row: {
+          owner_id: string
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          owner_id: string
+          plan?: string
+          updated_at?: string
+        }
+        Update: {
+          owner_id?: string
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      book_pages: {
+        Row: {
+          art: string
+          book_id: string
+          id: string
+          owner_id: string
+          paint: string | null
+          position: number
+          title: string
+        }
+        Insert: {
+          art: string
+          book_id: string
+          id?: string
+          owner_id: string
+          paint?: string | null
+          position: number
+          title?: string
+        }
+        Update: {
+          art?: string
+          book_id?: string
+          id?: string
+          owner_id?: string
+          paint?: string | null
+          position?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_pages_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      books: {
+        Row: {
+          id: string
+          kind: string
+          owner_id: string
+          page_count: number
+          saved_at: string
+          share_id: string | null
+          title: string
+        }
+        Insert: {
+          id?: string
+          kind?: string
+          owner_id: string
+          page_count?: number
+          saved_at?: string
+          share_id?: string | null
+          title?: string
+        }
+        Update: {
+          id?: string
+          kind?: string
+          owner_id?: string
+          page_count?: number
+          saved_at?: string
+          share_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       shared_galleries: {
         Row: {
           created_at: string
@@ -35,6 +121,27 @@ export type Database = {
           pages?: Json
           title?: string
           view_count?: number
+        }
+        Relationships: []
+      }
+      usage: {
+        Row: {
+          books: number
+          month: string
+          owner_id: string
+          pages: number
+        }
+        Insert: {
+          books?: number
+          month: string
+          owner_id: string
+          pages?: number
+        }
+        Update: {
+          books?: number
+          month?: string
+          owner_id?: string
+          pages?: number
         }
         Relationships: []
       }

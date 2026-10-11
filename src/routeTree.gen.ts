@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BooksRouteImport } from './routes/books'
 import { Route as GithubRouteImport } from './routes/github'
 import { Route as PlansRouteImport } from './routes/plans'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiPhotoToLineartRouteImport } from './routes/api/photo-to-lineart'
 import { Route as GalleryIdRouteImport } from './routes/gallery.$id'
@@ -20,6 +22,11 @@ import { Route as GalleryIdRouteImport } from './routes/gallery.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksRoute = BooksRouteImport.update({
@@ -35,6 +42,11 @@ const GithubRoute = GithubRouteImport.update({
 const PlansRoute = PlansRouteImport.update({
   id: '/plans',
   path: '/plans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
@@ -55,18 +67,22 @@ const GalleryIdRoute = GalleryIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -74,9 +90,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -85,27 +103,33 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/books'
     | '/github'
     | '/plans'
+    | '/reset-password'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/books'
     | '/github'
     | '/plans'
+    | '/reset-password'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/books'
     | '/github'
     | '/plans'
+    | '/reset-password'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
@@ -113,9 +137,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   BooksRoute: typeof BooksRoute
   GithubRoute: typeof GithubRoute
   PlansRoute: typeof PlansRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiPhotoToLineartRoute: typeof ApiPhotoToLineartRoute
   GalleryIdRoute: typeof GalleryIdRoute
@@ -128,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/books': {
@@ -149,6 +182,13 @@ declare module '@tanstack/react-router' {
       path: '/plans'
       fullPath: '/plans'
       preLoaderRoute: typeof PlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-image': {
@@ -177,9 +217,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   BooksRoute: BooksRoute,
   GithubRoute: GithubRoute,
   PlansRoute: PlansRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiPhotoToLineartRoute: ApiPhotoToLineartRoute,
   GalleryIdRoute: GalleryIdRoute,

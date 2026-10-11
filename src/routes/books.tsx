@@ -19,13 +19,14 @@ import {
   X,
 } from "lucide-react";
 import {
-  deleteBook,
+  deleteBookKeepingCopy,
   deleteBookPage,
   deletePageAndCascade,
   isSavedBook,
   isSavedPage,
   listBooks,
   makeBookId,
+  openBookRecord,
   recordKind,
   renameBook,
   saveBookRecord,
@@ -37,7 +38,9 @@ import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { cn } from "@/lib/utils";
 import { UPGRADE_COPY, isFreePlan } from "@/lib/plan";
-import { bookAllowance, booksThisMonth, canSaveBook, recordBook } from "@/lib/usage";
+import { bookAllowance, booksThisMonth } from "@/lib/usage";
+import { takeBook } from "@/lib/accountState";
+import { useAccount } from "@/lib/useAccount";
 
 import { clearSession, saveSession } from "@/lib/session";
 
@@ -87,6 +90,7 @@ function BooksPage() {
   const [shareCopied, setShareCopied] = useState(false);
   /** Why a locked action was refused, with a link to the plans screen. */
   const [paywall, setPaywall] = useState<string | null>(null);
+  const { signedIn } = useAccount();
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndo = () => {
@@ -103,8 +107,8 @@ function BooksPage() {
   };
 
   /** Refuses saving another book once this month's allowance is used. */
-  const bookAllowanceHolds = () => {
-    if (canSaveBook()) return true;
+  const bookAllowanceHolds = async () => {
+    if (await takeBook()) return true;
     setPaywall(
       isFreePlan()
         ? `Saving books is part of a paid plan. ${UPGRADE_COPY}`
@@ -123,10 +127,31 @@ function BooksPage() {
   const [bookTitle, setBookTitle] = useState("My coloring book");
   /** Which book on the shelf is opened up to show its pictures. */
   const [openBookId, setOpenBookId] = useState<string | null>(null);
+  /** The opened book with every picture loaded, not just its cover. */
+  const [openFull, setOpenFull] = useState<SavedBook | null>(null);
 
   useEffect(() => {
     void listBooks().then(setBooks);
   }, []);
+
+  // Load every picture of the book that's open on the shelf.
+  useEffect(() => {
+    if (!openBookId) {
+      setOpenFull(null);
+      return;
+    }
+    let active = true;
+    void openBookRecord(openBookId)
+      .then((full) => {
+        if (active) setOpenFull(full);
+      })
+      .catch(() => {
+        if (active) setOpenFull(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [openBookId, books]);
 
   const records = useMemo(
     () => (books ?? []).filter(view === "pages" ? isSavedPage : isSavedBook),
@@ -147,14 +172,15 @@ function BooksPage() {
   };
 
   const openBook = async (book: SavedBook, startPage?: number) => {
+    const full = await openBookRecord(book.id);
     await saveSession({
-      bookId: book.id,
-      bookKind: recordKind(book),
-      title: book.title,
-      pages: book.pages.map((src, i) => ({
+      bookId: full.id,
+      bookKind: recordKind(full),
+      title: full.title,
+      pages: full.pages.map((src, i) => ({
         src,
-        paint: book.paints?.[i] ?? null,
-        ...(book.pageTitles?.[i] ? { title: book.pageTitles[i]! } : {}),
+        paint: full.paints?.[i] ?? null,
+        ...(full.pageTitles?.[i] ? { title: full.pageTitles[i]! } : {}),
       })),
       openPage: startPage ?? null,
     });
@@ -166,9 +192,10 @@ function BooksPage() {
     setExportingId(book.id);
     setMessage(null);
     try {
+      const full = await openBookRecord(book.id);
       await exportPagesToPdf(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       setMessage(`Downloaded “${book.title}” as a PDF.`);
     } catch (err) {
@@ -183,9 +210,10 @@ function BooksPage() {
     setExportingId(`${book.id}-zip`);
     setMessage(null);
     try {
+      const full = await openBookRecord(book.id);
       await exportPagesToZip(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       setMessage(`Downloaded “${book.title}” as a ZIP.`);
     } catch (err) {
@@ -201,9 +229,10 @@ function BooksPage() {
     setExportingId(`${book.id}-save`);
     setMessage(null);
     try {
+      const full = await openBookRecord(book.id);
       await exportPagesToPdf(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       setMessage(`Saved “${book.title}” to your device.`);
     } catch (err) {
@@ -227,9 +256,10 @@ function BooksPage() {
     setShareBusy("file");
     setShareError(null);
     try {
+      const full = await openBookRecord(book.id);
       const result = await shareBookFile(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       if (result.downloaded) {
         setMessage(`Saved “${book.title}” as a file you can attach to a message or email.`);
@@ -248,7 +278,8 @@ function BooksPage() {
     setShareError(null);
     setShareCopied(false);
     try {
-      const url = await createBookShareLink(book);
+      const full = await openBookRecord(book.id);
+      const url = await createBookShareLink(full);
       setShareLink(url);
       setBooks(await listBooks());
       try {
@@ -276,11 +307,12 @@ function BooksPage() {
 
   const exportPagePng = async (book: SavedBook, index: number) => {
     if (!paidOnly("Downloading a PNG")) return;
-    const src = book.pages[index];
+    const full = await openBookRecord(book.id);
+    const src = full.pages[index];
     if (!src) return;
     try {
       await downloadFlattenedPage(
-        { src, paint: book.paints?.[index] ?? null },
+        { src, paint: full.paints?.[index] ?? null },
         `${book.title.replace(/\s+/g, "-").toLowerCase()}-page-${index + 1}.png`,
       );
     } catch (err) {
@@ -291,7 +323,7 @@ function BooksPage() {
   /** Copies the chosen pages into one new book without touching the originals. */
   const createBook = async () => {
     if (!selectedIds.length) return;
-    if (!bookAllowanceHolds()) return;
+    if (!(await bookAllowanceHolds())) return;
     const chosen = selectedIds
       .map((id) => records.find((record) => record.id === id))
       .filter((record): record is SavedBook => Boolean(record));
@@ -316,7 +348,6 @@ function BooksPage() {
           kind: "book",
         }),
       );
-      recordBook();
       clearUndo();
       setSelecting(false);
       setSelectedIds([]);
@@ -335,9 +366,10 @@ function BooksPage() {
     if (!id) return;
     const target = (books ?? []).find((record) => record.id === id);
     try {
-      setBooks(await deleteBook(id));
-      if (target) {
-        setUndoBook(target);
+      const { books: remaining, removed } = await deleteBookKeepingCopy(id);
+      setBooks(remaining);
+      if (removed) {
+        setUndoBook(removed);
         if (undoTimer.current) clearTimeout(undoTimer.current);
         undoTimer.current = setTimeout(() => setUndoBook(null), 15000);
       }
@@ -379,6 +411,27 @@ function BooksPage() {
   const visibleRecords = isPages
     ? records
     : records.filter((book) => book.id === openBookId);
+
+  // Nobody's books are shown until they sign in.
+  if (!signedIn) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 py-10">
+        <Link to="/" className="btn-crayon mb-6">
+          <ArrowLeft className="h-4 w-4" /> Back to the cover
+        </Link>
+        <section className="paper-card p-6 text-center">
+          <h1 className="text-3xl font-extrabold">Sign in to open your bookshelf</h1>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
+            Your pages and books are kept private to your own account, so nobody else can see or
+            use them.
+          </p>
+          <Link to="/auth" className="btn-crayon mt-4">
+            Sign in or create an account
+          </Link>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
@@ -537,7 +590,8 @@ function BooksPage() {
                   <div className="ml-4 border-t-2 border-border px-3 py-3">
                     <p className="text-lg font-extrabold capitalize">{book.title}</p>
                     <p className="text-xs font-bold text-muted-foreground">
-                      {book.pages.length} {book.pages.length === 1 ? "page" : "pages"} · tap to open
+                      {book.pageCount ?? book.pages.length}{" "}
+                      {(book.pageCount ?? book.pages.length) === 1 ? "page" : "pages"} · tap to open
                     </p>
                   </div>
                 </div>
@@ -550,6 +604,8 @@ function BooksPage() {
       <div className={cn("mt-10 space-y-8", selecting && "pb-32")}>
         {visibleRecords.map((book) => {
           const isSelected = selectedIds.includes(book.id);
+          /** The opened book with all its pictures, once they've loaded. */
+          const detail = openFull?.id === book.id ? openFull : book;
           return (
             <section
               key={book.id}
@@ -583,7 +639,8 @@ function BooksPage() {
                   <h2 className="flex items-center gap-3 text-2xl font-extrabold capitalize">
                     {book.title}{" "}
                     <span className="text-base font-bold text-muted-foreground">
-                      · {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
+                      · {detail.pageCount ?? detail.pages.length}{" "}
+                      {(detail.pageCount ?? detail.pages.length) === 1 ? "page" : "pages"}
                     </span>
                   </h2>
                 )}
@@ -761,22 +818,22 @@ function BooksPage() {
               )}
 
               <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {book.pages.map((src, index) => (
+                {detail.pages.map((src, index) => (
                   <div key={index} className="rounded-2xl border-2 border-border p-2">
                     <button
                       type="button"
-                      onClick={() => void openBook(book, index)}
-                      aria-label={`Color ${book.pageTitles?.[index] || `page ${index + 1}`}`}
+                      onClick={() => void openBook(detail, index)}
+                      aria-label={`Color ${detail.pageTitles?.[index] || `page ${index + 1}`}`}
                       className="relative block aspect-square w-full overflow-hidden rounded-xl bg-white transition-transform hover:-translate-y-0.5"
                     >
                       <img
                         src={src}
-                        alt={`${book.title} page ${index + 1}`}
+                        alt={`${detail.title} page ${index + 1}`}
                         className="absolute inset-0 h-full w-full object-contain"
                       />
-                      {book.paints?.[index] && (
+                      {detail.paints?.[index] && (
                         <img
-                          src={book.paints[index]!}
+                          src={detail.paints[index]!}
                           alt=""
                           className="absolute inset-0 h-full w-full object-contain"
                         />
@@ -787,14 +844,14 @@ function BooksPage() {
                     </button>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <span className="text-xs font-extrabold">
-                        {book.pageTitles?.[index]?.trim() || `Page ${index + 1}`}
+                        {detail.pageTitles?.[index]?.trim() || `Page ${index + 1}`}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           aria-label={`Export page ${index + 1} as PNG`}
                           className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                          onClick={() => void exportPagePng(book, index)}
+                          onClick={() => void exportPagePng(detail, index)}
                         >
                           <ImageDown className="h-4 w-4" />
                         </button>
@@ -802,7 +859,7 @@ function BooksPage() {
                           type="button"
                           aria-label={`Delete page ${index + 1}`}
                           className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                          onClick={async () => setBooks(await deleteBookPage(book.id, index))}
+                          onClick={async () => setBooks(await deleteBookPage(detail.id, index))}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
