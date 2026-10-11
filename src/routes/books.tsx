@@ -591,7 +591,7 @@ function BooksPage() {
                     <p className="text-lg font-extrabold capitalize">{book.title}</p>
                     <p className="text-xs font-bold text-muted-foreground">
                       {book.pageCount ?? book.pages.length}{" "}
-                      {book.pageCount ?? book.pages.length} === 1 ? "page" : "pages"} · tap to open
+                      {(book.pageCount ?? book.pages.length) === 1 ? "page" : "pages"} · tap to open
                     </p>
                   </div>
                 </div>
