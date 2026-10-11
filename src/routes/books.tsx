@@ -90,6 +90,7 @@ function BooksPage() {
   const [shareCopied, setShareCopied] = useState(false);
   /** Why a locked action was refused, with a link to the plans screen. */
   const [paywall, setPaywall] = useState<string | null>(null);
+  const { signedIn } = useAccount();
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndo = () => {
@@ -411,6 +412,27 @@ function BooksPage() {
     ? records
     : records.filter((book) => book.id === openBookId);
 
+  // Nobody's books are shown until they sign in.
+  if (!signedIn) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 py-10">
+        <Link to="/" className="btn-crayon mb-6">
+          <ArrowLeft className="h-4 w-4" /> Back to the cover
+        </Link>
+        <section className="paper-card p-6 text-center">
+          <h1 className="text-3xl font-extrabold">Sign in to open your bookshelf</h1>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
+            Your pages and books are kept private to your own account, so nobody else can see or
+            use them.
+          </p>
+          <Link to="/auth" className="btn-crayon mt-4">
+            Sign in or create an account
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-10">
       <Link to="/" className="btn-crayon mb-6">
@@ -568,7 +590,8 @@ function BooksPage() {
                   <div className="ml-4 border-t-2 border-border px-3 py-3">
                     <p className="text-lg font-extrabold capitalize">{book.title}</p>
                     <p className="text-xs font-bold text-muted-foreground">
-                      {book.pages.length} {book.pages.length === 1 ? "page" : "pages"} · tap to open
+                      {book.pageCount ?? book.pages.length}{" "}
+                      {book.pageCount ?? book.pages.length} === 1 ? "page" : "pages"} · tap to open
                     </p>
                   </div>
                 </div>
@@ -581,6 +604,8 @@ function BooksPage() {
       <div className={cn("mt-10 space-y-8", selecting && "pb-32")}>
         {visibleRecords.map((book) => {
           const isSelected = selectedIds.includes(book.id);
+          /** The opened book with all its pictures, once they've loaded. */
+          const detail = openFull?.id === book.id ? openFull : book;
           return (
             <section
               key={book.id}
@@ -614,7 +639,8 @@ function BooksPage() {
                   <h2 className="flex items-center gap-3 text-2xl font-extrabold capitalize">
                     {book.title}{" "}
                     <span className="text-base font-bold text-muted-foreground">
-                      · {book.pages.length} {book.pages.length === 1 ? "page" : "pages"}
+                      · {detail.pageCount ?? detail.pages.length}{" "}
+                      {(detail.pageCount ?? detail.pages.length) === 1 ? "page" : "pages"}
                     </span>
                   </h2>
                 )}
