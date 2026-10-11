@@ -1,68 +1,98 @@
-# Turning Color My World into a paid app
+# Complete Color My World App Walkthrough Video
 
-Free to try, $9.99/month to go unlimited, and a $24.99 printed book.
+Create a detailed start-to-finish video showing how someone uses Color My World and what every major feature does, followed by a written feature list in the chat.
 
-## One thing to know first
+## Video format
 
-Paddle (your choice for checkout) only sells digital things — it is not allowed to charge for a physical printed book. So:
+- One polished horizontal walkthrough, approximately 3–5 minutes, suitable for YouTube, the website, presentations, and sharing.
+- Generated scenes will show a child or parent naturally using the app on a phone, tablet, and computer.
+- Accurate recordings of the real app will appear whenever buttons, screens, or tools must be readable. This avoids invented controls or unreadable AI-generated screen text.
+- Friendly narration plus matching on-screen captions, so the video remains understandable with sound off.
+- Warm, playful visual direction based on the existing cover: outer-space accents, the cover’s green, red rocket details, warm paper, crayons, and family-friendly energy.
+- Deliver one MP4 file. The video source will remain editable for future updates.
 
-- The **$9.99/month membership** is a real Paddle checkout, live in the app.
-- The **$24.99 printed book** is built end to end (bundle pages, shipping address, order saved for you to print and ship) but the order is recorded as awaiting payment, and you collect the $24.99 yourself for now. If you'd rather charge for it in the app, that needs Stripe instead of Paddle — say the word and I'll switch the whole thing to Stripe.
+## Start-to-finish story
 
-## Signing in
+1. **Welcome and overview**
+   - Open on a generated scene of a family using Color My World across phone, tablet, and computer.
+   - Introduce the promise: “Say it or snap it. We draw it. You color it.”
+   - Show the real front cover, Start my book, My Bookshelf, optional background music, and GitHub access.
 
-- Coloring, saving and your bookshelf stay open to everyone.
-- Making a new picture asks you to sign in first (Google, one tap). This is what lets your free count and your membership follow you from phone to tablet to computer.
-- A small account line appears on the front cover: your email and Sign out, or Sign in.
+2. **Create a new book**
+   - Tap Start my book.
+   - Choose the number of pages, name the book, and name each individual page.
+   - Explain that the chosen count creates that exact number of page spaces.
 
-## Free tier
+3. **Fill every page three ways**
+   - **Say it:** choose a language or automatic detection, speak a detailed scene, review the words, and generate the drawing.
+   - **Type it:** type a scene description and generate it.
+   - **Snap it:** use the camera or upload a picture, prepare it, and turn it into coloring-page line art.
+   - Show generation progress, cancel, retry/redraw, page deletion, and the app’s closed-outline preparation for safer coloring.
 
-- 3 new pictures a month, counted from the 1st of each calendar month, reset automatically.
-- "Free pages left: 3" shows on the naming/create screen and on a new Account page.
-- Coloring, saving, your bookshelf and sharing links stay free forever. The limit is only on making new pictures — typed, spoken or from a photo.
+4. **Color inside the app**
+   - Open a generated page in the coloring studio.
+   - Demonstrate paint brush, crayon, marker, fill, and eraser.
+   - Show multiple brush sizes, the full color picker, color swatches, and favorite colors.
+   - Demonstrate automatic tool hiding while drawing, gap-sealed fill, undo, redo, clear, and saving a page image.
+   - Show automatic checkpoints, manual checkpoints, and restoring an earlier version.
+   - Show optional background music using audio already on the device.
 
-## Premium — $9.99/month
+5. **Save and finish the book**
+   - Explain automatic session saving and resuming after closing the app.
+   - Show completed coloring being written back into the same shelf book.
+   - Once every page has a picture, tap Generate book and arrive at My Bookshelf.
 
-Unlocks:
-- Unlimited new pictures
-- Saving and printing books (PDF and ZIP)
-- Ordering a printed book
+6. **Use My Pages and My Bookshelf**
+   - Show automatically saved individual pages in My Pages.
+   - Select one or more pages, name a collection, and create a book.
+   - Show closed book covers on the shelf; tap a book to open it.
+   - Tap any page to continue coloring it.
+   - Rename a page or book, remove a page, delete a book, and undo an accidental book deletion.
+   - Start a new book without losing finished books already on the shelf.
 
-A **Go Premium** card appears exactly when it's needed: when a free member runs out of pictures for the month, or taps Save book / Export / Print. It shows what you get, the price read from the payment system (never from the page itself), and one Upgrade button that opens Paddle's checkout. Email and card details are collected there, never asked twice here.
+7. **Export and share**
+   - Export a single page as PNG.
+   - Export or save a complete book as a printable PDF.
+   - Export all pages as a ZIP.
+   - Send the book through the device share menu or create a view-only link friends can open and print.
+   - Explain that shared viewers cannot alter the original book.
 
-After paying you land on a **Thank you** screen confirming membership is active. If you cancel or a payment fails, the app drops you back to free on its own — nothing for you to do.
+8. **Connected project access**
+   - Briefly show the GitHub page, connected projects, public/private labels, and open items.
+   - Keep this short because it supports sharing the build rather than the coloring workflow.
 
-## Printed book — $24.99
+9. **Final recap**
+   - Fast visual recap across phone, tablet, and computer.
+   - End on the Color My World cover and slogan.
 
-- Premium members can pick saved pages, name the book, and enter a shipping address.
-- The order is saved with the finished book file, the address and a status: awaiting payment → paid → cancelled.
-- You see your orders on the Account page. Only you (as admin) can see everyone's orders.
+## Production approach
 
-## Where you'll see it
+- Capture the current app at a phone-sized view and a desktop view, using realistic sample prompts, sample photos, colored pages, and a completed shelf book.
+- Generate a small set of consistent live-action family scenes to introduce and bridge the accurate app recordings.
+- Build the final edit with precise captions, callouts, zooms, and transitions; no fake interactive buttons will be added to the video.
+- Add a friendly narration track and restrained music underneath it, with captions matching the narration.
+- Spot-check the opening, each major workflow, and the ending before rendering the final MP4.
+- Verify the finished file’s length, dimensions, audio, readability, and playback before delivery.
 
-- Front cover: account line, and a small "Free pages left" or "Premium" badge.
-- Create/name screen: pages left, Go Premium card when out.
-- Bookshelf: Save book / Export / Share stay where they are; Save and Export show the Go Premium card for free members, plus a new **Order printed book** button.
-- New **Account** page: membership status, usage this month, manage/cancel, order history.
-- New **Thank you** page after checkout.
+## Written feature list after delivery
 
-## Technical plan
+After the MP4, provide an ordered checklist covering:
 
-**Payments**: run `recommend_payment_provider` (seller country US), then `enable_paddle_payments`; create the $9.99 recurring product with `batch_create_product`. Requires the Pro plan. Checkout price is always fetched server-side; the browser only sends a product id. Paddle webhook handled by a server route under `src/routes/api/public/paddle-webhook.ts` with signature verification, flipping `profiles.plan` on `subscription.activated/updated` and back to `free` on `canceled/past_due`.
+1. Opening and starting a book
+2. Page count, book title, and page titles
+3. Voice, typing, camera, and upload creation
+4. Drawing generation, cancellation, redraw, and sealed outlines
+5. Every coloring tool, size, color, favorite, and fill control
+6. Undo, redo, clearing, saving, and checkpoints
+7. Background music
+8. Automatic saving and resuming
+9. My Pages and building books
+10. My Bookshelf and reopening colored books
+11. Renaming, deleting, restoring, and starting fresh
+12. PNG, PDF, ZIP, file sharing, and view-only links
+13. GitHub project access
+14. Phone, tablet, and computer support
 
-**Auth**: Google sign-in via `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })` plus `supabase--configure_social_auth`; new public `src/routes/auth.tsx`; `onAuthStateChange` wired once in `__root.tsx`.
+## Scope note
 
-**Database migration** (each table: `CREATE TABLE` → `GRANT` → enable RLS → policies):
-- `profiles` (`id uuid pk` = auth user, `email`, `plan text default 'free'`, `plan_renews_at`, `paddle_customer_id`) + trigger on new auth user; owner-only select/update.
-- `page_generations` (`id`, `user_id`, `created_at`, `kind`) — one row per generated picture; owner select, insert only through a server function.
-- `purchases` (`id`, `user_id`, `product`, `amount_cents`, `status`, `provider_ref`, timestamps) — admin-only read/write via `has_role`.
-- `book_orders` (`id`, `user_id`, `title`, `pages jsonb`, `shipping jsonb`, `status`, `created_at`) — owner select/insert, admin all.
-- `app_role` enum + `user_roles` table + `has_role()` security-definer function, per the standard role pattern.
-
-**Server functions** (`src/lib/billing.functions.ts`, `src/lib/quota.functions.ts`, all `requireSupabaseAuth`):
-- `getEntitlements()` → `{ plan, used, limit, remaining }`, counting `page_generations` since the 1st of the month.
-- `consumeGeneration()` → checks plan/quota server-side, records the row, returns `{ allowed }`. Called from the existing generate flow in `src/routes/index.tsx` before `streamImage`; a `403`-style result opens the paywall instead of drawing.
-- `startPremiumCheckout()` → server-side price lookup + Paddle checkout session, returns the URL.
-- `createBookOrder({ title, pages, shipping })` → premium check, inserts a `book_orders` row plus a pending `purchases` ledger row.
-
-**UI**: `src/components/Paywall.tsx` (dialog), `src/hooks/useEntitlements.ts` (React Query wrapper), gates added in `src/routes/index.tsx` (generate) and `src/routes/books.tsx` (Save book / Export PDF / Export ZIP / print), new routes `src/routes/account.tsx`, `src/routes/thank-you.tsx`, `src/routes/auth.tsx`, each with its own `head()` title and description. Existing green button tokens and `btn-crayon` styling reused throughout.
+This walkthrough documents features currently present in the app. It will not present the skipped monetization plan as an active feature unless monetization is implemented before production begins.
