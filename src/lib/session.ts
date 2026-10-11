@@ -60,10 +60,14 @@ export async function loadSession(): Promise<ColoringSession | null> {
   }
 }
 
-export async function saveSession(session: Omit<ColoringSession, "savedAt">): Promise<void> {
+export async function saveSession(
+  session: Omit<ColoringSession, "savedAt"> & { savedAt?: number },
+): Promise<void> {
   if (typeof indexedDB === "undefined") return;
   try {
-    await tx("readwrite", (store) => store.put({ ...session, savedAt: Date.now() }, KEY));
+    await tx("readwrite", (store) =>
+      store.put({ ...session, savedAt: session.savedAt ?? Date.now() }, KEY),
+    );
   } catch {
     /* storage full or unavailable — resume is best-effort */
   }
