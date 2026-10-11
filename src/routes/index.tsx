@@ -30,13 +30,12 @@ import { MusicPlayer } from "@/components/MusicPlayer";
 import { useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import {
-  deleteBook,
   deletePageAndCascade,
   isSavedPage,
-
   listBooks,
   makeBookId,
   saveBookRecord,
+  savePagePaint,
   type SavedBook,
 } from "@/lib/savedBooks";
 import { AUTO_LANG, SPEECH_LANGUAGES } from "@/lib/languages";
@@ -56,11 +55,10 @@ import {
   allowanceLine,
   bookAllowance,
   booksThisMonth,
-  canSaveBook,
   pageAllowance,
   pagesThisMonth,
 } from "@/lib/usage";
-import { rememberDestination, takeBook, takePage } from "@/lib/accountState";
+import { accountState, rememberDestination, takeBook, takePage } from "@/lib/accountState";
 import { useAccount } from "@/lib/useAccount";
 import { AccountChip } from "@/components/AccountChip";
 import coverArt from "@/assets/book-cover.jpg";
@@ -165,6 +163,7 @@ function Index() {
   const [deletePageId, setDeletePageId] = useState<number | null>(null);
   /** Why a locked action was refused, with a link to the plans screen. */
   const [paywall, setPaywall] = useState<string | null>(null);
+  const { signedIn } = useAccount();
   /** Set when a free session was dropped for being older than 24 hours. */
   const [expiredNote, setExpiredNote] = useState<string | null>(null);
   /** When the free session stops being kept. */
@@ -940,6 +939,11 @@ function Index() {
           )}
           {isFreePlan() && allowanceLine() && (
             <p className="mt-3 text-sm font-bold text-muted-foreground">{allowanceLine()}</p>
+          )}
+          {!signedIn && (
+            <p className="mt-2 text-sm font-semibold text-muted-foreground">
+              You'll sign in before your first page is drawn.
+            </p>
           )}
           <button
             type="button"
