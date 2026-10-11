@@ -92,9 +92,11 @@ export function bookAllowance(): number {
   return limits().books;
 }
 
-/** "Free pages left: 1" style line; null when the plan is unlimited. */
+/** "Free pages left this month: 1" style line; null when the plan is unlimited. */
 export function allowanceLine(): string | null {
   const left = pagesLeft();
   if (!Number.isFinite(pageAllowance())) return null;
-  return `${currentPlan() === "free" ? "Free" : "Pages"} left this month: ${left}`;
+  return currentPlan() === "free"
+    ? `Free pages left this month: ${left}`
+    : `Pages left this month: ${left}`;
 }
