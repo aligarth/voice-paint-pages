@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowLeft, Check, Loader2, Lock, Mail } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { takeDestination } from "@/lib/accountState";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
@@ -25,8 +26,6 @@ export const Route = createFileRoute("/auth")({
   }),
   component: AuthPage,
 });
-
-const AFTER_KEY = "cmw-after-auth";
 
 function friendly(message: string): string {
   const text = message.toLowerCase();
