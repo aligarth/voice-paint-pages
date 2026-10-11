@@ -203,8 +203,8 @@ function Index() {
   };
 
   /** Refuses saving another book once this month's allowance is used. */
-  const bookAllowanceHolds = () => {
-    if (canSaveBook()) return true;
+  const bookAllowanceHolds = async () => {
+    if (await takeBook()) return true;
     setPaywall(
       isFreePlan()
         ? `Saving books is part of a paid plan. ${UPGRADE_COPY}`
@@ -310,21 +310,20 @@ function Index() {
     if (isFreePlan()) return; // free coloring is never written to the bookshelf
     const bookId = shelfBookIdRef.current;
     if (!bookId) return;
-    const drawn = pages.filter((page) => page.src && page.done);
-    if (!drawn.length) return;
+    const index = openPage ?? 0;
+    const page = pages[index];
+    if (!page || !page.src || !page.done) return;
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          await saveBookRecord({
-            id: bookId,
-            title: bookTitle.trim() || "My coloring book",
-            savedAt: shelfBookSavedAtRef.current ?? Date.now(),
-            pages: drawn.map((page) => page.src!),
-            paints: drawn.map((page) => page.paint ?? null),
-            pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
-            kind: drawn.length > 1 ? "book" : shelfBookKindRef.current,
+          await savePagePaint({
+            data: {
+              bookId,
+              position: index,
+              paint: page.paint ?? null,
+              title: page.title?.trim() || undefined,
+            },
           });
-          setSavedBooks(await listBooks());
         } catch (err) {
           setSaveMessage(
             err instanceof Error ? err.message : "Could not save your coloring to the bookshelf.",
@@ -334,7 +333,7 @@ function Index() {
     }, 800);
 
     return () => window.clearTimeout(timer);
-  }, [pages, bookTitle, busyPage, restored, step]);
+  }, [pages, openPage, busyPage, restored, step]);
 
   // Every freshly drawn page becomes its own little book.
   useEffect(() => {
@@ -430,7 +429,7 @@ function Index() {
 
   const saveSelectedAsBook = async () => {
     if (!selectedPages.length) return;
-    if (!bookAllowanceHolds()) return;
+    if (!(await bookAllowanceHolds())) return;
     // Keep the order the user tapped the pages in.
     const chosen = selectedPages
       .map((id) => pages.find((page) => page.id === id))
@@ -465,7 +464,7 @@ function Index() {
   const generateBook = async () => {
     const drawn = pages.filter((page) => page.src && page.done);
     if (!drawn.length) return;
-    if (!bookAllowanceHolds()) return;
+    if (!(await bookAllowanceHolds())) return;
     setGeneratingBook(true);
     const id = shelfBookIdRef.current ?? makeBookId();
     shelfBookIdRef.current = id;
@@ -625,7 +624,12 @@ function Index() {
 
   const runForPage = useCallback(async (id: number, source: PageSource, title: string) => {
     // One entry point for every picture: spoken, typed, snapped or redrawn.
-    if (!canCreatePage()) {
+    if (!accountState().userId) {
+      rememberDestination("/");
+      setPaywall("Please sign in first — your pages and books are kept private to your account.");
+      return;
+    }
+    if (!(await takePage())) {
       setPaywall(
         `You've drawn ${pagesThisMonth()} of ${pageAllowance()} pages this month. ${UPGRADE_COPY}`,
       );
@@ -650,7 +654,6 @@ function Index() {
     const onFrame = (src: string, isFinal: boolean) => {
       if (isFinal) {
         // Seal the outlines before the page can be coloured, so paint can't leak.
-        recordPage();
         setNowTick(Date.now());
         void sealLineArt(src).then((sealed) =>
           setPages((prev) =>
@@ -958,7 +961,9 @@ function Index() {
               <Sparkles className="h-4 w-4" /> Plans
             </Link>
           </div>
-
+          <div className="mt-4">
+            <AccountChip />
+          </div>
         </div>
         <MusicPlayer />
       </main>
