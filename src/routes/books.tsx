@@ -19,13 +19,14 @@ import {
   X,
 } from "lucide-react";
 import {
-  deleteBook,
+  deleteBookKeepingCopy,
   deleteBookPage,
   deletePageAndCascade,
   isSavedBook,
   isSavedPage,
   listBooks,
   makeBookId,
+  openBookRecord,
   recordKind,
   renameBook,
   saveBookRecord,
@@ -37,7 +38,9 @@ import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { cn } from "@/lib/utils";
 import { UPGRADE_COPY, isFreePlan } from "@/lib/plan";
-import { bookAllowance, booksThisMonth, canSaveBook, recordBook } from "@/lib/usage";
+import { bookAllowance, booksThisMonth } from "@/lib/usage";
+import { takeBook } from "@/lib/accountState";
+import { useAccount } from "@/lib/useAccount";
 
 import { clearSession, saveSession } from "@/lib/session";
 
@@ -103,8 +106,8 @@ function BooksPage() {
   };
 
   /** Refuses saving another book once this month's allowance is used. */
-  const bookAllowanceHolds = () => {
-    if (canSaveBook()) return true;
+  const bookAllowanceHolds = async () => {
+    if (await takeBook()) return true;
     setPaywall(
       isFreePlan()
         ? `Saving books is part of a paid plan. ${UPGRADE_COPY}`
@@ -123,10 +126,31 @@ function BooksPage() {
   const [bookTitle, setBookTitle] = useState("My coloring book");
   /** Which book on the shelf is opened up to show its pictures. */
   const [openBookId, setOpenBookId] = useState<string | null>(null);
+  /** The opened book with every picture loaded, not just its cover. */
+  const [openFull, setOpenFull] = useState<SavedBook | null>(null);
 
   useEffect(() => {
     void listBooks().then(setBooks);
   }, []);
+
+  // Load every picture of the book that's open on the shelf.
+  useEffect(() => {
+    if (!openBookId) {
+      setOpenFull(null);
+      return;
+    }
+    let active = true;
+    void openBookRecord(openBookId)
+      .then((full) => {
+        if (active) setOpenFull(full);
+      })
+      .catch(() => {
+        if (active) setOpenFull(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [openBookId, books]);
 
   const records = useMemo(
     () => (books ?? []).filter(view === "pages" ? isSavedPage : isSavedBook),
@@ -147,14 +171,15 @@ function BooksPage() {
   };
 
   const openBook = async (book: SavedBook, startPage?: number) => {
+    const full = await openBookRecord(book.id);
     await saveSession({
-      bookId: book.id,
-      bookKind: recordKind(book),
-      title: book.title,
-      pages: book.pages.map((src, i) => ({
+      bookId: full.id,
+      bookKind: recordKind(full),
+      title: full.title,
+      pages: full.pages.map((src, i) => ({
         src,
-        paint: book.paints?.[i] ?? null,
-        ...(book.pageTitles?.[i] ? { title: book.pageTitles[i]! } : {}),
+        paint: full.paints?.[i] ?? null,
+        ...(full.pageTitles?.[i] ? { title: full.pageTitles[i]! } : {}),
       })),
       openPage: startPage ?? null,
     });
@@ -166,9 +191,10 @@ function BooksPage() {
     setExportingId(book.id);
     setMessage(null);
     try {
+      const full = await openBookRecord(book.id);
       await exportPagesToPdf(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       setMessage(`Downloaded “${book.title}” as a PDF.`);
     } catch (err) {
@@ -183,9 +209,10 @@ function BooksPage() {
     setExportingId(`${book.id}-zip`);
     setMessage(null);
     try {
+      const full = await openBookRecord(book.id);
       await exportPagesToZip(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       setMessage(`Downloaded “${book.title}” as a ZIP.`);
     } catch (err) {
@@ -201,9 +228,10 @@ function BooksPage() {
     setExportingId(`${book.id}-save`);
     setMessage(null);
     try {
+      const full = await openBookRecord(book.id);
       await exportPagesToPdf(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       setMessage(`Saved “${book.title}” to your device.`);
     } catch (err) {
@@ -227,9 +255,10 @@ function BooksPage() {
     setShareBusy("file");
     setShareError(null);
     try {
+      const full = await openBookRecord(book.id);
       const result = await shareBookFile(
-        book.title,
-        book.pages.map((src, i) => ({ src, paint: book.paints?.[i] ?? null })),
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
       );
       if (result.downloaded) {
         setMessage(`Saved “${book.title}” as a file you can attach to a message or email.`);
@@ -248,7 +277,8 @@ function BooksPage() {
     setShareError(null);
     setShareCopied(false);
     try {
-      const url = await createBookShareLink(book);
+      const full = await openBookRecord(book.id);
+      const url = await createBookShareLink(full);
       setShareLink(url);
       setBooks(await listBooks());
       try {
@@ -276,11 +306,12 @@ function BooksPage() {
 
   const exportPagePng = async (book: SavedBook, index: number) => {
     if (!paidOnly("Downloading a PNG")) return;
-    const src = book.pages[index];
+    const full = await openBookRecord(book.id);
+    const src = full.pages[index];
     if (!src) return;
     try {
       await downloadFlattenedPage(
-        { src, paint: book.paints?.[index] ?? null },
+        { src, paint: full.paints?.[index] ?? null },
         `${book.title.replace(/\s+/g, "-").toLowerCase()}-page-${index + 1}.png`,
       );
     } catch (err) {
@@ -291,7 +322,7 @@ function BooksPage() {
   /** Copies the chosen pages into one new book without touching the originals. */
   const createBook = async () => {
     if (!selectedIds.length) return;
-    if (!bookAllowanceHolds()) return;
+    if (!(await bookAllowanceHolds())) return;
     const chosen = selectedIds
       .map((id) => records.find((record) => record.id === id))
       .filter((record): record is SavedBook => Boolean(record));
@@ -316,7 +347,6 @@ function BooksPage() {
           kind: "book",
         }),
       );
-      recordBook();
       clearUndo();
       setSelecting(false);
       setSelectedIds([]);
@@ -335,9 +365,10 @@ function BooksPage() {
     if (!id) return;
     const target = (books ?? []).find((record) => record.id === id);
     try {
-      setBooks(await deleteBook(id));
-      if (target) {
-        setUndoBook(target);
+      const { books: remaining, removed } = await deleteBookKeepingCopy(id);
+      setBooks(remaining);
+      if (removed) {
+        setUndoBook(removed);
         if (undoTimer.current) clearTimeout(undoTimer.current);
         undoTimer.current = setTimeout(() => setUndoBook(null), 15000);
       }
