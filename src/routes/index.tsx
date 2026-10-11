@@ -315,14 +315,7 @@ function Index() {
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          await savePagePaint({
-            data: {
-              bookId,
-              position: index,
-              paint: page.paint ?? null,
-              title: page.title?.trim() || undefined,
-            },
-          });
+          await savePagePaint(bookId, index, page.paint ?? null);
         } catch (err) {
           setSaveMessage(
             err instanceof Error ? err.message : "Could not save your coloring to the bookshelf.",

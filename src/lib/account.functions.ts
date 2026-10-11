@@ -27,7 +27,7 @@ const BOOK_INPUT = z.object({
   title: z.string().min(1).max(200),
   savedAt: z.number().int(),
   pages: z.array(PAINTABLE).min(1).max(MAX_PAGES_PER_BOOK),
-  paints: z.array(z.string().null()).optional(),
+  paints: z.array(z.string().nullable()).optional(),
   pageTitles: z.array(z.string().max(200)).optional(),
   kind: z.enum(["page", "book"]).optional(),
   shareId: z.string().nullish(),
@@ -256,7 +256,7 @@ export const saveBookRecord = createServerFn({ method: "POST" })
 /** Stores one page's coloring without re-sending the whole book. */
 export const savePagePaint = createServerFn({ method: "POST" })
   .inputValidator(
-    z.object({ id: z.string().uuid(), index: z.number().int().min(0), paint: z.string().null() }),
+    z.object({ id: z.string().uuid(), index: z.number().int().min(0), paint: z.string().nullable() }),
   )
   .middleware([requireSupabaseAuth])
   .handler(async ({ data, context }) => {
