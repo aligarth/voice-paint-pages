@@ -818,22 +818,22 @@ function BooksPage() {
               )}
 
               <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                {book.pages.map((src, index) => (
+                {detail.pages.map((src, index) => (
                   <div key={index} className="rounded-2xl border-2 border-border p-2">
                     <button
                       type="button"
-                      onClick={() => void openBook(book, index)}
-                      aria-label={`Color ${book.pageTitles?.[index] || `page ${index + 1}`}`}
+                      onClick={() => void openBook(detail, index)}
+                      aria-label={`Color ${detail.pageTitles?.[index] || `page ${index + 1}`}`}
                       className="relative block aspect-square w-full overflow-hidden rounded-xl bg-white transition-transform hover:-translate-y-0.5"
                     >
                       <img
                         src={src}
-                        alt={`${book.title} page ${index + 1}`}
+                        alt={`${detail.title} page ${index + 1}`}
                         className="absolute inset-0 h-full w-full object-contain"
                       />
-                      {book.paints?.[index] && (
+                      {detail.paints?.[index] && (
                         <img
-                          src={book.paints[index]!}
+                          src={detail.paints[index]!}
                           alt=""
                           className="absolute inset-0 h-full w-full object-contain"
                         />
@@ -844,14 +844,14 @@ function BooksPage() {
                     </button>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <span className="text-xs font-extrabold">
-                        {book.pageTitles?.[index]?.trim() || `Page ${index + 1}`}
+                        {detail.pageTitles?.[index]?.trim() || `Page ${index + 1}`}
                       </span>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           aria-label={`Export page ${index + 1} as PNG`}
                           className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                          onClick={() => void exportPagePng(book, index)}
+                          onClick={() => void exportPagePng(detail, index)}
                         >
                           <ImageDown className="h-4 w-4" />
                         </button>
@@ -859,7 +859,7 @@ function BooksPage() {
                           type="button"
                           aria-label={`Delete page ${index + 1}`}
                           className="rounded-full border-2 border-border p-1 transition-transform hover:scale-110"
-                          onClick={async () => setBooks(await deleteBookPage(book.id, index))}
+                          onClick={async () => setBooks(await deleteBookPage(detail.id, index))}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
