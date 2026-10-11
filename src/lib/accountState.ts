@@ -6,9 +6,13 @@
  * can't earn anyone a second free page.
  */
 import { consumeUsage, getEntitlements } from "./account.functions";
+import { importDeviceLibrary } from "./savedBooks";
 import type { PlanId } from "./planLimits";
 
 export type AccountState = {
+  /** The signed-in person, or null while nobody is signed in. */
+  userId: string | null;
+  email: string | null;
   plan: PlanId;
   month: string;
   /** Pages drawn this calendar month. */
@@ -19,10 +23,20 @@ export type AccountState = {
   loaded: boolean;
 };
 
-const EMPTY: AccountState = { plan: "free", month: "", pages: 0, books: 0, loaded: false };
+const EMPTY: AccountState = {
+  userId: null,
+  email: null,
+  plan: "free",
+  month: "",
+  pages: 0,
+  books: 0,
+  loaded: false,
+};
 
 let state: AccountState = EMPTY;
 const listeners = new Set<() => void>();
+/** Whose items have already been copied across this session. */
+let lastHandledFor: string | null = null;
 
 function publish(next: AccountState) {
   state = next;
@@ -33,7 +47,7 @@ export function accountState(): AccountState {
   return state;
 }
 
-/** Lets React re-render when the plan or counters change. */
+/** Lets React re-render when the plan, counters or signer change. */
 export function subscribeAccount(listener: () => void) {
   listeners.add(listener);
   return () => {
@@ -42,19 +56,51 @@ export function subscribeAccount(listener: () => void) {
 }
 
 export function resetAccount() {
+  lastHandledFor = null;
   publish(EMPTY);
 }
 
-/** Reads the signed-in person's plan and counters. */
+/** Reads the signed-in person's plan and counters from the server. */
 export async function refreshAccount(): Promise<AccountState> {
   const data = await getEntitlements();
-  publish({ plan: data.plan, month: data.month, pages: data.pages, books: data.books, loaded: true });
+  publish({ ...state, plan: data.plan, month: data.month, pages: data.pages, books: data.books, loaded: true });
   return state;
+}
+
+/**
+ * Points the app at whoever just signed in: brings their pages and books from
+ * this device into their account, then reads their plan and counters.
+ */
+export async function syncUser(user: { id: string; email?: string | null } | null) {
+  if (!user) {
+    resetAccount();
+    return;
+  }
+
+  if (lastHandledFor === user.id) {
+    publish({ ...state, userId: user.id, email: user.email ?? null });
+    return;
+  }
+
+  lastHandledFor = user.id;
+  publish({ ...EMPTY, userId: user.id, email: user.email ?? null });
+
+  try {
+    await importDeviceLibrary();
+  } catch {
+    /* the copy is best effort — signing in still works without it */
+  }
+  try {
+    await refreshAccount();
+  } catch {
+    /* keeps whatever was last known until the next try */
+  }
 }
 
 async function take(kind: "page" | "book"): Promise<boolean> {
   const result = await consumeUsage({ data: { kind } });
   publish({
+    ...state,
     plan: result.plan,
     month: result.month,
     pages: result.pages,
