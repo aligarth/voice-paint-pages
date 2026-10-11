@@ -1,98 +1,51 @@
-# Complete Color My World App Walkthrough Video
+# Add the paywall: free tier plus two paid tiers (limits now, payments later)
 
-Create a detailed start-to-finish video showing how someone uses Color My World and what every major feature does, followed by a written feature list in the chat.
+You chose: build the limits first and plug real payments in later, the printed book costs $1 on the top plan, and free coloring simply expires after 24 hours with no emailed link.
 
-## Video format
+## What you'll see
 
-- One polished horizontal walkthrough, approximately 3–5 minutes, suitable for YouTube, the website, presentations, and sharing.
-- Generated scenes will show a child or parent naturally using the app on a phone, tablet, and computer.
-- Accurate recordings of the real app will appear whenever buttons, screens, or tools must be readable. This avoids invented controls or unreadable AI-generated screen text.
-- Friendly narration plus matching on-screen captions, so the video remains understandable with sound off.
-- Warm, playful visual direction based on the existing cover: outer-space accents, the cover’s green, red rocket details, warm paper, crayons, and family-friendly energy.
-- Deliver one MP4 file. The video source will remain editable for future updates.
+- A **plans** screen reachable from the front cover and from every locked action, showing the three tiers side by side.
+- A line on the create screens telling you how many pages you have left this month, e.g. "Free pages left: 1".
+- Free coloring that quietly disappears a day later, with a short explanation instead of a surprise.
+- Locked buttons where saving, printing and sharing would have been — each one says why and offers the plans screen.
 
-## Start-to-finish story
+## The rules being built
 
-1. **Welcome and overview**
-   - Open on a generated scene of a family using Color My World across phone, tablet, and computer.
-   - Introduce the promise: “Say it or snap it. We draw it. You color it.”
-   - Show the real front cover, Start my book, My Bookshelf, optional background music, and GitHub access.
+```text
+FREE                  $9.99/mo                $25.99/mo
+1 page / month        15 pages / month        unlimited pages
+color only            3 books / month         unlimited books
+nothing saved         save + export + share   save + export + share
+gone after 24 hours                           + printed book, $1, up to 10 pages
+```
 
-2. **Create a new book**
-   - Tap Start my book.
-   - Choose the number of pages, name the book, and name each individual page.
-   - Explain that the chosen count creates that exact number of page spaces.
+- A page counts the moment a picture is drawn, including a redraw of the same page.
+- Free keeps only the in-progress coloring, and only for 24 hours. No page or book is written to My Pages or My Bookshelf, and PDF, ZIP, PNG and share links are unavailable.
+- Nothing is deleted that is already on your shelf from earlier testing; those items stay openable. New saves and downloads are what get locked.
 
-3. **Fill every page three ways**
-   - **Say it:** choose a language or automatic detection, speak a detailed scene, review the words, and generate the drawing.
-   - **Type it:** type a scene description and generate it.
-   - **Snap it:** use the camera or upload a picture, prepare it, and turn it into coloring-page line art.
-   - Show generation progress, cancel, retry/redraw, page deletion, and the app’s closed-outline preparation for safer coloring.
+## How it behaves
 
-4. **Color inside the app**
-   - Open a generated page in the coloring studio.
-   - Demonstrate paint brush, crayon, marker, fill, and eraser.
-   - Show multiple brush sizes, the full color picker, color swatches, and favorite colors.
-   - Demonstrate automatic tool hiding while drawing, gap-sealed fill, undo, redo, clear, and saving a page image.
-   - Show automatic checkpoints, manual checkpoints, and restoring an earlier version.
-   - Show optional background music using audio already on the device.
+- Draw your one free page, color it as usual. Try to draw a second and the app stops, says you've used your free page this month, and offers the plans screen.
+- The page-count screen only lets a free user start with one page.
+- Reopen the app the next day and the coloring is gone: "Your coloring is kept for 24 hours. This one has expired."
+- While it's still live you see a small countdown, "Kept for 20 more hours", so nothing feels lost by accident.
+- The plans screen lists all three tiers with their prices and what each includes, and the sign-up button reads "Coming soon" because no payment method is connected yet.
 
-5. **Save and finish the book**
-   - Explain automatic session saving and resuming after closing the app.
-   - Show completed coloring being written back into the same shelf book.
-   - Once every page has a picture, tap Generate book and arrive at My Bookshelf.
+## Technical notes
 
-6. **Use My Pages and My Bookshelf**
-   - Show automatically saved individual pages in My Pages.
-   - Select one or more pages, name a collection, and create a book.
-   - Show closed book covers on the shelf; tap a book to open it.
-   - Tap any page to continue coloring it.
-   - Rename a page or book, remove a page, delete a book, and undo an accidental book deletion.
-   - Start a new book without losing finished books already on the shelf.
+- New `src/lib/plan.ts` — one source of truth for the current plan. It returns `free` today; when payments go live it reads the customer's real subscription instead, and nothing else has to change. Plan limits live in one table: free `{pages: 1, books: 0}`, standard `{pages: 15, books: 3}`, premium unlimited. A dev-only override (`import.meta.env.DEV`) lets both states be tested; it compiles out of the shipped build.
+- New `src/lib/usage.ts` — counters keyed to the calendar month in local storage, so the month rolls over on its own: `pagesThisMonth()`, `booksThisMonth()`, `canCreatePage()`, `canSaveBook()`, `recordPage()`, `recordBook()`.
+- `src/routes/index.tsx` — `runForPage` is the single entry point every picture goes through (spoken, typed, snapped, or redrawn), so the allowance is checked there before anything is drawn. The three auto-save effects are skipped on the free plan so nothing reaches the shelf, and `generateBook`, `saveSelectedAsBook`, `exportPdf`, `exportZip`, `exportPagePng` and `shareBook` each refuse with a "see plans" message.
+- 24-hour expiry uses the `savedAt` stamp the session already stores: on open, anything older than a day is cleared and reported. The countdown reads from the same stamp.
+- `src/routes/books.tsx` — export, share and save actions are gated the same way, with the plans screen linked in place of the button.
+- New route `src/routes/plans.tsx` with its own page title and description for sharing.
 
-7. **Export and share**
-   - Export a single page as PNG.
-   - Export or save a complete book as a printable PDF.
-   - Export all pages as a ZIP.
-   - Send the book through the device share menu or create a view-only link friends can open and print.
-   - Explain that shared viewers cannot alter the original book.
+## Verification
 
-8. **Connected project access**
-   - Briefly show the GitHub page, connected projects, public/private labels, and open items.
-   - Keep this short because it supports sharing the build rather than the coloring workflow.
+Driven in the real browser at phone size: draw the one free page, confirm a second draw is refused with the upgrade message, confirm no new shelf entries appear and the download buttons are locked, then back-date the saved session and confirm it is dropped as expired. Then flip the dev override to a paid plan and confirm saving, exporting and multi-page books behave exactly as they do today.
 
-9. **Final recap**
-   - Fast visual recap across phone, tablet, and computer.
-   - End on the Color My World cover and slogan.
+## Worth knowing
 
-## Production approach
-
-- Capture the current app at a phone-sized view and a desktop view, using realistic sample prompts, sample photos, colored pages, and a completed shelf book.
-- Generate a small set of consistent live-action family scenes to introduce and bridge the accurate app recordings.
-- Build the final edit with precise captions, callouts, zooms, and transitions; no fake interactive buttons will be added to the video.
-- Add a friendly narration track and restrained music underneath it, with captions matching the narration.
-- Spot-check the opening, each major workflow, and the ending before rendering the final MP4.
-- Verify the finished file’s length, dimensions, audio, readability, and playback before delivery.
-
-## Written feature list after delivery
-
-After the MP4, provide an ordered checklist covering:
-
-1. Opening and starting a book
-2. Page count, book title, and page titles
-3. Voice, typing, camera, and upload creation
-4. Drawing generation, cancellation, redraw, and sealed outlines
-5. Every coloring tool, size, color, favorite, and fill control
-6. Undo, redo, clearing, saving, and checkpoints
-7. Background music
-8. Automatic saving and resuming
-9. My Pages and building books
-10. My Bookshelf and reopening colored books
-11. Renaming, deleting, restoring, and starting fresh
-12. PNG, PDF, ZIP, file sharing, and view-only links
-13. GitHub project access
-14. Phone, tablet, and computer support
-
-## Scope note
-
-This walkthrough documents features currently present in the app. It will not present the skipped monetization plan as an active feature unless monetization is implemented before production begins.
+- Until sign-in and real payments exist, the counters live on the device — clearing browser data resets them. The same rules become per-person and unforgeable the moment accounts and payments are wired in.
+- The $1 printed book needs a payment method and a shipping address, so it appears on the plans screen as part of the $25.99 tier but cannot be ordered yet.
+- Built-in payments also need a paid workspace plan, which this workspace isn't on; that choice stays open until you decide.
