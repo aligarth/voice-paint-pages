@@ -36,6 +36,8 @@ import { createBookShareLink, shareBookFile } from "@/lib/shareBook";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { cn } from "@/lib/utils";
+import { UPGRADE_COPY, isFreePlan } from "@/lib/plan";
+import { bookAllowance, booksThisMonth, canSaveBook, recordBook } from "@/lib/usage";
 
 import { clearSession, saveSession } from "@/lib/session";
 
@@ -83,12 +85,32 @@ function BooksPage() {
   const [shareBusy, setShareBusy] = useState<"file" | "link" | null>(null);
   const [shareError, setShareError] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  /** Why a locked action was refused, with a link to the plans screen. */
+  const [paywall, setPaywall] = useState<string | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndo = () => {
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = null;
     setUndoBook(null);
+  };
+
+  /** Refuses a paid action on the free plan and explains why. */
+  const paidOnly = (action: string) => {
+    if (!isFreePlan()) return true;
+    setPaywall(`${action} is part of a paid plan. ${UPGRADE_COPY}`);
+    return false;
+  };
+
+  /** Refuses saving another book once this month's allowance is used. */
+  const bookAllowanceHolds = () => {
+    if (canSaveBook()) return true;
+    setPaywall(
+      isFreePlan()
+        ? `Saving books is part of a paid plan. ${UPGRADE_COPY}`
+        : `You've saved ${booksThisMonth()} of ${bookAllowance()} books this month. ${UPGRADE_COPY}`,
+    );
+    return false;
   };
 
   useEffect(() => () => {
@@ -140,6 +162,7 @@ function BooksPage() {
   };
 
   const exportBook = async (book: SavedBook) => {
+    if (!paidOnly("Exporting a PDF")) return;
     setExportingId(book.id);
     setMessage(null);
     try {
@@ -156,6 +179,7 @@ function BooksPage() {
   };
 
   const exportBookZip = async (book: SavedBook) => {
+    if (!paidOnly("Downloading a ZIP")) return;
     setExportingId(`${book.id}-zip`);
     setMessage(null);
     try {
@@ -173,6 +197,7 @@ function BooksPage() {
 
   /** One-tap save of the whole book (line art + coloring) to the device. */
   const saveBookToDevice = async (book: SavedBook) => {
+    if (!paidOnly("Saving a book to your device")) return;
     setExportingId(`${book.id}-save`);
     setMessage(null);
     try {
@@ -198,6 +223,7 @@ function BooksPage() {
 
   /** Hands the colored book to the device share sheet (or downloads it as a fallback). */
   const sendBookFile = async (book: SavedBook) => {
+    if (!paidOnly("Sharing a book file")) return;
     setShareBusy("file");
     setShareError(null);
     try {
@@ -217,6 +243,7 @@ function BooksPage() {
 
   /** Publishes a view-only, fully coloured copy and shows the link. */
   const makeShareLink = async (book: SavedBook) => {
+    if (!paidOnly("Making a share link")) return;
     setShareBusy("link");
     setShareError(null);
     setShareCopied(false);
@@ -248,6 +275,7 @@ function BooksPage() {
   };
 
   const exportPagePng = async (book: SavedBook, index: number) => {
+    if (!paidOnly("Downloading a PNG")) return;
     const src = book.pages[index];
     if (!src) return;
     try {
@@ -263,6 +291,7 @@ function BooksPage() {
   /** Copies the chosen pages into one new book without touching the originals. */
   const createBook = async () => {
     if (!selectedIds.length) return;
+    if (!bookAllowanceHolds()) return;
     const chosen = selectedIds
       .map((id) => records.find((record) => record.id === id))
       .filter((record): record is SavedBook => Boolean(record));
@@ -287,6 +316,7 @@ function BooksPage() {
           kind: "book",
         }),
       );
+      recordBook();
       clearUndo();
       setSelecting(false);
       setSelectedIds([]);
@@ -429,6 +459,14 @@ function BooksPage() {
         {(message || undoBook) && (
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {message && <p className="text-sm font-bold text-primary">{message}</p>}
+            {paywall && (
+              <div className="paper-card mt-3 flex flex-wrap items-center justify-between gap-3 p-4">
+                <p className="text-sm font-bold">{paywall}</p>
+                <Link to="/plans" className="btn-crayon text-sm">
+                  See plans
+                </Link>
+              </div>
+            )}
             {undoBook && (
               <button type="button" className="btn-crayon" onClick={() => void undoDeleteBook()}>
                 <RotateCcw className="h-4 w-4" /> Undo delete
