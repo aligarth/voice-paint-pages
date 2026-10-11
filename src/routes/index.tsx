@@ -51,6 +51,18 @@ import { downloadFlattenedPage } from "@/lib/flattenPage";
 import { clearSession, loadSession, saveSession } from "@/lib/session";
 import { createSharedGallery } from "@/lib/share";
 import { cn } from "@/lib/utils";
+import { FREE_KEEP_MS, UPGRADE_COPY, isFreePlan } from "@/lib/plan";
+import {
+  allowanceLine,
+  bookAllowance,
+  booksThisMonth,
+  canCreatePage,
+  canSaveBook,
+  pageAllowance,
+  pagesThisMonth,
+  recordBook,
+  recordPage,
+} from "@/lib/usage";
 import coverArt from "@/assets/book-cover.jpg";
 
 function isAbortError(err: unknown): boolean {
@@ -151,7 +163,15 @@ function Index() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
   const [deletePageId, setDeletePageId] = useState<number | null>(null);
-
+  /** Why a locked action was refused, with a link to the plans screen. */
+  const [paywall, setPaywall] = useState<string | null>(null);
+  /** Set when a free session was dropped for being older than 24 hours. */
+  const [expiredNote, setExpiredNote] = useState<string | null>(null);
+  /** When the free session stops being kept. */
+  const [keepUntil, setKeepUntil] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  /** The stamp the current session was first saved under, so 24 hours stays honest. */
+  const sessionStampRef = useRef<number | null>(null);
 
   // Choose pages to build one book.
   const [selecting, setSelecting] = useState(false);
@@ -175,6 +195,38 @@ function Index() {
   /** Page id -> the one-page book it was auto-saved into, so redraws replace instead of duplicate. */
   const autoSavedRef = useRef<Map<number, { bookId: string; src: string }>>(new Map());
 
+  /** Refuses a paid action on the free plan and explains why. */
+  const paidOnly = (action: string) => {
+    if (!isFreePlan()) return true;
+    setPaywall(`${action} is part of a paid plan. ${UPGRADE_COPY}`);
+    return false;
+  };
+
+  /** Refuses saving another book once this month's allowance is used. */
+  const bookAllowanceHolds = () => {
+    if (canSaveBook()) return true;
+    setPaywall(
+      isFreePlan()
+        ? `Saving books is part of a paid plan. ${UPGRADE_COPY}`
+        : `You've saved ${booksThisMonth()} of ${bookAllowance()} books this month. ${UPGRADE_COPY}`,
+    );
+    return false;
+  };
+
+  // Ticks the 24-hour countdown once a minute.
+  useEffect(() => {
+    if (keepUntil === null) return;
+    const timer = window.setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [keepUntil]);
+
+  // A free plan may only start with as many pages as it may draw.
+  useEffect(() => {
+    if (!isFreePlan()) return;
+    const cap = pageAllowance();
+    if (pageCount > cap) setPageCount(cap);
+  }, [pageCount]);
+
   useEffect(() => {
     void listBooks().then(setSavedBooks);
   }, []);
@@ -184,6 +236,18 @@ function Index() {
     void loadSession().then((session) => {
       setRestored(true);
       if (!session?.pages.length) return;
+      // Free coloring is kept for 24 hours, then dropped.
+      if (isFreePlan() && session.savedAt && Date.now() - session.savedAt > FREE_KEEP_MS) {
+        setExpiredNote(
+          "Your coloring is kept for 24 hours. This one has expired — start a new page to color again.",
+        );
+        void clearSession();
+        return;
+      }
+      if (isFreePlan()) {
+        sessionStampRef.current = session.savedAt;
+        setKeepUntil(session.savedAt + FREE_KEEP_MS);
+      }
       shelfBookIdRef.current = session.bookId ?? null;
       shelfBookSavedAtRef.current = null;
       shelfBookKindRef.current = session.bookKind ?? "book";
@@ -211,7 +275,14 @@ function Index() {
     if (!restored || step !== "book" || busyPage !== null) return;
     if (!pages.length) return;
     const timer = window.setTimeout(() => {
+      // Free keeps the original stamp so the 24-hour clock doesn't restart on every stroke.
+      const stamp = isFreePlan() ? (sessionStampRef.current ?? Date.now()) : null;
+      if (isFreePlan() && stamp) {
+        sessionStampRef.current = stamp;
+        setKeepUntil((prev) => prev ?? stamp + FREE_KEEP_MS);
+      }
       void saveSession({
+        ...(stamp ? { savedAt: stamp } : {}),
         bookId: shelfBookIdRef.current,
         bookKind: shelfBookKindRef.current,
         title: bookTitle,
@@ -231,6 +302,7 @@ function Index() {
   // Write coloring back into the shelf book this session came from, so nothing is lost.
   useEffect(() => {
     if (!restored || step !== "book" || busyPage !== null) return;
+    if (isFreePlan()) return; // free coloring is never written to the bookshelf
     const bookId = shelfBookIdRef.current;
     if (!bookId) return;
     const drawn = pages.filter((page) => page.src && page.done);
@@ -262,6 +334,7 @@ function Index() {
   // Every freshly drawn page becomes its own little book.
   useEffect(() => {
     if (!restored) return;
+    if (isFreePlan()) return; // free pages are not saved to My Pages
     const fresh = pages.filter(
       (page) => page.source && page.done && page.src && !page.error && !page.regenerating,
     );
@@ -352,6 +425,7 @@ function Index() {
 
   const saveSelectedAsBook = async () => {
     if (!selectedPages.length) return;
+    if (!bookAllowanceHolds()) return;
     // Keep the order the user tapped the pages in.
     const chosen = selectedPages
       .map((id) => pages.find((page) => page.id === id))
@@ -369,6 +443,8 @@ function Index() {
         kind: "book",
       });
 
+      recordBook();
+      setNowTick(Date.now());
       setSavedBooks(await listBooks());
       setSaveMessage(
         `Created “${title}” with ${chosen.length} ${chosen.length === 1 ? "page" : "pages"} in My Bookshelf.`,
@@ -384,6 +460,7 @@ function Index() {
   const generateBook = async () => {
     const drawn = pages.filter((page) => page.src && page.done);
     if (!drawn.length) return;
+    if (!bookAllowanceHolds()) return;
     setGeneratingBook(true);
     const id = shelfBookIdRef.current ?? makeBookId();
     shelfBookIdRef.current = id;
@@ -399,6 +476,8 @@ function Index() {
         pageTitles: drawn.map((page) => page.title?.trim() || `Page ${page.id + 1}`),
         kind: "book",
       });
+      recordBook();
+      setNowTick(Date.now());
       setSavedBooks(await listBooks());
       await navigate({ to: "/books", search: { view: "bookshelf" } });
     } catch (err) {
@@ -416,6 +495,7 @@ function Index() {
 
   const exportPdf = async () => {
     if (!readyPages.length) return;
+    if (!paidOnly("Exporting a PDF")) return;
     setExporting(true);
     try {
       await exportPagesToPdf(
@@ -432,6 +512,7 @@ function Index() {
 
   const exportZip = async () => {
     if (!readyPages.length) return;
+    if (!paidOnly("Downloading a ZIP")) return;
     setExporting(true);
     try {
       await exportPagesToZip(
@@ -447,6 +528,7 @@ function Index() {
   };
 
   const exportPagePng = async (page: Page & { src: string }) => {
+    if (!paidOnly("Downloading a PNG")) return;
     try {
       await downloadFlattenedPage(
         { src: page.src, paint: page.paint ?? null },
@@ -459,6 +541,7 @@ function Index() {
 
   const shareBook = async () => {
     if (!readyPages.length) return;
+    if (!paidOnly("Sharing a gallery link")) return;
     setSharing(true);
     try {
       const { url } = await createSharedGallery(
@@ -497,6 +580,10 @@ function Index() {
     setSaveMessage(null);
     setShareUrl(null);
     setGenError(null);
+    setPaywall(null);
+    setExpiredNote(null);
+    setKeepUntil(null);
+    sessionStampRef.current = null;
     setBookTitle("My coloring book");
     setStep("cover");
     setSelecting(false);
@@ -506,6 +593,9 @@ function Index() {
 
   const openSavedBook = (book: SavedBook) => {
     autoSavedRef.current.clear();
+    setPaywall(null);
+    setKeepUntil(null);
+    sessionStampRef.current = null;
     shelfBookIdRef.current = book.id;
     shelfBookSavedAtRef.current = book.savedAt;
     shelfBookKindRef.current = book.pages.length > 1 ? "book" : "page";
@@ -529,8 +619,16 @@ function Index() {
   };
 
   const runForPage = useCallback(async (id: number, source: PageSource, title: string) => {
+    // One entry point for every picture: spoken, typed, snapped or redrawn.
+    if (!canCreatePage()) {
+      setPaywall(
+        `You've drawn ${pagesThisMonth()} of ${pageAllowance()} pages this month. ${UPGRADE_COPY}`,
+      );
+      return;
+    }
     setGenError(null);
     setSaveMessage(null);
+    setPaywall(null);
     setBusyPage(id);
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -547,6 +645,8 @@ function Index() {
     const onFrame = (src: string, isFinal: boolean) => {
       if (isFinal) {
         // Seal the outlines before the page can be coloured, so paint can't leak.
+        recordPage();
+        setNowTick(Date.now());
         void sealLineArt(src).then((sealed) =>
           setPages((prev) =>
             prev.map((page) =>
