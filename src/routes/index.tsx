@@ -926,7 +926,8 @@ function Index() {
   if (step === "cover") {
     return (
       <main className="mx-auto max-w-3xl px-4 py-10">
-        <div className="paper-card mx-auto max-w-md p-4 text-center sm:p-6">
+        <PromoVideoSection />
+        <div className="paper-card mx-auto mt-6 max-w-md p-4 text-center sm:p-6">
           <img
             src={coverArt}
             alt="Color My Words cover: a smiling boy with an afro and a camera, floating in outer space with planets, stars, and a red rocket"
