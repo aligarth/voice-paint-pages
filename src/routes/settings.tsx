@@ -1,7 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+/** Shows the customer dashboard link only to the app's owner. */
+function OwnerLink() {
+  const [isOwner, setIsOwner] = useState(false);
+  useEffect(() => {
+    void supabase.auth.getUser().then(({ data }) => {
+      const id = data.user?.id;
+      if (!id) return;
+      void supabase.rpc("has_role", { _user_id: id, _role: "admin" }).then(({ data: ok }) => setIsOwner(Boolean(ok)));
+    });
+  }, []);
+  if (!isOwner) return null;
+  return (
+    <Link to="/dashboard" className="btn-crayon w-full justify-center">
+      See your customers
+    </Link>
+  );
+}
 
 import { createPortalSession } from "@/lib/payments.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
@@ -98,6 +117,7 @@ function Settings() {
           {plan !== "free" && <ManageButton />}
         </section>
       )}
+      {signedIn && <OwnerLink />}
     </main>
   );
 }
