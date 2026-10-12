@@ -34,6 +34,10 @@
   reset screens. Checked in the code the live address actually serves, and proven by a real
   password-reset email that was accepted and delivered from the new build.
 
+- colormywords.app connected as the app's main web address: DNS records verified in public DNS, the
+  domain set as primary (so the old lovable.app address redirects to it), and email links, page
+  previews and the site's own canonical/address tags switched over to colormywords.app.
+
 ## Open
 - Ahmed's confirmation that the junk-folder tips clear the issue for his iCloud address — the
   main fix is marking a message "Not Junk" in iCloud, which trains the filter over time.
@@ -41,4 +45,8 @@
 - Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
   directly in the database for now.
 - Payments: $9.99 Coloring Plus and $24.99 Coloring Unlimited checkout built (test mode); test payment went through — plan switch-on waits for the preview to finish updating so payment notices reach it. Going live needs Ahmed to finish the steps in the Payments tab.
-- Email reputation: emails now link to the working live site (colormywords.app didn't load — a spam signal). Remaining levers need Ahmed: put a website on colormywords.app, and reputation builds over weeks of real sending.
+- Email reputation: colormywords.app is now connected as the app's main web address, so email links
+  open a real site instead of a parking page. Remaining lever needs Ahmed: reputation builds over
+  weeks of real sending.
+- colormywords.app hosting setup still finishing (active_provisioning) — confirm it serves the app
+  over https, then re-publish so the live site carries the new address in its email links and tags.
