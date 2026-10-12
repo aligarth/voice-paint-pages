@@ -893,7 +893,7 @@ function Index() {
             </Link>
           </div>
         )}
-        {isFreePlan() && hoursLeft !== null && (
+        {freePlan && hoursLeft !== null && (
           <p className="mb-4 text-sm font-bold text-muted-foreground">
             {hoursLeft > 0
               ? `Kept for ${hoursLeft} more ${hoursLeft === 1 ? "hour" : "hours"}.`
@@ -939,9 +939,9 @@ function Index() {
           {expiredNote && (
             <p className="mt-3 text-sm font-semibold text-primary">{expiredNote}</p>
           )}
-          {allowanceLine() && (
+          {allowanceText && (
             <p className="mt-3 text-sm font-bold text-muted-foreground">
-              {allowanceLine()} ·{" "}
+              {allowanceText} ·{" "}
               <Link to="/plans" className="text-primary underline">
                 Unlock unlimited
               </Link>
@@ -991,13 +991,13 @@ function Index() {
           <p className="mt-2 text-sm text-muted-foreground">
             Pick how big your coloring book should be. You can fill each page one at a time.
           </p>
-          {isFreePlan() && allowanceLine() && (
+          {freePlan && allowanceText && (
             <p className="mt-3 text-sm font-bold text-muted-foreground">
-              {allowanceLine()} — the free plan makes one page at a time.
+              {allowanceText} — the free plan makes one page at a time.
             </p>
           )}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            {PAGE_OPTIONS.filter((n) => n <= pageAllowance()).map((n) => (
+            {PAGE_OPTIONS.filter((n) => n <= pageCap).map((n) => (
               <button
                 key={n}
                 type="button"
@@ -1054,9 +1054,9 @@ function Index() {
           <p className="mt-2 text-center text-sm text-muted-foreground">
             Give each page a title. You can change it later.
           </p>
-          {isFreePlan() && allowanceLine() && (
+          {freePlan && allowanceText && (
             <p className="mt-2 text-center text-sm font-bold text-muted-foreground">
-              {allowanceLine()}
+              {allowanceText}
             </p>
           )}
 
@@ -1194,7 +1194,7 @@ function Index() {
           </Link>
         </div>
       )}
-      {isFreePlan() && hoursLeft !== null && (
+      {freePlan && hoursLeft !== null && (
         <p className="mt-3 text-sm font-bold text-muted-foreground">
           {hoursLeft > 0
             ? `Kept for ${hoursLeft} more ${hoursLeft === 1 ? "hour" : "hours"}.`
