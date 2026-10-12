@@ -62,7 +62,7 @@ const TIERS: Tier[] = [
   },
   {
     id: "premium",
-    price: "$25.99",
+    price: "$24.99",
     every: "each month",
     blurb: "For a whole family, or a classroom.",
     includes: [
