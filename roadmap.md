@@ -23,8 +23,8 @@
   nothing serious.
 
 ## Open
-- Blocker: no email sender is configured for this project, so confirmation emails can't be delivered
-  and nobody can finish creating an account. Waiting on Ahmed to choose between connecting his own
-  email domain or letting sign-in start immediately without email confirmation.
+- Blocker: notify.colormywords.app is set up but still waiting on its DNS records being added at
+  the domain host, so confirmation emails can't be delivered yet and nobody can finish creating an
+  account. Verification usually takes a few minutes (up to 72 hours) once the records are in.
 - Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
   directly in the database for now.
