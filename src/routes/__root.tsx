@@ -83,14 +83,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Say it or snap it. We draw it. You color it. Build a coloring book one page at a time.",
+          "Speak it, Snap it, Type it, or Upload it. We'll draw it. You color it. Build a coloring book one page at a time.",
       },
       { name: "author", content: "Color My Words" },
       { property: "og:title", content: "Color My Words — Make Your Own Coloring Book" },
       {
         property: "og:description",
         content:
-          "Say it or snap it. We draw it. You color it. Build a coloring book one page at a time.",
+          "Speak it, Snap it, Type it, or Upload it. We'll draw it. You color it. Build a coloring book one page at a time.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

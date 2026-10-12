@@ -536,7 +536,7 @@ function BooksPage() {
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             {isPages
-              ? "Say it, type it or snap it in the studio — each picture saves itself here as its own page."
+              ? "Speak it, type it, snap it, or upload it in the studio — each picture saves itself here as its own page."
               : "Draw all the pages in the studio, then tap Generate book to put it on your shelf."}
           </p>
           {isPages ? (

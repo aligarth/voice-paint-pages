@@ -13,6 +13,8 @@
 - Anything already drawn on this device is copied into the account the first time they sign in.
 - App renamed to "Color My Words": cover picture re-lettered and every title, shared-link line,
   readme and promo card updated.
+- Motto changed to "Speak it, Snap it, Type it, or Upload it. We'll draw it. You color it." on the
+  start screen, in page titles/descriptions, and in the promo video.
 
 ## Open
 - Blocker: no email sender is configured for this project, so confirmation emails can't be delivered

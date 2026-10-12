@@ -87,7 +87,7 @@ export const EndCardScene: React.FC = () => {
           maxWidth: width * 0.85,
         }}
       >
-        Say it or snap it. We draw it. You color it.
+        Speak it, Snap it, Type it, or Upload it. We&rsquo;ll draw it. You color it.
       </div>
 
       <div

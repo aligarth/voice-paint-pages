@@ -74,14 +74,14 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Open your book, choose how many pages, name your pages, then say it or snap it for each page and color it in with brushes, crayons and every color.",
+          "Open your book, choose how many pages, name your pages, then speak it, type it, snap it, or upload it for each page and color it in with brushes, crayons and every color.",
       },
 
       { property: "og:title", content: "Color My Words — Make Your Own Coloring Book" },
       {
         property: "og:description",
         content:
-          "Say it or snap it. We draw it. You color it. Build a coloring book one page at a time.",
+          "Speak it, Snap it, Type it, or Upload it. We'll draw it. You color it. Build a coloring book one page at a time.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -926,7 +926,9 @@ function Index() {
             height={1280}
             className="mx-auto w-full rounded-xl border-2 border-border"
           />
-          <p className="mt-4 text-lg font-extrabold">Say it or snap it. We draw it. You color it.</p>
+          <p className="mt-4 text-lg font-extrabold">
+            Speak it, Snap it, Type it, or Upload it. We&rsquo;ll draw it. You color it.
+          </p>
           {expiredNote && (
             <p className="mt-3 text-sm font-semibold text-primary">{expiredNote}</p>
           )}

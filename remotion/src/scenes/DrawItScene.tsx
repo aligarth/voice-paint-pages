@@ -47,7 +47,7 @@ export const DrawItScene: React.FC = () => {
           top: isVertical ? height * 0.08 : height * 0.08,
         }}
       >
-        We draw it.
+        We&rsquo;ll draw it.
       </div>
 
       <div
