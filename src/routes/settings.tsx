@@ -9,10 +9,10 @@ import { bookAllowance, pageAllowance } from "@/lib/usage";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Color My World" },
+      { title: "Settings — Color My Words" },
       { name: "description", content: "Your plan and how many coloring pages you have left this month." },
-      { property: "og:title", content: "Settings — Color My World" },
-      { property: "og:description", content: "Your plan and pages left this month in Color My World." },
+      { property: "og:title", content: "Settings — Color My Words" },
+      { property: "og:description", content: "Your plan and pages left this month in Color My Words." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

@@ -70,14 +70,14 @@ function isAbortError(err: unknown): boolean {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Color My World — Make Your Own Coloring Book" },
+      { title: "Color My Words — Make Your Own Coloring Book" },
       {
         name: "description",
         content:
           "Open your book, choose how many pages, name your pages, then say it or snap it for each page and color it in with brushes, crayons and every color.",
       },
 
-      { property: "og:title", content: "Color My World — Make Your Own Coloring Book" },
+      { property: "og:title", content: "Color My Words — Make Your Own Coloring Book" },
       {
         property: "og:description",
         content:
@@ -921,7 +921,7 @@ function Index() {
         <div className="paper-card mx-auto max-w-md p-4 text-center sm:p-6">
           <img
             src={coverArt}
-            alt="Color My World cover: a smiling boy with an afro and a camera, floating in outer space with planets, stars, and a red rocket"
+            alt="Color My Words cover: a smiling boy with an afro and a camera, floating in outer space with planets, stars, and a red rocket"
             width={1024}
             height={1280}
             className="mx-auto w-full rounded-xl border-2 border-border"

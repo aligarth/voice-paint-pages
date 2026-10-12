@@ -6,15 +6,15 @@ import { ArrowLeft, BookOpen, Printer, Share2 } from "lucide-react";
 export const Route = createFileRoute("/gallery/$id")({
   head: ({ params }) => ({
     meta: [
-      { title: "A shared coloring book — Color My World" },
+      { title: "A shared coloring book — Color My Words" },
       {
         name: "description",
-        content: "Flip through a finished coloring book, page by page, shared from Color My World.",
+        content: "Flip through a finished coloring book, page by page, shared from Color My Words.",
       },
-      { property: "og:title", content: "A shared coloring book — Color My World" },
+      { property: "og:title", content: "A shared coloring book — Color My Words" },
       {
         property: "og:description",
-        content: "Flip through a finished coloring book, page by page, shared from Color My World.",
+        content: "Flip through a finished coloring book, page by page, shared from Color My Words.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

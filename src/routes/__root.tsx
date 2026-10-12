@@ -79,14 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Color My World — Make Your Own Coloring Book" },
+      { title: "Color My Words — Make Your Own Coloring Book" },
       {
         name: "description",
         content:
           "Say it or snap it. We draw it. You color it. Build a coloring book one page at a time.",
       },
-      { name: "author", content: "Color My World" },
-      { property: "og:title", content: "Color My World — Make Your Own Coloring Book" },
+      { name: "author", content: "Color My Words" },
+      { property: "og:title", content: "Color My Words — Make Your Own Coloring Book" },
       {
         property: "og:description",
         content:

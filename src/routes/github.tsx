@@ -8,16 +8,16 @@ import { listIssues, listRepos } from "@/lib/github.functions";
 export const Route = createFileRoute("/github")({
   head: () => ({
     meta: [
-      { title: "GitHub — Color My World" },
+      { title: "GitHub — Color My Words" },
       {
         name: "description",
         content:
-          "See the repositories on your connected GitHub account and peek at the open issues in any of them, right inside Color My World.",
+          "See the repositories on your connected GitHub account and peek at the open issues in any of them, right inside Color My Words.",
       },
-      { property: "og:title", content: "GitHub — Color My World" },
+      { property: "og:title", content: "GitHub — Color My Words" },
       {
         property: "og:description",
-        content: "Browse your GitHub repositories and their open issues from inside Color My World.",
+        content: "Browse your GitHub repositories and their open issues from inside Color My Words.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

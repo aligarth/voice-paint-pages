@@ -52,13 +52,13 @@ export const Route = createFileRoute("/books")({
   }),
   head: () => ({
     meta: [
-      { title: "My Pages & My Bookshelf — Color My World" },
+      { title: "My Pages & My Bookshelf — Color My Words" },
       {
         name: "description",
         content:
           "Browse every coloring page you made in My Pages, choose the ones you love, and build them into a book that lives in My Bookshelf.",
       },
-      { property: "og:title", content: "My Pages & My Bookshelf — Color My World" },
+      { property: "og:title", content: "My Pages & My Bookshelf — Color My Words" },
       {
         property: "og:description",
         content:
