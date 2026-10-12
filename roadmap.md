@@ -52,4 +52,4 @@
   weeks of real sending.
 - colormywords.app hosting setup still finishing (active_provisioning) — confirm it serves the app
   over https, then re-publish so the live site carries the new address in its email links and tags.
-- Printed book ($24.99 one-time) built in test mode: checkout on each shelf book, payment recorded by the webhook, 5 bonus pages added once, print-ready PDF download. Not yet tried end to end — the test account has no books yet.
+- Printed book ($24.99 one-time) built in test mode: checkout on each shelf book, payment recorded by the webhook, 5 bonus pages added once, print-ready PDF download. Tested end to end in test mode: paid with the test card, 5 bonus pages added once, 10-page print file, second tap gives no second charge.
