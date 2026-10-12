@@ -118,8 +118,8 @@ export async function downloadPrintedBookPdf(title: string, sources: PdfPage[]) 
     doc.text(String(i + 1), W / 2, H - safe, { align: "center" });
   }
 
-  // Blank back so it prints double-sided cleanly
-  if (doc.getNumberOfPages() % 2 === 1) doc.addPage();
+  // Blank filler (when needed) so the back cover lands on an even page for double-sided printing
+  if (doc.getNumberOfPages() % 2 === 0) doc.addPage();
   doc.addPage();
   doc.setFillColor(106, 156, 20);
   doc.rect(0, 0, W, H, "F");
