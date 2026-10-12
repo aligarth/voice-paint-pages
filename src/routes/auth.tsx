@@ -145,6 +145,10 @@ function AuthPage() {
               We sent a confirmation link to {email.trim().toLowerCase()}. Open it to finish
               setting up, then come back and sign in.
             </p>
+            <p className="mt-2 text-xs font-semibold text-muted-foreground">
+              Not there? Look in your junk folder and tap "Not Junk" — that makes sure our next
+              emails reach your inbox.
+            </p>
             <button
               type="button"
               onClick={() => {
