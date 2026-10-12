@@ -21,8 +21,10 @@ export const Route = createFileRoute("/auth")({
         content: "Your pages, books and plan — private to your own account.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://colormywords.app/auth" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://colormywords.app/auth" }],
   }),
   component: AuthPage,
 });

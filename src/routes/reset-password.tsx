@@ -18,8 +18,10 @@ export const Route = createFileRoute("/reset-password")({
         content: "Set a new password for your Color My Words account.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://colormywords.app/reset-password" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://colormywords.app/reset-password" }],
   }),
   component: ResetPasswordPage,
 });

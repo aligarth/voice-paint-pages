@@ -65,8 +65,10 @@ export const Route = createFileRoute("/books")({
           "Manage your saved coloring pages and books: rename, delete, export a PDF, or reopen anything to keep coloring.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://colormywords.app/books" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://colormywords.app/books" }],
   }),
   component: BooksPage,
 });

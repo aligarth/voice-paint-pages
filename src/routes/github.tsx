@@ -20,8 +20,10 @@ export const Route = createFileRoute("/github")({
         content: "Browse your GitHub repositories and their open issues from inside Color My Words.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://colormywords.app/github" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://colormywords.app/github" }],
   }),
   component: GithubPage,
 });
