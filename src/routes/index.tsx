@@ -930,8 +930,13 @@ function Index() {
           {expiredNote && (
             <p className="mt-3 text-sm font-semibold text-primary">{expiredNote}</p>
           )}
-          {isFreePlan() && allowanceLine() && (
-            <p className="mt-3 text-sm font-bold text-muted-foreground">{allowanceLine()}</p>
+          {allowanceLine() && (
+            <p className="mt-3 text-sm font-bold text-muted-foreground">
+              {allowanceLine()} ·{" "}
+              <Link to="/plans" className="text-primary underline">
+                Unlock unlimited
+              </Link>
+            </p>
           )}
           {!signedIn && (
             <p className="mt-2 text-sm font-semibold text-muted-foreground">

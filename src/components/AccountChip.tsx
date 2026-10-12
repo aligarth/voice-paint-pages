@@ -34,6 +34,9 @@ export function AccountChip() {
       <span className="rounded-full border-2 border-border bg-card px-3 py-1.5">
         {email?.split("@")[0] || "Signed in"}
       </span>
+      <Link to="/settings" className="btn-crayon text-sm">
+        Settings
+      </Link>
       <button type="button" onClick={() => void signOut()} className="btn-crayon text-sm">
         <LogOut className="h-4 w-4" /> Sign out
       </button>
