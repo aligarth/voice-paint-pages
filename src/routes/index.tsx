@@ -61,7 +61,7 @@ import {
 import { accountState, rememberDestination, takeBook, takePage } from "@/lib/accountState";
 import { useAccount } from "@/lib/useAccount";
 import { AccountChip } from "@/components/AccountChip";
-import coverArt from "@/assets/book-cover.jpg";
+import coverArt from "@/assets/book-cover-welcome.jpg";
 
 function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === "AbortError";
