@@ -165,7 +165,12 @@ function Index() {
   const [deletePageId, setDeletePageId] = useState<number | null>(null);
   /** Why a locked action was refused, with a link to the plans screen. */
   const [paywall, setPaywall] = useState<string | null>(null);
-  const { signedIn } = useAccount();
+  const {
+    signedIn,
+    isFreePlan: freePlan,
+    allowanceLine: allowanceText,
+    pageAllowance: pageCap,
+  } = useAccount();
   /** Set when a free session was dropped for being older than 24 hours. */
   const [expiredNote, setExpiredNote] = useState<string | null>(null);
   /** When the free session stops being kept. */

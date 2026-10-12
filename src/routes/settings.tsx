@@ -28,7 +28,6 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { AccountChip } from "@/components/AccountChip";
 import { PLAN_LABELS } from "@/lib/plan";
 import { useAccount } from "@/lib/useAccount";
-import { bookAllowance, pageAllowance } from "@/lib/usage";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
