@@ -56,3 +56,4 @@
   open a real site instead of a parking page. Remaining lever needs Ahmed: reputation builds over
   weeks of real sending.
 - Printed book ($24.99 one-time) built in test mode: checkout on each shelf book, payment recorded by the webhook, 5 bonus pages added once, print-ready PDF download. Tested end to end in test mode: paid with the test card, 5 bonus pages added once, 10-page print file, second tap gives no second charge.
+- [x] Promo video: "Watch how it works" button on cover opens Ahmed's video (preview; publish pending)
