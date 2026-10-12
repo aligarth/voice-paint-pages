@@ -27,7 +27,7 @@ import {
 
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
-import { PromoVideo, PromoVideoSection } from "@/components/PromoVideo";
+import { PromoVideoSection } from "@/components/PromoVideo";
 import { useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import {
