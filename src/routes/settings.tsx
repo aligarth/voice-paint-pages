@@ -28,7 +28,6 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { AccountChip } from "@/components/AccountChip";
 import { PLAN_LABELS } from "@/lib/plan";
 import { useAccount } from "@/lib/useAccount";
-import { bookAllowance, pageAllowance } from "@/lib/usage";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -90,8 +89,8 @@ function ManageButton() {
 }
 
 function Settings() {
-  const { signedIn, plan, account } = useAccount();
-  const pageCap = pageAllowance();
+  const { signedIn, plan, account, pageAllowance, bookAllowance } = useAccount();
+  const pageCap = pageAllowance;
   const unlimited = !Number.isFinite(pageCap);
 
   return (
@@ -107,7 +106,7 @@ function Settings() {
         <section className="space-y-4 rounded-2xl border-2 border-border bg-card p-5">
           <p className="text-lg font-extrabold">Plan: {PLAN_LABELS[plan]}</p>
           <Meter label="Pages this month" used={account.pages} cap={pageCap} />
-          <Meter label="Books this month" used={account.books} cap={bookAllowance()} />
+          <Meter label="Books this month" used={account.books} cap={bookAllowance} />
           <p className="text-xs font-semibold text-muted-foreground">Allowance resets on the 1st of each month.</p>
           {!unlimited && (
             <Link to="/plans" className="btn-crayon w-full justify-center">
