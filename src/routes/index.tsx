@@ -81,7 +81,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Speak it, Snap it, Type it, or Upload it. We'll draw it. Build a coloring book one page at a time.",
+          "Speak it, Snap it, Type it, or Upload it. We'll draw it. You color it. Build a coloring book one page at a time.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -927,7 +927,7 @@ function Index() {
             className="mx-auto w-full rounded-xl border-2 border-border"
           />
           <p className="mt-4 text-lg font-extrabold">
-            Speak it, Snap it, Type it, or Upload it. We&rsquo;ll draw it.
+            Speak it, Snap it, Type it, or Upload it. We&rsquo;ll draw it. You color it.
           </p>
           {expiredNote && (
             <p className="mt-3 text-sm font-semibold text-primary">{expiredNote}</p>
