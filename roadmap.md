@@ -17,6 +17,10 @@
   start screen, in page titles/descriptions, and in the promo video.
 - Live site re-published: voice-paint-pages.lovable.app now serves the "Color My Words" cover and
   the new motto (checked in the served page and in the picture the live site sends).
+- Live site re-published again with the newest saved code: the sign-up / password-reset email
+  screens now respond at the live address (they were "page not found" before). Cover, motto, tab
+  title and plan prices re-checked in the served page; fresh safety check before publishing found
+  nothing serious.
 
 ## Open
 - Blocker: no email sender is configured for this project, so confirmation emails can't be delivered
