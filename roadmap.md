@@ -11,6 +11,8 @@
 - Pages, books, coloring and monthly limits now live in the signed-in person's own space; the
   bookshelf and page creation ask for sign-in first.
 - Anything already drawn on this device is copied into the account the first time they sign in.
+- App renamed to "Color My Words": cover picture re-lettered and every title, shared-link line,
+  readme and promo card updated.
 
 ## Open
 - Blocker: no email sender is configured for this project, so confirmation emails can't be delivered
