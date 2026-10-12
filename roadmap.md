@@ -39,6 +39,10 @@
   previews and the site's own canonical/address tags switched over to colormywords.app.
 
 - Owner dashboard at /dashboard (link in Settings, owner account only): sign-ups, confirmed emails, paid upgrades, printed books sold, newest accounts.
+- Printed book is $24.99 total with sales tax taken out of that price, not added on top.
+- Installable on phones and computers: home-screen icon (the boy with the yellow crayon on the cover
+  green), full-screen launch, app name "Color My Words". Published to colormywords.app together with
+  the approved cover whose afro reads "All Races, All Ages, All Languages Welcome!"
 
 ## Open
 - Ahmed's confirmation that the junk-folder tips clear the issue for his iCloud address — the
