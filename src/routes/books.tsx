@@ -32,7 +32,13 @@ import {
   saveBookRecord,
   type SavedBook,
 } from "@/lib/savedBooks";
-import { exportPagesToPdf } from "@/lib/exportPdf";
+import { downloadPrintedBookPdf, exportPagesToPdf } from "@/lib/exportPdf";
+import { useServerFn } from "@tanstack/react-start";
+import { claimPrintedBookBonus, getPrintedBookStatus } from "@/lib/printedBook.functions";
+import { BONUS_PAGES, PRINTED_BOOK_PRICE, PRINTED_BOOK_PRICE_ID, bonusPrompts } from "@/lib/printedBook";
+import { streamImage } from "@/lib/streamImage";
+import { sealLineArt } from "@/lib/sealLineArt";
+import { PaymentTestModeBanner, PlanCheckout } from "@/components/PlanCheckout";
 import { createBookShareLink, shareBookFile } from "@/lib/shareBook";
 import { exportPagesToZip } from "@/lib/exportZip";
 import { downloadFlattenedPage } from "@/lib/flattenPage";
@@ -47,8 +53,11 @@ import { clearSession, saveSession } from "@/lib/session";
 type View = "pages" | "bookshelf";
 
 export const Route = createFileRoute("/books")({
-  validateSearch: (search: Record<string, unknown>): { view: View } => ({
+  validateSearch: (search: Record<string, unknown>): { view: View; printed?: string | undefined } => ({
     view: search["view"] === "bookshelf" ? "bookshelf" : "pages",
+    ...(typeof search["printed"] === "string" && /^[0-9a-f-]{36}$/i.test(search["printed"])
+      ? { printed: search["printed"] }
+      : {}),
   }),
   head: () => ({
     meta: [
@@ -93,6 +102,15 @@ function BooksPage() {
   /** Why a locked action was refused, with a link to the plans screen. */
   const [paywall, setPaywall] = useState<string | null>(null);
   const { signedIn } = useAccount();
+  const { printed } = Route.useSearch();
+  const printedStatus = useServerFn(getPrintedBookStatus);
+  const claimBonus = useServerFn(claimPrintedBookBonus);
+  const [printing, setPrinting] = useState<{
+    bookId: string;
+    title: string;
+    phase: "checkout" | "waiting" | "making" | "ready";
+    done: number;
+  } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearUndo = () => {
@@ -407,6 +425,85 @@ function BooksPage() {
     }
   };
 
+  /** Builds the print-ready PDF from every page of the book. */
+  const downloadPrinted = async (bookId: string) => {
+    try {
+      const full = await openBookRecord(bookId);
+      await downloadPrintedBookPdf(
+        full.title,
+        full.pages.map((src, i) => ({ src, paint: full.paints?.[i] ?? null })),
+      );
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not build the printed book.");
+    }
+  };
+
+  /** Adds the bonus pages once (server-claimed), then offers the download. */
+  const finishPrinted = async (bookId: string) => {
+    const full = await openBookRecord(bookId);
+    setPrinting({ bookId, title: full.title, phase: "making", done: 0 });
+    try {
+      const { claimed } = await claimBonus({ data: { bookId } });
+      if (claimed) {
+        const prompts = bonusPrompts(full.title, full.pageTitles ?? []);
+        const pages = [...full.pages];
+        const paints = [...(full.paints ?? full.pages.map(() => null))];
+        const titles = [...(full.pageTitles ?? full.pages.map(() => ""))];
+        for (let i = 0; i < prompts.length; i += 1) {
+          let last = "";
+          await streamImage("/api/generate-image", prompts[i]!, (src, isFinal) => {
+            if (isFinal) last = src;
+          });
+          if (last) {
+            pages.push(await sealLineArt(last));
+            paints.push(null);
+            titles.push(`Bonus page ${i + 1}`);
+          }
+          setPrinting((p) => (p ? { ...p, done: i + 1 } : p));
+        }
+        setBooks(
+          await saveBookRecord({ ...full, pages, paints, pageTitles: titles, pageCount: pages.length, savedAt: Date.now() }),
+        );
+      }
+      setPrinting({ bookId, title: full.title, phase: "ready", done: BONUS_PAGES });
+    } catch (err) {
+      setPrinting(null);
+      setMessage(err instanceof Error ? err.message : "Could not finish the printed book.");
+    }
+  };
+
+  const startPrinted = async (book: SavedBook) => {
+    setMessage(null);
+    const status = await printedStatus({ data: { bookId: book.id } });
+    if (status.purchased) return finishPrinted(book.id);
+    setPrinting({ bookId: book.id, title: book.title, phase: "checkout", done: 0 });
+  };
+
+  // Back from checkout: wait for the payment notice, then finish the book.
+  useEffect(() => {
+    if (!printed || !signedIn) return;
+    let active = true;
+    setPrinting({ bookId: printed, title: "your book", phase: "waiting", done: 0 });
+    void (async () => {
+      for (let i = 0; i < 30 && active; i += 1) {
+        const s = await printedStatus({ data: { bookId: printed } }).catch(() => null);
+        if (s?.purchased) {
+          if (active) await finishPrinted(printed);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (active) {
+        setPrinting(null);
+        setMessage("Payment is still being confirmed — tap “Get printed book” again in a minute.");
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printed, signedIn]);
+
   const isPages = view === "pages";
   /** On the shelf we show closed books until one is tapped open. */
   const shelfClosed = !isPages && openBookId === null;
@@ -526,6 +623,39 @@ function BooksPage() {
               <button type="button" className="btn-crayon" onClick={() => void undoDeleteBook()}>
                 <RotateCcw className="h-4 w-4" /> Undo delete
               </button>
+            )}
+          </div>
+        )}
+
+        {printing && (
+          <div className="paper-card mt-4 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-bold">
+                {printing.phase === "checkout" && `Printed book for “${printing.title}” — ${PRINTED_BOOK_PRICE}, paid once.`}
+                {printing.phase === "waiting" && "Payment received — confirming it…"}
+                {printing.phase === "making" && `Making your printed book… drawing bonus pages (${printing.done} of ${BONUS_PAGES}).`}
+                {printing.phase === "ready" && `Your printed book for “${printing.title}” is ready.`}
+              </p>
+              <div className="flex gap-2">
+                {printing.phase === "ready" && (
+                  <button type="button" className="btn-crayon" onClick={() => void downloadPrinted(printing.bookId)}>
+                    <Download className="h-4 w-4" /> Download printed book
+                  </button>
+                )}
+                <button type="button" className="btn-crayon" onClick={() => setPrinting(null)}>
+                  <X className="h-4 w-4" /> Close
+                </button>
+              </div>
+            </div>
+            {printing.phase === "checkout" && (
+              <>
+                <PaymentTestModeBanner />
+                <PlanCheckout
+                  priceId={PRINTED_BOOK_PRICE_ID}
+                  bookId={printing.bookId}
+                  returnPath={`/books?view=bookshelf&printed=${printing.bookId}`}
+                />
+              </>
             )}
           </div>
         )}
