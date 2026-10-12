@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — Color My World" },
+      { title: "Sign in — Color My Words" },
       {
         name: "description",
         content:
           "Sign in to keep your coloring pages, books and premium plan private to you, on any device.",
       },
-      { property: "og:title", content: "Sign in — Color My World" },
+      { property: "og:title", content: "Sign in — Color My Words" },
       {
         property: "og:description",
         content: "Your pages, books and plan — private to your own account.",

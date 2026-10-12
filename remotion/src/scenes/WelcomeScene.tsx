@@ -81,7 +81,7 @@ export const WelcomeScene: React.FC = () => {
           marginTop: 8,
         }}
       >
-        Color My World
+        Color My Words
       </div>
     </AbsoluteFill>
   );

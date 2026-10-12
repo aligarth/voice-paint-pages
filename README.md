@@ -1,4 +1,4 @@
-# COLOR MY WORLD
+# COLOR MY WORDS
 
 I need a on demand coloring book app that allows a person to speak what they want to draw and the number of pages they would like and be able to color it as well in the app by explaining the picture using there phone/tablet/computer microphone. in the app i need multiple size paint brushes and crayons along with all colors that have ever been created
 

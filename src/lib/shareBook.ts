@@ -29,7 +29,7 @@ export async function shareBookFile(title: string, sources: FlattenSource[]): Pr
       await nav.share({
         files: [file],
         title,
-        text: `${title} — a coloring book made in Color My World`,
+        text: `${title} — a coloring book made in Color My Words`,
       });
       return { shared: true, downloaded: false };
     } catch (error) {

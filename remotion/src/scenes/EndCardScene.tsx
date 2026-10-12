@@ -70,7 +70,7 @@ export const EndCardScene: React.FC = () => {
           lineHeight: 1.1,
         }}
       >
-        Color My World
+        Color My Words
       </div>
 
       <div

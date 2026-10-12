@@ -32,7 +32,7 @@ for (const comp of compositions) {
     puppeteerInstance: browser,
   });
 
-  const outputLocation = `/mnt/documents/color-my-world-promo-${comp.suffix}.mp4`;
+  const outputLocation = `/mnt/documents/color-my-words-promo-${comp.suffix}.mp4`;
   await renderMedia({
     composition,
     serveUrl: bundled,

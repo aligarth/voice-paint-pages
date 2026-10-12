@@ -8,13 +8,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/plans")({
   head: () => ({
     meta: [
-      { title: "Plans — Color My World" },
+      { title: "Plans — Color My Words" },
       {
         name: "description",
         content:
           "Color a page free, or pick a plan for more pages every month, saved books, printing and a printed book for $1.",
       },
-      { property: "og:title", content: "Plans — Color My World" },
+      { property: "og:title", content: "Plans — Color My Words" },
       {
         property: "og:description",
         content:
