@@ -8,6 +8,13 @@
       "when": 1791755543401,
       "tag": "0000_create_account_library",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791773302950,
+      "tag": "0001_plan_subscriptions",
+      "breakpoints": true
     }
   ]
 }

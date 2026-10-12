@@ -16,18 +16,30 @@ export type Database = {
     Tables: {
       account_plans: {
         Row: {
+          environment: string | null
           owner_id: string
           plan: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
           updated_at: string
         }
         Insert: {
+          environment?: string | null
           owner_id: string
           plan?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Update: {
+          environment?: string | null
           owner_id?: string
           plan?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
         }
         Relationships: []

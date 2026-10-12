@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Paid plans are granted only by the payment webhook writing account_plans (service role); price ids map to plans in src/lib/subscriptionPlan.ts — keeps entitlements server-controlled.
