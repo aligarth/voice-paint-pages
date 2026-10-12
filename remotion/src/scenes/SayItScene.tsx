@@ -47,7 +47,7 @@ export const SayItScene: React.FC = () => {
           top: isVertical ? height * 0.09 : height * 0.07,
         }}
       >
-        Say it.
+        Speak it.
       </div>
 
       <div
