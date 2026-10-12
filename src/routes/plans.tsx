@@ -69,7 +69,7 @@ const TIERS: Tier[] = [
       "Unlimited AI pages",
       "Unlimited books in My Bookshelf",
       "Everything in Coloring Plus",
-      "Printed book for $1 — up to 10 pages",
+      "Printed book for $24.99 — up to 10 pages",
     ],
   },
 ];
