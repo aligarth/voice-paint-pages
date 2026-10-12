@@ -15,6 +15,7 @@ import { Route as BooksRouteImport } from './routes/books'
 import { Route as GithubRouteImport } from './routes/github'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiGenerateImageRouteImport } from './routes/api/generate-image'
 import { Route as ApiPhotoToLineartRouteImport } from './routes/api/photo-to-lineart'
 import { Route as GalleryIdRouteImport } from './routes/gallery.$id'
@@ -49,6 +50,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGenerateImageRoute = ApiGenerateImageRouteImport.update({
   id: '/api/generate-image',
   path: '/api/generate-image',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/settings': typeof SettingsRoute
   '/api/generate-image': typeof ApiGenerateImageRoute
   '/api/photo-to-lineart': typeof ApiPhotoToLineartRoute
   '/gallery/$id': typeof GalleryIdRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/github'
     | '/plans'
     | '/reset-password'
+    | '/settings'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/github'
     | '/plans'
     | '/reset-password'
+    | '/settings'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/github'
     | '/plans'
     | '/reset-password'
+    | '/settings'
     | '/api/generate-image'
     | '/api/photo-to-lineart'
     | '/gallery/$id'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   GithubRoute: typeof GithubRoute
   PlansRoute: typeof PlansRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SettingsRoute: typeof SettingsRoute
   ApiGenerateImageRoute: typeof ApiGenerateImageRoute
   ApiPhotoToLineartRoute: typeof ApiPhotoToLineartRoute
   GalleryIdRoute: typeof GalleryIdRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/generate-image': {
       id: '/api/generate-image'
       path: '/api/generate-image'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   GithubRoute: GithubRoute,
   PlansRoute: PlansRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SettingsRoute: SettingsRoute,
   ApiGenerateImageRoute: ApiGenerateImageRoute,
   ApiPhotoToLineartRoute: ApiPhotoToLineartRoute,
   GalleryIdRoute: GalleryIdRoute,
