@@ -15,6 +15,8 @@
   readme and promo card updated.
 - Motto changed to "Speak it, Snap it, Type it, or Upload it. We'll draw it. You color it." on the
   start screen, in page titles/descriptions, and in the promo video.
+- Live site re-published: voice-paint-pages.lovable.app now serves the "Color My Words" cover and
+  the new motto (checked in the served page and in the picture the live site sends).
 
 ## Open
 - Blocker: no email sender is configured for this project, so confirmation emails can't be delivered
