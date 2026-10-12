@@ -13,7 +13,7 @@ const SITE_NAME = "Color My Words"
 const SENDER_DOMAIN = "notify.colormywords.app"
 const ROOT_DOMAIN = "colormywords.app"
 const FROM_DOMAIN = "colormywords.app"
-const SITE_URL = `https://${ROOT_DOMAIN}`
+const SITE_URL = "https://voice-paint-pages.lovable.app"
 
 // The SDK handler owns verification, dispatch, and retry semantics; this file
 // owns only the email decisions: subjects, templates, and per-type props.

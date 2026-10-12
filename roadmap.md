@@ -40,5 +40,5 @@
 - The test account alimagarsa@icloud.com stays in the backend until Ahmed says to remove it.
 - Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
   directly in the database for now.
-- Payments: $9.99 Coloring Plus and $24.99 Coloring Unlimited checkout (test mode) — in progress.
-- Email reputation: get sign-up/reset emails into inboxes for everyone, not just Ahmed — queued.
+- Payments: $9.99 Coloring Plus and $24.99 Coloring Unlimited checkout built (test mode); test payment went through — plan switch-on waits for the preview to finish updating so payment notices reach it. Going live needs Ahmed to finish the steps in the Payments tab.
+- Email reputation: emails now link to the working live site (colormywords.app didn't load — a spam signal). Remaining levers need Ahmed: put a website on colormywords.app, and reputation builds over weeks of real sending.
