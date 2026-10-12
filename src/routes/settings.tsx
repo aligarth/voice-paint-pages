@@ -1,5 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Sparkles } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+
+import { createPortalSession } from "@/lib/payments.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 import { AccountChip } from "@/components/AccountChip";
 import { PLAN_LABELS } from "@/lib/plan";
@@ -39,6 +44,30 @@ function Meter({ label, used, cap }: { label: string; used: number; cap: number 
   );
 }
 
+function ManageButton() {
+  const portal = useServerFn(createPortalSession);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div>
+      <button
+        type="button"
+        className="btn-crayon w-full justify-center"
+        onClick={async () => {
+          setError(null);
+          const r = await portal({
+            data: { returnUrl: `${window.location.origin}/settings`, environment: getStripeEnvironment() },
+          });
+          if ("error" in r) setError(r.error);
+          else window.open(r.url, "_blank");
+        }}
+      >
+        Manage subscription
+      </button>
+      {error && <p className="mt-1 text-xs font-semibold text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 function Settings() {
   const { signedIn, plan, account } = useAccount();
   const pageCap = pageAllowance();
@@ -61,9 +90,10 @@ function Settings() {
           <p className="text-xs font-semibold text-muted-foreground">Allowance resets on the 1st of each month.</p>
           {!unlimited && (
             <Link to="/plans" className="btn-crayon w-full justify-center">
-              <Sparkles className="h-4 w-4" /> Unlock unlimited pages
+              <Sparkles className="h-4 w-4" /> {plan === "free" ? "See plans" : "Upgrade to Unlimited"}
             </Link>
           )}
+          {plan !== "free" && <ManageButton />}
         </section>
       )}
     </main>
