@@ -29,12 +29,14 @@
   accepted, password-reset email sent and accepted, and Settings shows the real plan and pages
   left ("Plan: Free", "1 of 1 left").
 
+- Deliverability polish published to the live site: branded subject lines on all sign-up and
+  password-reset emails, plus the "check your junk folder, tap Not Junk" tips on the sign-up and
+  reset screens. Checked in the code the live address actually serves, and proven by a real
+  password-reset email that was accepted and delivered from the new build.
+
 ## Open
-- Ahmed confirmed the emails arrive but land in the iCloud junk folder — expected for a brand-new
-  sending domain (no reputation yet). App-side polish shipped: branded subject lines on all auth
-  emails ("Confirm your email — Color My Words" etc.) and a "check your junk folder, tap Not Junk"
-  hint shown after sign-up and after a password reset. Primary fix is recipient-side: marking the
-  message Not Junk trains iCloud's filter; new-domain reputation improves over the coming weeks.
+- Ahmed's confirmation that the junk-folder tips clear the issue for his iCloud address — the
+  main fix is marking a message "Not Junk" in iCloud, which trains the filter over time.
 - The test account alimagarsa@icloud.com stays in the backend until Ahmed says to remove it.
 - Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
   directly in the database for now.
