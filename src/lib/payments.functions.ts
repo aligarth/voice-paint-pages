@@ -89,7 +89,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         ...(isBook
           ? { payment_intent_data: { description } }
           : { subscription_data: { metadata: { userId } } }),
-      } as Stripe.Checkout.SessionCreateParams);
+      } as unknown as Stripe.Checkout.SessionCreateParams);
       return { clientSecret: session.client_secret ?? "" };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
