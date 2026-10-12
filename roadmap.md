@@ -43,6 +43,9 @@
 - Installable on phones and computers: home-screen icon (the boy with the yellow crayon on the cover
   green), full-screen launch, app name "Color My Words". Published to colormywords.app together with
   the approved cover whose afro reads "All Races, All Ages, All Languages Welcome!"
+- Fixed the screen-rebuild error signed-in visitors hit on every page load: the shared account state
+  now starts from a fixed "nobody signed in yet" snapshot, so the first client render matches the
+  server's. Verified on the live site signed in — no errors on /settings; typecheck, tests and build clean.
 
 ## Open
 - Ahmed's confirmation that the junk-folder tips clear the issue for his iCloud address — the
