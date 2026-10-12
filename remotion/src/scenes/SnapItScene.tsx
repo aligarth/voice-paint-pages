@@ -51,7 +51,7 @@ export const SnapItScene: React.FC = () => {
           top: isVertical ? height * 0.08 : height * 0.07,
         }}
       >
-        Or snap it.
+        Snap it.
       </div>
 
       <div
