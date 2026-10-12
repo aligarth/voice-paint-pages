@@ -9,8 +9,8 @@ A "Watch how it works" play button on the landing (cover) screen. Tapping it ope
 
 ## Steps
 
-1. **Receive the video file** (waits on Ahmed — attach it in chat). Accepted formats: MP4, MOV, WebM, up to 20 MB per message. If it's a MOV, convert to MP4 (H.264/AAC) for phone and desktop compatibility.
-2. **Upload to CDN:** run the asset CLI on the file, save the returned `.asset.json` pointer under `src/assets/`, and reference the CDN URL in code. If the file is over ~20 MB, compress it with ffmpeg first (1080p target) and confirm the video still looks good.
+1. **Video received:** "Retimed video with upbeat music and subtitles" — 46 seconds, 1280×720 widescreen, MP4 (H.264 + AAC), 11.6 MB. Already plays on phones and computers; no conversion needed.
+2. **Upload to CDN:** run the asset CLI on the file, save the returned `.asset.json` pointer under `src/assets/promo-video.mp4.asset.json`, and reference the CDN URL in code.
 3. **Poster frame:** extract a still frame from the video with ffmpeg so the player shows the video's opening image instead of a black box before play.
 4. **Add the player component** (`src/components/PromoVideo.tsx`):
    - A "Watch how it works" button on the cover screen of `src/routes/index.tsx`.
