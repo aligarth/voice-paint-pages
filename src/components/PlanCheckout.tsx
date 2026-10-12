@@ -5,20 +5,29 @@ import { useCallback } from "react";
 import { createCheckoutSession } from "@/lib/payments.functions";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 
-export function PlanCheckout({ priceId }: { priceId: string }) {
+export function PlanCheckout({
+  priceId,
+  bookId,
+  returnPath = "/plans?checkout=done",
+}: {
+  priceId: string;
+  bookId?: string | undefined;
+  returnPath?: string | undefined;
+}) {
   const create = useServerFn(createCheckoutSession);
   const fetchClientSecret = useCallback(async () => {
     const result = await create({
       data: {
         priceId,
-        returnUrl: `${window.location.origin}/plans?checkout=done`,
+        bookId,
+        returnUrl: `${window.location.origin}${returnPath}`,
         environment: getStripeEnvironment(),
       },
     });
     if ("error" in result) throw new Error(result.error);
     if (!result.clientSecret) throw new Error("Checkout could not start");
     return result.clientSecret;
-  }, [create, priceId]);
+  }, [create, priceId, bookId, returnPath]);
 
   return (
     <div className="mt-6 rounded-2xl border-2 border-border bg-card p-2">
