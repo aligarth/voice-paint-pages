@@ -28,8 +28,10 @@ export const Route = createFileRoute("/plans")({
         content: "Free coloring with one page a month, or a plan with more pages, saved books and printing.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://colormywords.app/plans" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://colormywords.app/plans" }],
   }),
   component: Plans,
 });

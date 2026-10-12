@@ -4,7 +4,7 @@ I need a on demand coloring book app that allows a person to speak what they wan
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://voice-paint-pages.lovable.app
+**Live app**: https://colormywords.app
 
 ## Build with Lovable
 

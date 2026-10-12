@@ -84,8 +84,10 @@ export const Route = createFileRoute("/")({
           "Speak it, Snap it, Type it, or Upload it. We'll draw it. You color it. Build a coloring book one page at a time.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://colormywords.app/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://colormywords.app/" }],
   }),
   component: Index,
 });

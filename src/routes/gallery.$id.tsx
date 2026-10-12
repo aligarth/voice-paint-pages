@@ -17,8 +17,10 @@ export const Route = createFileRoute("/gallery/$id")({
         content: "Flip through a finished coloring book, page by page, shared from Color My Words.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: `https://colormywords.app/gallery/${params.id}` },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: `https://colormywords.app/gallery/${params.id}` }],
   }),
   component: GalleryPage,
 });

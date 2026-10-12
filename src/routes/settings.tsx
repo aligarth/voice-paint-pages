@@ -19,8 +19,10 @@ export const Route = createFileRoute("/settings")({
       { property: "og:title", content: "Settings — Color My Words" },
       { property: "og:description", content: "Your plan and pages left this month in Color My Words." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://colormywords.app/settings" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://colormywords.app/settings" }],
   }),
   component: Settings,
 });
