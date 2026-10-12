@@ -27,7 +27,7 @@ import {
 
 import { ColoringCanvas } from "@/components/ColoringCanvas";
 import { MusicPlayer } from "@/components/MusicPlayer";
-import { PromoVideo } from "@/components/PromoVideo";
+import { PromoVideoSection } from "@/components/PromoVideo";
 import { useSpeech } from "@/lib/useSpeech";
 import { streamImage, streamImageFromPhoto } from "@/lib/streamImage";
 import {
@@ -926,7 +926,8 @@ function Index() {
   if (step === "cover") {
     return (
       <main className="mx-auto max-w-3xl px-4 py-10">
-        <div className="paper-card mx-auto max-w-md p-4 text-center sm:p-6">
+        <PromoVideoSection />
+        <div className="paper-card mx-auto mt-6 max-w-md p-4 text-center sm:p-6">
           <img
             src={coverArt}
             alt="Color My Words cover: a smiling boy with an afro and a camera, floating in outer space with planets, stars, and a red rocket"
@@ -961,7 +962,6 @@ function Index() {
             <BookOpen className="h-5 w-5" /> Start my book
           </button>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <PromoVideo />
             <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon text-sm">
               <BookOpen className="h-4 w-4" /> My Bookshelf
             </Link>
