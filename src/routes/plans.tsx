@@ -58,7 +58,7 @@ const TIERS: Tier[] = [
     price: "$24.99",
     every: "each month",
     blurb: "For a whole family, or a classroom.",
-    includes: ["Unlimited AI pages", "Unlimited books in My Bookshelf", "Everything in Coloring Plus", "Printed book for $24.99 — coming soon"],
+    includes: ["Unlimited AI pages", "Unlimited books in My Bookshelf", "Everything in Coloring Plus", "Printed book — $24.99 each, any plan"],
   },
 ];
 

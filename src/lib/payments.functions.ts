@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "./stripe.server";
 import { PRICE_TO_PLAN } from "./subscriptionPlan";
+import { PRINTED_BOOK_PRICE_ID } from "./printedBook";
 
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,
@@ -45,31 +46,50 @@ function checkEnv(env: unknown): StripeEnv {
 
 export const createCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { priceId: string; returnUrl: string; environment: StripeEnv }) => {
-    if (!(data.priceId in PRICE_TO_PLAN)) throw new Error("Invalid priceId");
-    if (typeof data.returnUrl !== "string" || data.returnUrl.length > 500) throw new Error("Invalid returnUrl");
-    return { ...data, environment: checkEnv(data.environment) };
-  })
+  .inputValidator(
+    (data: { priceId: string; returnUrl: string; environment: StripeEnv; bookId?: string | undefined }) => {
+      const isBook = data.priceId === PRINTED_BOOK_PRICE_ID;
+      if (!(data.priceId in PRICE_TO_PLAN) && !isBook) throw new Error("Invalid priceId");
+      if (isBook && (typeof data.bookId !== "string" || !/^[0-9a-f-]{36}$/i.test(data.bookId))) {
+        throw new Error("Choose a book first");
+      }
+      if (typeof data.returnUrl !== "string" || data.returnUrl.length > 500) throw new Error("Invalid returnUrl");
+      return { ...data, environment: checkEnv(data.environment) };
+    },
+  )
   .handler(async ({ data, context }): Promise<{ clientSecret: string } | { error: string }> => {
     try {
-      const { userId, claims } = context as any;
+      const { userId, claims, supabase } = context as any;
       const email = (claims?.email as string | undefined) ?? undefined;
+      const isBook = data.priceId === PRINTED_BOOK_PRICE_ID;
+      if (isBook) {
+        const { data: owned } = await supabase.from("books").select("id").eq("id", data.bookId).maybeSingle();
+        if (!owned) return { error: "That book isn't on your shelf." };
+      }
       const stripe = createStripeClient(data.environment);
       const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
       const price = prices.data[0];
       if (!price) throw new Error("Price not found");
       const customerId = await resolveOrCreateCustomer(stripe, { email, userId });
 
+      let description: string | undefined;
+      if (isBook) {
+        const productId = typeof price.product === "string" ? price.product : price.product.id;
+        description = (await stripe.products.retrieve(productId)).name;
+      }
+
       const session = await stripe.checkout.sessions.create({
         line_items: [{ price: price.id, quantity: 1 }],
-        mode: "subscription",
+        mode: isBook ? "payment" : "subscription",
         ui_mode: "embedded_page",
         return_url: data.returnUrl,
         customer: customerId,
         managed_payments: { enabled: true },
-        metadata: { userId, managed_payments: "true" },
-        subscription_data: { metadata: { userId } },
-      } as Stripe.Checkout.SessionCreateParams);
+        metadata: { userId, managed_payments: "true", ...(isBook ? { bookId: data.bookId! } : {}) },
+        ...(isBook
+          ? { payment_intent_data: { description } }
+          : { subscription_data: { metadata: { userId } } }),
+      } as unknown as Stripe.Checkout.SessionCreateParams);
       return { clientSecret: session.client_secret ?? "" };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
 import { planForSubscription } from "@/lib/subscriptionPlan";
+import { purchaseFromSession } from "@/lib/printedBook";
 
 async function applySubscription(sub: any, env: StripeEnv, deleted = false) {
   const userId = sub.metadata?.userId;
@@ -46,6 +47,18 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             case "customer.subscription.deleted":
               await applySubscription(event.data.object, rawEnv, true);
               break;
+            case "checkout.session.completed":
+            case "checkout.session.async_payment_succeeded": {
+              const row = purchaseFromSession(event.data.object, rawEnv);
+              if (row) {
+                const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+                const { error } = await supabaseAdmin
+                  .from("book_purchases")
+                  .upsert(row, { onConflict: "stripe_session_id", ignoreDuplicates: true });
+                if (error) throw new Error(error.message);
+              }
+              break;
+            }
             default:
               break;
           }
