@@ -3,6 +3,23 @@ import { Play, X } from "lucide-react";
 import videoAsset from "@/assets/promo-video.mp4.asset.json";
 import posterAsset from "@/assets/promo-poster.jpg.asset.json";
 
+/** A full section with the video playing inline — sits at the top of the start page. */
+export function PromoVideoSection() {
+  return (
+    <section aria-label="Watch how Color My Words works" className="paper-card mx-auto max-w-3xl p-4 sm:p-6">
+      <h2 className="text-center text-xl font-extrabold sm:text-2xl">Watch how it works</h2>
+      <video
+        src={videoAsset.url}
+        poster={posterAsset.url}
+        controls
+        playsInline
+        preload="metadata"
+        className="mt-4 aspect-video w-full rounded-xl border-2 border-border bg-card"
+      />
+    </section>
+  );
+}
+
 export function PromoVideo() {
   const [open, setOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
