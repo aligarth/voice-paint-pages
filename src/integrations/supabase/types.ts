@@ -82,6 +82,39 @@ export type Database = {
           },
         ]
       }
+      book_purchases: {
+        Row: {
+          bonus_added: boolean
+          book_id: string
+          created_at: string
+          environment: string
+          id: string
+          owner_id: string
+          status: string
+          stripe_session_id: string
+        }
+        Insert: {
+          bonus_added?: boolean
+          book_id: string
+          created_at?: string
+          environment: string
+          id?: string
+          owner_id: string
+          status?: string
+          stripe_session_id: string
+        }
+        Update: {
+          bonus_added?: boolean
+          book_id?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          owner_id?: string
+          status?: string
+          stripe_session_id?: string
+        }
+        Relationships: []
+      }
       books: {
         Row: {
           id: string
