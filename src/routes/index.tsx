@@ -962,7 +962,6 @@ function Index() {
             <BookOpen className="h-5 w-5" /> Start my book
           </button>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <PromoVideo />
             <Link to="/books" search={{ view: "bookshelf" }} className="btn-crayon text-sm">
               <BookOpen className="h-4 w-4" /> My Bookshelf
             </Link>
