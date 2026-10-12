@@ -121,7 +121,9 @@ function AuthPage() {
       setError(friendly(err.message));
       return;
     }
-    setNotice("If that email has an account, a reset link is on its way.");
+    setNotice(
+      "If that email has an account, a reset link is on its way. Not there? Check your junk folder and tap \"Not Junk\".",
+    );
   };
 
   return (
