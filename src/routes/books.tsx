@@ -854,6 +854,16 @@ function BooksPage() {
                   {!isPages && (
                     <button
                       type="button"
+                      className="btn-crayon bg-primary text-primary-foreground disabled:opacity-50"
+                      disabled={printing !== null && printing.phase !== "checkout"}
+                      onClick={() => void startPrinted(book)}
+                    >
+                      <BookOpen className="h-4 w-4" /> Get printed book — {PRINTED_BOOK_PRICE}
+                    </button>
+                  )}
+                  {!isPages && (
+                    <button
+                      type="button"
                       aria-expanded={sharePanelId === book.id}
                       className={cn(
                         "btn-crayon",
