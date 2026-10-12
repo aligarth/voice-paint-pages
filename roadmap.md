@@ -22,9 +22,16 @@
   title and plan prices re-checked in the served page; fresh safety check before publishing found
   nothing serious.
 
+- Email domain notify.colormywords.app verified in public DNS: nameserver handover plus the
+  sending, mail-routing and spam-check records all present and correct — nothing left to add at
+  the domain host.
+- Sign-up tested end to end on the live site: test account created, confirmation email sent and
+  accepted, password-reset email sent and accepted, and Settings shows the real plan and pages
+  left ("Plan: Free", "1 of 1 left").
+
 ## Open
-- Blocker: notify.colormywords.app is set up but still waiting on its DNS records being added at
-  the domain host, so confirmation emails can't be delivered yet and nobody can finish creating an
-  account. Verification usually takes a few minutes (up to 72 hours) once the records are in.
+- Awaiting confirmation from Ahmed that both emails landed in the iCloud inbox (not spam), that he
+  opened the confirmation link, and that the reset link reaches the new-password screen. The test
+  account alimagarsa@icloud.com stays in the backend until he says to remove it.
 - Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
   directly in the database for now.
