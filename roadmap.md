@@ -38,6 +38,8 @@
   domain set as primary (so the old lovable.app address redirects to it), and email links, page
   previews and the site's own canonical/address tags switched over to colormywords.app.
 
+- Owner dashboard at /dashboard (link in Settings, owner account only): sign-ups, confirmed emails, paid upgrades, printed books sold, newest accounts.
+
 ## Open
 - Ahmed's confirmation that the junk-folder tips clear the issue for his iCloud address — the
   main fix is marking a message "Not Junk" in iCloud, which trains the filter over time.
@@ -50,5 +52,4 @@
   weeks of real sending.
 - colormywords.app hosting setup still finishing (active_provisioning) — confirm it serves the app
   over https, then re-publish so the live site carries the new address in its email links and tags.
-- Printed book: $24.99 one-time print-ready PDF (cover, title page, numbered pages, 5 bonus AI pages) — building.
-- Owner dashboard: new sign-ups, confirmed emails, paid plan upgrades — owner-only (Ahmed).
+- Printed book ($24.99 one-time) built in test mode: checkout on each shelf book, payment recorded by the webhook, 5 bonus pages added once, print-ready PDF download. Not yet tried end to end — the test account has no books yet.
