@@ -30,7 +30,7 @@ export function PlanCheckout({ priceId }: { priceId: string }) {
 }
 
 export function PaymentTestModeBanner() {
-  const token = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
+  const token = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
   if (!token) {
     return (
       <div className="w-full border-b border-destructive bg-destructive/10 px-4 py-2 text-center text-sm text-destructive">

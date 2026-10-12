@@ -11,8 +11,8 @@ import { useAccount } from "@/lib/useAccount";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/plans")({
-  validateSearch: (s: Record<string, unknown>): { checkout?: string } => ({
-    checkout: typeof s.checkout === "string" ? s.checkout : undefined,
+  validateSearch: (s: Record<string, unknown>): { checkout?: string | undefined } => ({
+    checkout: typeof s["checkout"] === "string" ? s["checkout"] : undefined,
   }),
   head: () => ({
     meta: [

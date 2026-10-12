@@ -7,7 +7,7 @@ import { PRICE_TO_PLAN } from "./subscriptionPlan";
 
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,
-  options: { email?: string; userId?: string },
+  options: { email?: string | undefined; userId?: string | undefined },
 ): Promise<string> {
   if (options.userId && !/^[a-zA-Z0-9_-]+$/.test(options.userId)) {
     throw new Error("Invalid userId");
@@ -17,13 +17,13 @@ async function resolveOrCreateCustomer(
       query: `metadata['userId']:'${options.userId}'`,
       limit: 1,
     });
-    if (found.data.length) return found.data[0].id;
+    if (found.data[0]) return found.data[0].id;
   }
   if (options.email) {
     const existing = await stripe.customers.list({ email: options.email, limit: 1 });
-    if (existing.data.length) {
+    if (existing.data[0]) {
       const customer = existing.data[0];
-      if (options.userId && customer.metadata?.userId !== options.userId) {
+      if (options.userId && customer.metadata?.["userId"] !== options.userId) {
         await stripe.customers.update(customer.id, {
           metadata: { ...customer.metadata, userId: options.userId },
         });
@@ -56,11 +56,12 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       const email = (claims?.email as string | undefined) ?? undefined;
       const stripe = createStripeClient(data.environment);
       const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
-      if (!prices.data.length) throw new Error("Price not found");
+      const price = prices.data[0];
+      if (!price) throw new Error("Price not found");
       const customerId = await resolveOrCreateCustomer(stripe, { email, userId });
 
       const session = await stripe.checkout.sessions.create({
-        line_items: [{ price: prices.data[0].id, quantity: 1 }],
+        line_items: [{ price: price.id, quantity: 1 }],
         mode: "subscription",
         ui_mode: "embedded_page",
         return_url: data.returnUrl,
