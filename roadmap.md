@@ -50,3 +50,5 @@
   weeks of real sending.
 - colormywords.app hosting setup still finishing (active_provisioning) — confirm it serves the app
   over https, then re-publish so the live site carries the new address in its email links and tags.
+- Printed book: $24.99 one-time print-ready PDF (cover, title page, numbered pages, 5 bonus AI pages) — building.
+- Owner dashboard: new sign-ups, confirmed emails, paid plan upgrades — owner-only (Ahmed).
