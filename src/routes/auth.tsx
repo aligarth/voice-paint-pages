@@ -121,7 +121,9 @@ function AuthPage() {
       setError(friendly(err.message));
       return;
     }
-    setNotice("If that email has an account, a reset link is on its way.");
+    setNotice(
+      "If that email has an account, a reset link is on its way. Not there? Check your junk folder and tap \"Not Junk\".",
+    );
   };
 
   return (
@@ -144,6 +146,10 @@ function AuthPage() {
             <p className="mt-2 text-sm font-semibold text-muted-foreground">
               We sent a confirmation link to {email.trim().toLowerCase()}. Open it to finish
               setting up, then come back and sign in.
+            </p>
+            <p className="mt-2 text-xs font-semibold text-muted-foreground">
+              Not there? Look in your junk folder and tap "Not Junk" — that makes sure our next
+              emails reach your inbox.
             </p>
             <button
               type="button"
