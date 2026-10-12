@@ -90,7 +90,7 @@ function ManageButton() {
 }
 
 function Settings() {
-  const { signedIn, plan, account } = useAccount();
+  const { signedIn, plan, account, pageAllowance, bookAllowance } = useAccount();
   const pageCap = pageAllowance();
   const unlimited = !Number.isFinite(pageCap);
 
