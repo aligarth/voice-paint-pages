@@ -47,6 +47,15 @@ export function accountState(): AccountState {
   return state;
 }
 
+/**
+ * What a server render (and the first client render that matches it) sees:
+ * nobody signed in. Keeping this a constant is what stops the screen being
+ * rebuilt the moment a returning visitor's session is picked up.
+ */
+export function serverAccountState(): AccountState {
+  return EMPTY;
+}
+
 /** Lets React re-render when the plan, counters or signer change. */
 export function subscribeAccount(listener: () => void) {
   listeners.add(listener);

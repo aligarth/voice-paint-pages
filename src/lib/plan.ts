@@ -16,16 +16,20 @@ function validOverride(raw: string | null): raw is PlanId {
   return raw === "free" || raw === "standard" || raw === "premium";
 }
 
-export function currentPlan(): PlanId {
-  if (import.meta.env.DEV) {
-    try {
-      const raw = window.localStorage.getItem(OVERRIDE_KEY);
-      if (validOverride(raw)) return raw;
-    } catch {
-      /* storage unavailable — fall through to the real plan */
-    }
+/** The dev-only plan switch, or null when it isn't set (always in a real build). */
+export function devPlanOverride(): PlanId | null {
+  if (!import.meta.env.DEV || typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(OVERRIDE_KEY);
+    return validOverride(raw) ? raw : null;
+  } catch {
+    /* storage unavailable — no override */
+    return null;
   }
-  return accountState().plan;
+}
+
+export function currentPlan(): PlanId {
+  return devPlanOverride() ?? accountState().plan;
 }
 
 export function planLimits() {
