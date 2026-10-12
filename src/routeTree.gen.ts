@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BooksRouteImport } from './routes/books'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as GithubRouteImport } from './routes/github'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -36,6 +37,11 @@ const AuthRoute = AuthRouteImport.update({
 const BooksRoute = BooksRouteImport.update({
   id: '/books',
   path: '/books',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GithubRoute = GithubRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
+  '/dashboard': typeof DashboardRoute
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
+  '/dashboard': typeof DashboardRoute
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/books': typeof BooksRoute
+  '/dashboard': typeof DashboardRoute
   '/github': typeof GithubRoute
   '/plans': typeof PlansRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/books'
+    | '/dashboard'
     | '/github'
     | '/plans'
     | '/reset-password'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/books'
+    | '/dashboard'
     | '/github'
     | '/plans'
     | '/reset-password'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/books'
+    | '/dashboard'
     | '/github'
     | '/plans'
     | '/reset-password'
@@ -188,6 +200,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   BooksRoute: typeof BooksRoute
+  DashboardRoute: typeof DashboardRoute
   GithubRoute: typeof GithubRoute
   PlansRoute: typeof PlansRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/books'
       fullPath: '/books'
       preLoaderRoute: typeof BooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/github': {
@@ -300,6 +320,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   BooksRoute: BooksRoute,
+  DashboardRoute: DashboardRoute,
   GithubRoute: GithubRoute,
   PlansRoute: PlansRoute,
   ResetPasswordRoute: ResetPasswordRoute,
