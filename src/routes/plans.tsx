@@ -62,14 +62,14 @@ const TIERS: Tier[] = [
   },
   {
     id: "premium",
-    price: "$25.99",
+    price: "$24.99",
     every: "each month",
     blurb: "For a whole family, or a classroom.",
     includes: [
       "Unlimited AI pages",
       "Unlimited books in My Bookshelf",
       "Everything in Coloring Plus",
-      "Printed book for $1 — up to 10 pages",
+      "Printed book for $24.99 — up to 10 pages",
     ],
   },
 ];
