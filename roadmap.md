@@ -30,8 +30,11 @@
   left ("Plan: Free", "1 of 1 left").
 
 ## Open
-- Awaiting confirmation from Ahmed that both emails landed in the iCloud inbox (not spam), that he
-  opened the confirmation link, and that the reset link reaches the new-password screen. The test
-  account alimagarsa@icloud.com stays in the backend until he says to remove it.
+- Ahmed confirmed the emails arrive but land in the iCloud junk folder — expected for a brand-new
+  sending domain (no reputation yet). App-side polish shipped: branded subject lines on all auth
+  emails ("Confirm your email — Color My Words" etc.) and a "check your junk folder, tap Not Junk"
+  hint shown after sign-up and after a password reset. Primary fix is recipient-side: marking the
+  message Not Junk trains iCloud's filter; new-domain reputation improves over the coming weeks.
+- The test account alimagarsa@icloud.com stays in the backend until Ahmed says to remove it.
 - Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
   directly in the database for now.
