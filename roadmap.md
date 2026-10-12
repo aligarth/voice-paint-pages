@@ -48,12 +48,8 @@
 - Ahmed's confirmation that the junk-folder tips clear the issue for his iCloud address — the
   main fix is marking a message "Not Junk" in iCloud, which trains the filter over time.
 - The test account alimagarsa@icloud.com stays in the backend until Ahmed says to remove it.
-- Payments still disconnected: /plans shows "Coming soon", and premium status can only be changed
-  directly in the database for now.
 - Payments: $9.99 Coloring Plus and $24.99 Coloring Unlimited checkout built (test mode); test payment went through — plan switch-on waits for the preview to finish updating so payment notices reach it. Going live needs Ahmed to finish the steps in the Payments tab.
 - Email reputation: colormywords.app is now connected as the app's main web address, so email links
   open a real site instead of a parking page. Remaining lever needs Ahmed: reputation builds over
   weeks of real sending.
-- colormywords.app hosting setup still finishing (active_provisioning) — confirm it serves the app
-  over https, then re-publish so the live site carries the new address in its email links and tags.
 - Printed book ($24.99 one-time) built in test mode: checkout on each shelf book, payment recorded by the webhook, 5 bonus pages added once, print-ready PDF download. Tested end to end in test mode: paid with the test card, 5 bonus pages added once, 10-page print file, second tap gives no second charge.
